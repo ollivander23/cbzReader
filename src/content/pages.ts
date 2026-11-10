@@ -93,7 +93,7 @@ export const PAGES: PageContent[] = [
         answer: 'Yes. The reader runs entirely in your browser and does not require an account.',
       },
     ],
-    related: ['/how-to-open-cbz/', '/manga-reader/', '/cbz-vs-cbr/'],
+    related: ['/what-is-a-cbz-file/', '/how-to-open-cbz/', '/manga-reader/', '/cbz-vs-cbr/'],
   },
   {
     path: '/read-cbz-online/',
@@ -145,7 +145,7 @@ export const PAGES: PageContent[] = [
           'The browser has to read the archive directory and decode the first image. After that, nearby pages are preloaded in the background. On phones, very large pages are downsampled to stay inside the tab memory limit.',
       },
     ],
-    related: ['/', '/how-to-open-cbz/', '/privacy/'],
+    related: ['/', '/how-to-open-cbz/', '/what-is-a-cbz-file/', '/privacy/'],
   },
   {
     path: '/manga-reader/',
@@ -238,7 +238,7 @@ export const PAGES: PageContent[] = [
         heading: 'Open a CBZ on Android',
         bullets: [
           'Open the site in Chrome and use the file picker, or drag the file in on a tablet.',
-          'If you install the site to your home screen, Android can share a file to it from the Files app.',
+          'Adding the site to your home screen gives you a shortcut, but the site does not register a share target, so you still pick the file with the button.',
           'Android file pickers are generally more tolerant of the .cbz extension than iOS.',
         ],
       },
@@ -271,7 +271,7 @@ export const PAGES: PageContent[] = [
           'Yes, with a separate conversion tool. This site does not convert files; it reads the archive in place and never uploads it.',
       },
     ],
-    related: ['/', '/cbz-vs-cbr/', '/read-cbz-online/'],
+    related: ['/', '/cbz-vs-cbr/', '/read-cbz-on-iphone/', '/read-cbz-on-android/'],
   },
   {
     path: '/cbz-vs-cbr/',
@@ -330,7 +330,536 @@ export const PAGES: PageContent[] = [
           'Not in this version. CBZ and ZIP are supported. CBR and CB7 are planned, with solid-archive progress and a graceful fallback for unsupported encryption.',
       },
     ],
-    related: ['/', '/how-to-open-cbz/', '/manga-reader/'],
+    related: ['/', '/cbz-file-format/', '/cbz-file-wont-open/', '/manga-reader/'],
+  },
+  {
+    path: '/what-is-a-cbz-file/',
+    title: 'What Is a CBZ File? Comic Book ZIP, Explained',
+    description:
+      'A CBZ is a ZIP archive of comic pages with a comic-specific extension. See what is inside one, how to confirm a file really is CBZ, and which common beliefs are wrong.',
+    h1: 'What is a CBZ file?',
+    eyebrow: 'File basics',
+    lead: 'A .cbz file is an ordinary ZIP archive with a comic-specific extension. Inside are page images, sometimes a metadata file, and nothing else. The extension is a naming convention, not a new kind of compression.',
+    schema: 'article',
+    updated: '2026-11-11',
+    sections: [
+      {
+        heading: 'One sentence, then the details',
+        paragraphs: [
+          'CBZ stands for Comic Book Zip. The file is a ZIP archive whose extension has been changed from .zip to .cbz so that comic readers and file managers can recognise it. Rename it back to .zip and every archive tool opens it without complaint.',
+          'There is no standards body behind CBZ. The extension was popularised by early Windows comic readers such as CDisplay, which paired .cbz with .cbr (a RAR archive) and told the operating system which app should open them. Modern readers follow the same convention because it is simple and self-describing.',
+        ],
+      },
+      {
+        heading: 'What is usually inside',
+        bullets: [
+          'Page images in reading order, most often JPEG. PNG, WebP, GIF, AVIF, and BMP also appear. This reader accepts those six types and ignores everything else in the archive.',
+          'An optional ComicInfo.xml with series name, volume, page count, and reading direction. It is metadata only: a CBZ without it still reads fine.',
+          'Sometimes one folder per chapter, a cover image, or a credits page. Nothing in the format requires a flat structure.',
+          'No database, no index, no DRM. The archive is the whole book.',
+        ],
+      },
+      {
+        heading: 'How to confirm a file really is a CBZ',
+        paragraphs: [
+          'If a file refuses to open, check the bytes before blaming the reader. A real ZIP starts with the characters PK. On Windows, renaming a copy to .zip and double-clicking is the fastest test. On macOS or Linux, `unzip -l file.cbz` lists the contents and `file file.cbz` prints the container type.',
+          'A file whose header is Rar! or 7z was simply renamed, and no CBZ reader can open it. A file that turns out to be HTML is usually an error or login page that the browser saved under the archive name.',
+        ],
+      },
+      {
+        heading: 'Beliefs worth dropping',
+        bullets: [
+          '“CBZ is an image format.” It is a container. Sharpness and colour depend entirely on the images packed into it.',
+          '“A CBZ must include ComicInfo.xml.” It is optional. When present, only two things change here: the title and the right-to-left hint.',
+          '“CBZ files are encrypted.” The container has no DRM. Individual ZIP entries can be password-protected, but that is a ZIP feature, not a comic one, and this reader refuses those archives with a clear message.',
+          '“Renaming CBR to CBZ converts it.” It does not. The bytes stay RAR and the file stays unreadable as a ZIP.',
+          '“CBZ is safer than other archives.” A ZIP cannot run code by itself, but it can contain anything. Where the file came from matters more than the extension.',
+        ],
+      },
+      {
+        heading: 'Where the name comes from',
+        paragraphs: [
+          'CDisplay, a small Windows viewer from the early 2000s, used .cbz and .cbr so that double-clicking a comic opened the right program. The names stuck because every later reader wanted the same file associations.',
+          'Today the extension is mostly a signal between you and your software. The bytes are ZIP, which is why a browser can read a CBZ without a plugin: it only has to unzip the archive and decode images.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: 'Is a CBZ file the same as a ZIP file?',
+        answer:
+          'Structurally yes. Same header, same directory, same compression. Only the extension and the convention around it differ.',
+      },
+      {
+        question: 'Do I need an app to open a CBZ?',
+        answer:
+          'No. A browser reader can unpack and display it locally, and archive tools can extract it. A dedicated app adds library management and file association, not format support.',
+      },
+      {
+        question: 'Why does my CBZ show a blank icon?',
+        answer:
+          'No application on that system claims the .cbz extension. The file is still valid; assign a reader, or open the site first and pick the file.',
+      },
+      {
+        question: 'Does packing pages into a CBZ reduce quality?',
+        answer:
+          'No, as long as the images are stored or deflated and not re-encoded. Quality drops only if a tool re-saves the JPEGs. ZIP compression itself is lossless.',
+      },
+      {
+        question: 'Can a CBZ contain PDF pages?',
+        answer:
+          'No reader treats a PDF as a page image. Some archives include PDF extras, but this reader lists only JPG, PNG, WebP, GIF, AVIF, and BMP.',
+      },
+    ],
+    related: ['/cbz-file-format/', '/how-to-open-cbz/', '/how-to-make-a-cbz-file/', '/cbz-vs-cbr/'],
+  },
+  {
+    path: '/cbz-file-format/',
+    title: 'CBZ File Format: ZIP Layout, ComicInfo.xml, and Page Order',
+    description:
+      'How a CBZ works inside: ZIP central directory, store versus deflate, filename sorting, ComicInfo.xml fields, encoding quirks, and the archives a browser cannot open.',
+    h1: 'The CBZ file format, from the bytes up',
+    eyebrow: 'Format internals',
+    lead: 'CBZ has no specification document. What it has is the ZIP specification plus a set of community conventions. Knowing both explains why one comic opens instantly and another stalls at page one.',
+    schema: 'article',
+    updated: '2026-11-11',
+    sections: [
+      {
+        heading: 'A naming convention, not a spec',
+        paragraphs: [
+          'There is no RFC and no committee. A CBZ is a ZIP archive. The ComicInfo.xml metadata file and the idea of numbered pages come from the ComicRack ecosystem and are followed by most readers. That looseness is why two files with the same extension can behave very differently.',
+        ],
+      },
+      {
+        heading: 'The ZIP layout that makes seeking cheap',
+        paragraphs: [
+          'A ZIP contains local file headers, each followed by compressed data, plus a central directory at the end that lists every entry and its offset. A reader reads the tail first, builds the page index, then jumps to the exact byte range of the page it needs. Page 180 costs about the same as page 2.',
+          'This is also why solid RAR archives are a poor fit for reading: one compressed stream means everything before page 180 must be decompressed first. ZIP does not have that restriction, and CBZ inherits the advantage.',
+          'ZIP64 takes over above 4 GiB or 65,535 entries. Most comic archives stay below both, but a full scan run packed into one file can cross the first limit, and older tools may produce an archive that a reader opens incorrectly.',
+        ],
+      },
+      {
+        heading: 'Compression methods: store or deflate',
+        paragraphs: [
+          'The ZIP specification allows many methods. In practice, comic archives use two: store (method 0) and deflate (method 8). Page images are already compressed, so deflate usually saves very little while costing CPU time on every page open. Many tools store JPEG pages verbatim for that reason.',
+          'Other methods exist — bzip2, LZMA, PPMd — and a ZIP using them is still a valid ZIP. Browser-based readers cannot unpack those, which is one reason a CBZ can open on the desktop and fail in a tab.',
+        ],
+      },
+      {
+        heading: 'Page order is a naming convention',
+        paragraphs: [
+          'The format stores filenames, not page numbers. Readers sort image entries with a natural comparison, so 2.jpg precedes 10.jpg. Zero-padded names such as 001.jpg make the order unambiguous even for tools that sort as plain text.',
+          'Folders are usually flattened: chapter 1/001.jpg and chapter 2/001.jpg become consecutive pages in path order. Two files with the same basename fall back to comparing the full path.',
+          'Build scripts and macOS add junk entries: __MACOSX folders, .DS_Store, Thumbs.db. This reader filters them out; a reader that does not will show duplicate or blank pages.',
+        ],
+      },
+      {
+        heading: 'ComicInfo.xml',
+        paragraphs: [
+          'An optional XML file, normally at the archive root, describing the book. The fields that matter for reading are Series, Number, Volume, Title, PageCount, Summary, Year, LanguageISO, BlackAndWhite, and Manga. Manga accepts Yes, No, or YesAndRightToLeft.',
+          'This reader uses only Manga and the series/number pair. A malformed or missing file degrades to a neutral title and left-to-right pages instead of an error, because metadata should never block reading.',
+        ],
+      },
+      {
+        heading: 'Encoding and filename quirks',
+        paragraphs: [
+          'ZIP filenames are bytes. General purpose bit 11 marks a name as UTF-8; without it, old tools wrote CP437 and accented titles turn into mojibake. macOS also stores names in decomposed Unicode, so the same Japanese title can look identical on screen and still compare differently.',
+          'None of this changes the images, but it can change sort order and the title shown in the toolbar.',
+        ],
+      },
+      {
+        heading: 'What a browser cannot open',
+        paragraphs: [
+          'Password-protected entries (ZipCrypto or AES-256), split or multi-volume archives (.z01, .z02), entries compressed with an unsupported method, and RAR or 7z files renamed to .cbz. This reader reports the encrypted and no-image cases explicitly instead of showing a blank page.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: 'Is CBZ an official format?',
+        answer:
+          'No. It is a widely followed convention: ZIP plus comic pages, with optional ComicInfo.xml metadata. Nothing enforces the layout, which is why readers vary.',
+      },
+      {
+        question: 'Does the compression method affect image quality?',
+        answer:
+          'No. Store and deflate are both lossless. Quality changes only if a tool re-encodes the JPEGs inside the archive.',
+      },
+      {
+        question: 'Why do my pages appear as 1, 10, 2?',
+        answer:
+          'The packing tool or the reader sorted names as plain text. Rename with zero-padded numbers (001, 002, … 010) or use a reader that sorts numbers naturally.',
+      },
+      {
+        question: 'Can I put video or PDF files in a CBZ?',
+        answer:
+          'You can put anything in a ZIP, but a comic reader ignores non-image entries. This one lists only JPG, PNG, WebP, GIF, AVIF, and BMP.',
+      },
+      {
+        question: 'What is the difference between CBZ and CB7?',
+        answer:
+          'CBZ wraps ZIP, CB7 wraps 7z. CB7 compresses better and is less common; browsers have no built-in 7z decoder, so CB7 stays a desktop-app format for now.',
+      },
+    ],
+    related: ['/what-is-a-cbz-file/', '/cbz-vs-cbr/', '/cbz-file-wont-open/', '/how-to-make-a-cbz-file/'],
+  },
+  {
+    path: '/read-cbz-on-iphone/',
+    title: 'How to Read a CBZ File on iPhone and iPad',
+    description:
+      'Open CBZ comics on iPhone or iPad with the Files app and Safari. Covers iCloud download checks, renaming a ZIP to CBZ on iOS, and Safari memory limits.',
+    h1: 'Read a CBZ file on iPhone or iPad',
+    eyebrow: 'iOS guide',
+    lead: 'iOS has no built-in handler for .cbz, so tapping the file in Files does nothing useful. The reliable route is the reverse: open the reader in Safari first, then pick the archive from the Files browser.',
+    schema: 'article',
+    updated: '2026-11-11',
+    sections: [
+      {
+        heading: 'Why tapping the file does nothing',
+        paragraphs: [
+          'iPhone and iPad ship with viewers for PDF, images, and office documents, but not for comic archives. No system app claims .cbz, and a website cannot register itself as the handler for a file type. A tap offers sharing options, not reading.',
+          'Quick Look can preview individual images after you extract an archive, which is not the same as reading a comic in order.',
+        ],
+      },
+      {
+        heading: 'Step by step',
+        bullets: [
+          'Get the file into the Files app: from Mail, tap the attachment and choose Save to Files; from a computer, use AirDrop; from a cloud provider, open it in Files.',
+          'Check that it is really downloaded. An iCloud item with a cloud icon is a placeholder, and the picker will stall or refuse until it is local. Tap the cloud icon first.',
+          'Open this site in Safari, tap Choose a CBZ file, then Browse and pick the archive from On My iPhone or iCloud Drive.',
+          'If the file arrived as a .zip, rename it in Files (long-press, Rename, replace .zip with .cbz). The bytes are already a ZIP, so no conversion is needed.',
+          'Add the site to your Home Screen if you expect to come back. It still opens the same picker, but saves typing the address.',
+        ],
+      },
+      {
+        heading: 'Where the file can live',
+        paragraphs: [
+          'On My iPhone is the simplest location because it is always local. iCloud Drive works, but only after the file is downloaded. External drives and SD cards appear in Files on modern iOS and iPadOS, which is useful for large scan archives that would otherwise fill local storage.',
+          'Third-party providers such as Dropbox or Google Drive appear in the Files browser once their Files extension is enabled. Picking from one may trigger a download before the reader can open the archive.',
+        ],
+      },
+      {
+        heading: 'iOS limits you will actually notice',
+        bullets: [
+          'No file association for .cbz, so the site has to be opened first. This is an OS rule, not a site limitation.',
+          'The file picker filters by declared types. iOS greys out files when the filter is too specific, so this reader relaxes the filter on iOS and shows every file instead.',
+          'Safari gives each tab a memory budget. Very large pages are downsampled before display; without that, a 5000-pixel scan can exhaust a phone tab.',
+          'Switching apps under memory pressure can discard the page. Reading progress is stored locally and restored, but the browser is not allowed to reopen your file by itself, so you pick it again.',
+          'Private browsing can clear local progress when the session ends.',
+        ],
+      },
+      {
+        heading: 'iPad specifics',
+        paragraphs: [
+          'Wide screens make double-page mode useful, and an external keyboard gives you arrow-key page turns. Split View and Slide Over shrink the memory available to the tab, so a huge archive is more likely to be reloaded there than in full screen.',
+        ],
+      },
+      {
+        heading: 'When a native app is the better tool',
+        paragraphs: [
+          'If you keep a large library on the device, a native comic app handles file association, folders, and offline covers better. A browser reader is for opening one file quickly, on a device where you do not want to install or sign in to anything.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: 'Can I open a CBZ in Apple Books?',
+        answer:
+          'No. Books handles PDF and EPUB. A CBZ is an image archive and needs a reader that understands ZIP containers.',
+      },
+      {
+        question: 'Why is my file greyed out in the picker?',
+        answer:
+          'Most often it is an iCloud placeholder that has not been downloaded. Tap the cloud icon in Files, then pick it again.',
+      },
+      {
+        question: 'Can I read straight from iCloud Drive?',
+        answer:
+          'Yes, after the file is downloaded to the device. The browser only receives the file when the provider hands over the bytes.',
+      },
+      {
+        question: 'Is my progress synced between iPhone and iPad?',
+        answer:
+          'No. Progress lives in the browser profile on each device; there is no account and no sync.',
+      },
+      {
+        question: 'Does it work in Chrome or Firefox on iOS?',
+        answer:
+          'Those browsers use the same WebKit engine and file picker as Safari, so the steps are identical, but Safari is the best-tested path.',
+      },
+    ],
+    related: ['/read-cbz-on-android/', '/how-to-open-cbz/', '/what-is-a-cbz-file/', '/cbz-file-wont-open/'],
+  },
+  {
+    path: '/read-cbz-on-android/',
+    title: 'How to Read a CBZ File on Android',
+    description:
+      'Read CBZ comics on Android from Downloads, SD cards, or cloud providers. Covers Chrome file picking, the .cbz filter workaround, and memory behaviour on phones and tablets.',
+    h1: 'Read a CBZ file on Android',
+    eyebrow: 'Android guide',
+    lead: 'Android has no default comic handler either, but its document picker is more forgiving than iOS: the file usually sits in Downloads, and Chrome hands it to the page in two taps.',
+    schema: 'article',
+    updated: '2026-11-11',
+    sections: [
+      {
+        heading: 'Android already treats it as an archive',
+        paragraphs: [
+          'Android identifies files by MIME type, and .cbz has no registered type. The system usually falls back to a generic ZIP or binary type, both of which Chrome can pass to a web page. That is why Android rarely blocks a CBZ the way iOS does.',
+          'Nothing is installed and no storage permission is requested: the picker grants the page read access to exactly the file you choose.',
+        ],
+      },
+      {
+        heading: 'Step by step',
+        bullets: [
+          'Download the archive, or move it into Downloads from a chat app or cloud drive.',
+          'Open this site in Chrome, tap Choose a CBZ file, then pick the file under Downloads, Recent, or your SD card.',
+          'If the entry is greyed out, the picker is filtering on a MIME type it cannot map. Rename a copy to .zip, which every Android build recognises, or open it from a file manager that reports ZIP.',
+          'Add the site to your Home Screen for quicker access. It still opens the same picker; the site does not register a share target.',
+        ],
+      },
+      {
+        heading: 'Where Android files usually are',
+        paragraphs: [
+          'Downloads is the default target for Chrome. Chat apps keep files in their own folders, which the picker can still reach. SD cards and USB drives appear as separate roots. Google Drive and other providers show up through the system picker once their app is installed, and a large file may need to download locally first.',
+          'Scoped storage on Android 11 and later hides other apps’ private directories from file managers, but it does not affect a file you pick yourself.',
+        ],
+      },
+      {
+        heading: 'Zip handling on the device',
+        paragraphs: [
+          'Files by Google and most OEM file managers can extract a ZIP and rename files. To turn a folder of images into a CBZ on the phone, compress the images and rename the result from .zip to .cbz; the extension is the only difference.',
+          'Some managers hide extensions by default. If the rename produces .zip.cbz, the real name is now wrong; enable extension display and rename again.',
+        ],
+      },
+      {
+        heading: 'Android vs iPhone in practice',
+        bullets: [
+          'Getting the file in: Android is usually one download away; iOS often needs Save to Files plus an iCloud download check.',
+          'File association: neither OS opens .cbz on double-tap, so both routes start at the site.',
+          'External storage: Android is more direct with SD cards and USB drives; iOS supports them through Files but with more steps.',
+          'Memory: low-RAM Android phones and older iPads both reload heavy tabs. Downsampling keeps a large page inside the tab budget on either platform.',
+          'Gestures: Android back closes the menu or leaves the reader, while the iOS back gesture belongs to Safari and behaves differently.',
+        ],
+      },
+      {
+        heading: 'Tablets, foldables, and keyboards',
+        paragraphs: [
+          'On a wide screen, double-page mode pairs spreads after the cover, and arrow keys from an external keyboard turn pages. Split-screen reduces available memory, so keep very large archives in full-screen mode.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: 'Do I need a file manager on Android?',
+        answer:
+          'No. Chrome’s picker reaches Downloads, Recent, and most cloud providers. A file manager helps when a file is buried in an app-specific folder.',
+      },
+      {
+        question: 'Why does the reader say no readable images?',
+        answer:
+          'The archive may contain TIFF, HEIC, JXL, or PDF pages, which browsers cannot display, or the images may be encrypted. Convert pages to JPEG or PNG first.',
+      },
+      {
+        question: 'Can I read a CBZ from Google Drive directly?',
+        answer:
+          'Yes if the provider hands the file to the picker. Large archives may download to local storage first, because the page needs the bytes, not a link.',
+      },
+      {
+        question: 'Does it work offline on Android?',
+        answer:
+          'There is no app and no service worker in this version, so reloading the page needs a network connection. Once the reader is loaded, page turns are local.',
+      },
+      {
+        question: 'Why does the tab reload when I switch apps?',
+        answer:
+          'Android reclaims memory from background tabs. Progress is saved, but you have to pick the file again because a page cannot reopen a local file by itself.',
+      },
+    ],
+    related: ['/read-cbz-on-iphone/', '/how-to-open-cbz/', '/what-is-a-cbz-file/', '/cbz-file-wont-open/'],
+  },
+  {
+    path: '/how-to-make-a-cbz-file/',
+    title: 'How to Make a CBZ File from Images or a Folder',
+    description:
+      'Build a CBZ the right way: zero-padded page names, ZIP settings that do not waste CPU, an optional ComicInfo.xml, and the packing mistakes that break page order.',
+    h1: 'How to make a CBZ file',
+    eyebrow: 'Packing guide',
+    lead: 'Making a CBZ is making a ZIP with the right name. The work is not in the compression; it is in page naming, folder structure, and metadata that readers will actually use.',
+    schema: 'article',
+    updated: '2026-11-11',
+    sections: [
+      {
+        heading: 'The whole job in one line',
+        paragraphs: [
+          'Collect the page images, put them into one archive in reading order, and name the archive with a .cbz extension. Any ZIP tool can do it; no comic-specific software is required.',
+        ],
+      },
+      {
+        heading: 'Name pages so they sort correctly',
+        bullets: [
+          'Zero-pad to a fixed width: 001.jpg through 120.jpg. Without padding, 10.jpg sorts before 2.jpg in plain text order.',
+          'Keep one naming pattern. Mixing page-1.jpg with p10.png and scan_011 forces every reader to guess.',
+          'Use chapter folders only if the reader flattens paths predictably. This one sorts by file name first, then by full path.',
+          'Avoid duplicate numbers. Two files named 012.jpg in different folders are ambiguous by design.',
+        ],
+      },
+      {
+        heading: 'Zip it without wasting time',
+        bullets: [
+          'JPEG and PNG pages are already compressed. Deflate on top saves a few percent and costs CPU on every page open; choose Store when your tool offers it.',
+          'Archive the images themselves, not the folder that contains them. Most readers flatten a single wrapper folder, but the extra level makes debugging harder.',
+          'Exclude macOS resource forks (__MACOSX), .DS_Store, Thumbs.db, and cover thumbnails you do not want as pages.',
+          'Do not add a password. Browsers have no prompt for ZIP passwords, so an encrypted CBZ is unreadable in a tab.',
+          'Windows: select the images, right-click, Send to, Compressed folder, then rename .zip to .cbz. macOS: select the images and use Compress; compressing a folder instead adds one nested directory.',
+        ],
+      },
+      {
+        heading: 'Add ComicInfo.xml only if it helps',
+        paragraphs: [
+          'A minimal file at the archive root is enough: a ComicInfo element with Series, Number, PageCount, and Manga. Series and Number become the title, and Manga set to YesAndRightToLeft switches the initial reading direction.',
+          'Wrong metadata is worse than none: a stale PageCount or a wrong Manga value changes what the reader shows. Most readers ignore unknown tags, so keep the file small.',
+        ],
+      },
+      {
+        heading: 'Check the archive before you share it',
+        bullets: [
+          'Rename a copy to .zip and open it: the page count should match, the first and last pages should be present, and no thumbnails should appear in the middle.',
+          'Open it in a reader and jump to a middle page. A missing central directory or a truncated file usually fails at open time, not at page 40.',
+          'Spot-check a spread. Two-page spreads scanned as one image will look wrong in double-page mode.',
+        ],
+      },
+      {
+        heading: 'Common packing mistakes',
+        bullets: [
+          'Re-saving JPEGs instead of copying them, which lowers quality with every pass.',
+          'Mixing page sizes wildly; the reader has to rescale each page and the reading rhythm suffers.',
+          'Leaving an .exe or readme inside. It is harmless to the reader, but it makes the archive look untrustworthy.',
+          'Assuming a PDF belongs in a CBZ. A PDF is not a page image and will be ignored.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: 'Do I need special software to make a CBZ?',
+        answer:
+          'No. Any ZIP tool plus a rename works. Dedicated comic tools add metadata editing and batch naming, not a different format.',
+      },
+      {
+        question: 'Does zipping lower image quality?',
+        answer:
+          'No. ZIP is lossless. Quality drops only if a tool re-encodes the images before packing.',
+      },
+      {
+        question: 'Can I make a CBZ on a phone?',
+        answer:
+          'Yes. Files by Google and iOS Files can compress selected files; rename the result to .cbz. Long archives are easier to verify on a desktop.',
+      },
+      {
+        question: 'Should I use CBZ or PDF for scans?',
+        answer:
+          'CBZ for reading: pages stay separate, seeking is cheap, and readers handle right-to-left order. PDF suits printing and text-heavy documents.',
+      },
+      {
+        question: 'Can this site create a CBZ for me?',
+        answer:
+          'No. It only reads archives; repacking happens in your file manager or archive tool.',
+      },
+    ],
+    related: ['/what-is-a-cbz-file/', '/cbz-file-format/', '/cbz-file-wont-open/', '/how-to-open-cbz/'],
+  },
+  {
+    path: '/cbz-file-wont-open/',
+    title: 'CBZ File Won’t Open? Causes and Fixes',
+    description:
+      'Diagnose a CBZ that will not open: renamed RAR, truncated download, encrypted entries, unsupported image types, and picker problems on phones.',
+    h1: 'Why a CBZ file will not open',
+    eyebrow: 'Troubleshooting',
+    lead: 'Most broken CBZ files are not broken archives. They are a RAR renamed, a download saved as an error page, or a folder of images the reader cannot decode. A few checks separate those cases quickly.',
+    schema: 'article',
+    updated: '2026-11-11',
+    sections: [
+      {
+        heading: 'Check the container first',
+        paragraphs: [
+          'Look at the first bytes. A ZIP starts with PK, RAR starts with Rar!, 7z starts with 7z. If the header is HTML, you saved a login or error page under the archive name. On macOS or Linux, `file` and `unzip -l` answer this in one command; on Windows, rename a copy to .zip and try to open it.',
+          'A zero-byte file, or one far smaller than the original download, means the transfer never finished.',
+        ],
+      },
+      {
+        heading: 'The archive is truncated or corrupted',
+        paragraphs: [
+          'A ZIP keeps its index at the end. If the last bytes are missing, the reader cannot list the pages and reports an invalid archive even though the first images are intact. Download again, ideally without a manager that splits the file, and compare the size with the source.',
+          'If the file opens but one page fails, that entry is damaged; `unzip -t` names it.',
+        ],
+      },
+      {
+        heading: 'It is actually RAR or 7z',
+        paragraphs: [
+          'Renaming does not convert. Extract the archive with a tool that understands RAR or 7z, then pack the images into a ZIP and rename it .cbz. This reader does not support CBR or CB7.',
+        ],
+      },
+      {
+        heading: 'The archive is encrypted',
+        paragraphs: [
+          'A ZIP can protect entries with a password. A browser tab has no place to type it, so this reader stops with a password-protected message instead of showing blank pages. Remove the password in 7-Zip or a similar tool, then reopen the archive.',
+        ],
+      },
+      {
+        heading: 'The images are in a format a browser cannot show',
+        paragraphs: [
+          'This reader accepts JPG, PNG, WebP, GIF, AVIF, and BMP. TIFF, JPEG 2000, HEIC, and JPEG XL are common in scans and are not decoded by the page. Convert those pages to JPEG or PNG, then repack.',
+          'Some CMYK JPEGs display with different colours in a browser because colour conversion is left to the browser. Re-exporting the pages as sRGB avoids the surprise.',
+        ],
+      },
+      {
+        heading: 'The pages are there but out of order, or some are missing',
+        paragraphs: [
+          'Alphabetical sorting puts 10 before 2. If the reader has no natural-sort option, rename with zero-padded numbers. Duplicate names across chapter folders also confuse the order, and an archive that mixes images with thumbnails can show what looks like a missing page.',
+        ],
+      },
+      {
+        heading: 'It works on a computer but not on a phone',
+        bullets: [
+          'iOS: the file may still be an iCloud placeholder, so it is greyed out or fails to open. Download it in Files first.',
+          'Android: the picker may filter .cbz by MIME type. Pick it from Downloads, or rename a copy to .zip.',
+          'Both: very large pages can exhaust a phone tab. Pages are downsampled automatically, but an archive with hundreds of huge pages can still be slow to open.',
+        ],
+      },
+      {
+        heading: 'Narrowing it down',
+        paragraphs: [
+          'Try the same file in another reader. If it fails there too, the archive is the problem. If it opens elsewhere but not here, check the image formats and encryption, which are the two limits this reader enforces.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: 'Can a corrupted CBZ be repaired?',
+        answer:
+          'Sometimes. ZIP repair tools can recover intact entries and rebuild the index. If the central directory is gone, extracting what remains and repacking is usually faster than repairing.',
+      },
+      {
+        question: 'Why does the file open in an archive tool but not in a reader?',
+        answer:
+          'Archive tools show bytes; readers need supported image entries in a readable order. Encrypted entries, TIFF or HEIC pages, and PDF-only archives all fail in a reader.',
+      },
+      {
+        question: 'Is it safe to open a CBZ?',
+        answer:
+          'The format cannot execute code. Risk comes from where the file was downloaded and from executables bundled inside it, not from the ZIP itself. This site only reads image entries.',
+      },
+      {
+        question: 'Why is my file greyed out on iPhone or Android?',
+        answer:
+          'On iOS it is usually an iCloud file that has not been downloaded. On Android it is usually a picker MIME filter; picking from Downloads or renaming to .zip works around it.',
+      },
+      {
+        question: 'Can I open a split CBZ (.z01, .z02)?',
+        answer:
+          'Not in a browser. Multi-volume ZIP needs every part joined, and this reader expects a single archive.',
+      },
+    ],
+    related: ['/how-to-open-cbz/', '/cbz-vs-cbr/', '/cbz-file-format/', '/read-cbz-on-android/'],
   },
   {
     path: '/privacy/',

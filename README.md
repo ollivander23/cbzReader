@@ -61,7 +61,7 @@
 - 这个站的 SEO 价值主要在**落地页文案、标题、描述、FAQ 与结构化数据**，这些内容不需要任何客户端 JS 就能完整呈现。
 - 因此选择在构建时用 Vue SSR 把每个路由渲染成静态 HTML，部署后爬虫拿到的是完整页面；阅读器仍然是独立的懒加载入口，首屏不加载 zip.js。
 - 代价是构建链路多一步 SSR 构建（`vite build --ssr`），以及内容数据必须能在 Node 环境执行、不能访问 `window`。这一点在内容层已经遵守。
-- 不选 Nuxt/Next：为 6 个静态页引入完整框架的路由、运行时和数据层，收益低、复杂度高。也不选运行时预渲染插件：构建期确定性更好，产物就是纯静态文件。
+- 不选 Nuxt/Next：为少量静态页引入完整框架的路由、运行时和数据层，收益低、复杂度高。也不选运行时预渲染插件：构建期确定性更好，产物就是纯静态文件。
 
 ---
 
@@ -97,7 +97,7 @@
 | 最近阅读 | ✅ | 首页「Recently opened」列出文件名、总页数、当前页、模式、更新时间与 168px JPEG 封面（约 7–15KB/条）；点条目续读，支持删除单条与 Clear all |
 | 续读策略 | ✅ | ≤32MB 的包在 IndexedDB 存副本（最多保留最近 3 个），点条目直接续读；超限或副本已被淘汰时只留指纹，点条目打开文件选择器并提示重新选同一文件 |
 | 书签 | ✅ | `⋮` 菜单可给当前页加/取消书签，菜单内按页序列出、点击跳转、× 删除；按文件指纹存 IndexedDB，与续读进度互不覆盖 |
-| 预渲染落地页 | ✅ | 6 条静态路由：首页、`/read-cbz-online/`、`/manga-reader/`、`/how-to-open-cbz/`、`/cbz-vs-cbr/`、`/privacy/` |
+| 预渲染落地页 | ✅ | 12 条静态路由：首页、`/read-cbz-online/`、`/manga-reader/`、`/how-to-open-cbz/`、`/cbz-vs-cbr/`、`/what-is-a-cbz-file/`、`/cbz-file-format/`、`/read-cbz-on-iphone/`、`/read-cbz-on-android/`、`/how-to-make-a-cbz-file/`、`/cbz-file-wont-open/`、`/privacy/` |
 | SEO 元信息 | ✅ | 每页独立 title/description、canonical、hreflang、OG/Twitter、JSON-LD（WebSite / WebApplication / Article / FAQPage / BreadcrumbList） |
 | 社交分享图 | ✅ | `public/og-image.png` 1200×630；`og:image` 含 width/height/alt，`twitter:image`，卡片类型为 `summary_large_image` |
 | 404 与静态资源 | ✅ | `public/404.html`；未知路径与缺失的 `/assets/*` 由 Cloudflare Pages 返回 404，而不是回退首页 200 |
