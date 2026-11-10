@@ -8,8 +8,8 @@ const isIOS =
 
 let readerRequested = false
 
-function startReader(file?: File | null): void {
-  if (readerRequested) return
+function startReader(file?: File | null, replace = false): void {
+  if (readerRequested && !replace) return
   const host = document.getElementById('reader-app')
   if (!host) return
   readerRequested = true
@@ -59,13 +59,13 @@ function bootstrap(): void {
     void import('./dev/devLanding').then(({ mountDevLanding }) => {
       mountDevLanding()
       wireStaticReader()
-      mountRecentShelf(startReader)
+      mountRecentShelf((file) => startReader(file, true))
     })
     return
   }
 
   wireStaticReader()
-  mountRecentShelf(startReader)
+  mountRecentShelf((file) => startReader(file, true))
 }
 
 bootstrap()
