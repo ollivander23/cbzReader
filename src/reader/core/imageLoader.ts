@@ -1,10 +1,14 @@
 import type { PageAsset } from './types'
 
-const MAX_RAW_DIM = 6000
-const MAX_RAW_PIXELS = 12_000_000
+/**
+ * One decode budget for every platform. A page is only used at its native size
+ * when it already fits both limits; otherwise it is downsampled into the same
+ * box. Nothing here branches on user agent, so a phone and a desktop get the
+ * same pixels and the same memory profile.
+ */
+const MAX_DECODE_DIM = 4096
+const MAX_DECODE_PIXELS = 8_000_000
 const TARGET_WIDTH = 2400
-const MAX_CANVAS_DIM = 4096
-const MAX_CANVAS_PIXELS = 8_000_000
 const JPEG_QUALITY = 0.92
 
 type Size = { width: number; height: number }
@@ -192,7 +196,7 @@ export async function loadPageAsset(
 
   const pixels = size.width * size.height
   const smallEnough =
-    size.width <= MAX_RAW_DIM && size.height <= MAX_RAW_DIM && pixels <= MAX_RAW_PIXELS
+    size.width <= MAX_DECODE_DIM && size.height <= MAX_DECODE_DIM && pixels <= MAX_DECODE_PIXELS
 
   if (smallEnough) {
     return { index, url: rawUrl, width: size.width, height: size.height, downsampled: false }
@@ -204,8 +208,9 @@ export async function loadPageAsset(
   const ratio = Math.min(
     1,
     targetWidth / size.width,
-    MAX_CANVAS_DIM / size.height,
-    Math.sqrt(MAX_CANVAS_PIXELS / pixels),
+    MAX_DECODE_DIM / size.width,
+    MAX_DECODE_DIM / size.height,
+    Math.sqrt(MAX_DECODE_PIXELS / pixels),
   )
   const width = Math.max(1, Math.round(size.width * ratio))
   const height = Math.max(1, Math.round(size.height * ratio))
