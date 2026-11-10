@@ -436,8 +436,8 @@ function scrollPageStyle(page: number): Record<string, string> {
 
 /**
  * Pages are decoded for their on-screen size. Zooming in asks for more pixels
- * for pages that enter the window afterwards; the 8MP canvas cap and the 32MP
- * LRU budget stay in place, so this never turns into a memory regression.
+ * for pages that enter the window afterwards; the decode cap and the LRU budget
+ * stay in place, so this never turns into a memory regression.
  */
 function scrollDecodeWidth(): number {
   const width = Math.max(120, (stageW.value - STAGE_PAD_X * 2) * scrollScale.value)

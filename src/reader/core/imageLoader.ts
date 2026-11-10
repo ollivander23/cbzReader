@@ -7,7 +7,7 @@ import type { PageAsset } from './types'
  * same pixels and the same memory profile.
  */
 const MAX_DECODE_DIM = 4096
-const MAX_DECODE_PIXELS = 8_000_000
+const MAX_DECODE_PIXELS = 12_000_000
 const TARGET_WIDTH = 2400
 const JPEG_QUALITY = 0.92
 
