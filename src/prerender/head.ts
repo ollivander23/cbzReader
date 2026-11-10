@@ -1,5 +1,12 @@
 import type { PageContent } from '../content/pages'
 import { SITE } from '../content/site'
+import { THEME_COLORS, THEME_KEY } from '../lib/theme'
+
+// Runs inline before the stylesheet so the first paint already has the right
+// theme. Must stay dependency-free and synchronous: no async, no defer.
+function themeScript(): string {
+  return `<script>(function(){var d;try{var s=localStorage.getItem("${THEME_KEY}");if(s==="light"||s==="dark")d=s}catch(e){}if(!d){d=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}var r=document.documentElement;r.setAttribute("data-theme",d);r.style.colorScheme=d;var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",d==="dark"?"${THEME_COLORS.dark}":"${THEME_COLORS.light}")})()</script>`
+}
 
 function escapeHtml(value: string): string {
   return value
@@ -120,7 +127,8 @@ export function renderHead(page: PageContent, siteUrl: string): string {
 <link rel="alternate" hreflang="en" href="${url}" />
 <link rel="alternate" hreflang="x-default" href="${url}" />
 <meta name="robots" content="index,follow,max-image-preview:large" />
-<meta name="theme-color" content="#0d0d12" />
+<meta name="theme-color" content="${THEME_COLORS.light}" />
+${themeScript()}
 <meta property="og:type" content="${ogType}" />
 <meta property="og:site_name" content="${escapeHtml(SITE.name)}" />
 <meta property="og:title" content="${title}" />

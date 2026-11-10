@@ -29,6 +29,7 @@
 - 缩放、平移、滑动翻页、点击分区翻页、键盘快捷键、全屏。
 - 从右到左（RTL）漫画模式，可手动切换，也会读取 `ComicInfo.xml` 的 `Manga` 标记。
 - 本地阅读进度：重新导入同一文件时提示恢复上次页码。
+- 深色 / 浅色主题：Auto（跟随系统）、Light、Dark 三态，选择保存在本地，首帧不闪白。
 - 英文落地页与 SEO 元信息，构建时输出真实 HTML。
 
 ### 1.4 明确不做
@@ -97,6 +98,7 @@
 | 最近阅读 | ✅ | 首页「Recently opened」列出文件名、总页数、当前页、模式、更新时间与 168px JPEG 封面（约 7–15KB/条）；点条目续读，支持删除单条与 Clear all |
 | 续读策略 | ✅ | ≤32MB 的包在 IndexedDB 存副本（最多保留最近 3 个），点条目直接续读；超限或副本已被淘汰时只留指纹，点条目打开文件选择器并提示重新选同一文件 |
 | 书签 | ✅ | `⋮` 菜单可给当前页加/取消书签，菜单内按页序列出、点击跳转、× 删除；按文件指纹存 IndexedDB，与续读进度互不覆盖 |
+| 深色 / 浅色主题 | ✅ | `⋮` 菜单内 `Theme` 三项（Auto / Light / Dark，默认 Auto）；选择存 `localStorage['cbz-theme']`，Auto 用 `matchMedia` 跟随系统并实时切换；`src/prerender/head.ts` 在样式表之前输出阻塞内联脚本，先给 `<html>` 打 `data-theme` 再绘制，因此不会先白后黑；颜色统一收敛为 `base.css` 的 `--token`（`:root` 浅色 + `:root[data-theme='dark']` 覆盖），覆盖落地页正文/列表/CTA/相关内链/页脚、书架卡片、404、`color-scheme` 滚动条、选中色与焦点环。漫画页面本身不做反色或背景替换 |
 | 预渲染落地页 | ✅ | 12 条静态路由：首页、`/read-cbz-online/`、`/manga-reader/`、`/how-to-open-cbz/`、`/cbz-vs-cbr/`、`/what-is-a-cbz-file/`、`/cbz-file-format/`、`/read-cbz-on-iphone/`、`/read-cbz-on-android/`、`/how-to-make-a-cbz-file/`、`/cbz-file-wont-open/`、`/privacy/` |
 | SEO 元信息 | ✅ | 每页独立 title/description、canonical、hreflang、OG/Twitter、JSON-LD（WebSite / WebApplication / Article / FAQPage / BreadcrumbList） |
 | 社交分享图 | ✅ | `public/og-image.png` 1200×630；`og:image` 含 width/height/alt，`twitter:image`，卡片类型为 `summary_large_image` |
@@ -129,6 +131,7 @@
 - 🟡 2x–3x 缩放后的拖动与滚动：桌面已用 Ctrl + 滚轮模拟（锚点不跑位、窗口仍 12 页、复位正常）；真机上放大后的双指拖动、跨窗口滚动与惯性未实测。
 - 🟡 移动端其它手势：滑动翻页、点击分区翻页、双击复位只在桌面无头 Chromium 中验证。
 - 🟡 双页模式在窄屏下的默认值：宽度 ≥980px 默认双页，否则默认单页；小屏双页可读性未评估。
+- 🟡 暗色主题只在桌面无头 Edge 上截图与计算过对比度（正文 13.1:1、次要文字 7.8:1、主按钮 6.9:1、⋮ 菜单 14:1），真机上的系统主题切换（iOS 自动深浅、安卓深色与强制深色）、`color-scheme` 滚动条、选中色与焦点环表现待确认。
 - 🟡 超大包压力测试：尚未用 300 页以上、单页 4K 的真实漫画包做压测。
 
 ### 3.4 续读策略与统一解码上限

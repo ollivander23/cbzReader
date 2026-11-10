@@ -15,6 +15,12 @@ import {
 import { ReaderError, type PageAsset } from './core/types'
 import { ZipPageSource } from './core/zipSource'
 import { fileExtension, sizeBucket, track } from '../lib/track'
+import {
+  applyTheme,
+  readThemeSetting,
+  writeThemeSetting,
+  type ThemeSetting,
+} from '../lib/theme'
 
 const props = defineProps<{ initialFile?: File | null }>()
 
@@ -76,6 +82,13 @@ const resumePage = ref(0)
 const hasFullscreen = ref(false)
 const fileFingerprint = ref('')
 const bookmarks = ref<Bookmark[]>([])
+const themeSetting = ref<ThemeSetting>(readThemeSetting())
+
+const THEME_OPTIONS: Array<{ value: ThemeSetting; label: string }> = [
+  { value: 'auto', label: 'Auto' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+]
 
 const assets = reactive(new Map<number, PageAsset>())
 const pageErrors = reactive(new Map<number, string>())
@@ -1389,6 +1402,13 @@ function menuToggleFullscreen(): void {
   closeMenu()
 }
 
+function menuToggleTheme(next: ThemeSetting): void {
+  themeSetting.value = next
+  writeThemeSetting(next)
+  applyTheme(next)
+  closeMenu()
+}
+
 function menuToggleBookmark(): void {
   const page = index.value
   const exists = bookmarks.value.some((item) => item.page === page)
@@ -1458,6 +1478,9 @@ watch(stageEl, () => {
 })
 
 onMounted(async () => {
+  themeSetting.value = readThemeSetting()
+  applyTheme(themeSetting.value)
+
   hasFullscreen.value =
     typeof document !== 'undefined' &&
     typeof document.documentElement.requestFullscreen === 'function' &&
@@ -1633,6 +1656,34 @@ onBeforeUnmount(() => {
                 <span>{{ bookmarked ? 'Remove bookmark' : 'Bookmark this page' }}</span>
                 <span class="menu__state">{{ bookmarks.length || '' }}</span>
               </button>
+              <div class="menu__group" role="group" aria-labelledby="menu-theme-label">
+                <p class="menu__label" id="menu-theme-label">Theme</p>
+                <button
+                  v-for="option in THEME_OPTIONS"
+                  :key="option.value"
+                  type="button"
+                  class="menu__item"
+                  role="menuitemradio"
+                  :aria-checked="themeSetting === option.value ? 'true' : 'false'"
+                  @click="menuToggleTheme(option.value)"
+                >
+                  <svg v-if="option.value === 'auto'" viewBox="0 0 16 16" aria-hidden="true">
+                    <circle cx="8" cy="8" r="5.5" />
+                    <path d="M8 2.5v11" />
+                  </svg>
+                  <svg v-else-if="option.value === 'light'" viewBox="0 0 16 16" aria-hidden="true">
+                    <circle cx="8" cy="8" r="3" />
+                    <path
+                      d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M12.6 3.4l-1.4 1.4M4.8 11.2l-1.4 1.4"
+                    />
+                  </svg>
+                  <svg v-else viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="M12.5 9.6A5.5 5.5 0 0 1 6.4 3.5a5.5 5.5 0 1 0 6.1 6.1z" />
+                  </svg>
+                  <span>{{ option.label }}</span>
+                  <span v-if="themeSetting === option.value" class="menu__state">On</span>
+                </button>
+              </div>
               <div v-if="bookmarks.length" class="menu__group">
                 <p class="menu__label">Bookmarks</p>
                 <div v-for="mark in bookmarks" :key="mark.page" class="menu__row">
@@ -1858,7 +1909,7 @@ onBeforeUnmount(() => {
 
 .dropzone .fine {
   margin-top: 16px;
-  color: rgba(245, 245, 247, 0.4);
+  color: rgba(245, 245, 247, 0.52);
   font-size: 12px;
 }
 
@@ -1920,7 +1971,7 @@ onBeforeUnmount(() => {
 .meta span {
   display: block;
   overflow: hidden;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.56);
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2040,7 +2091,7 @@ onBeforeUnmount(() => {
 }
 
 .menu__state {
-  color: rgba(255, 255, 255, 0.42);
+  color: rgba(255, 255, 255, 0.62);
   font-size: 11px;
 }
 
@@ -2053,7 +2104,7 @@ onBeforeUnmount(() => {
 .menu__label {
   margin: 0 0 4px;
   padding: 0 10px;
-  color: rgba(255, 255, 255, 0.42);
+  color: rgba(255, 255, 255, 0.62);
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -2077,7 +2128,7 @@ onBeforeUnmount(() => {
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.62);
   font-size: 16px;
   line-height: 1;
 }
@@ -2169,7 +2220,7 @@ onBeforeUnmount(() => {
   width: 100%;
   height: 100%;
   place-items: center;
-  color: rgba(244, 244, 245, 0.32);
+  color: rgba(244, 244, 245, 0.5);
   font-size: 13px;
   letter-spacing: 0.08em;
 }
@@ -2227,7 +2278,7 @@ onBeforeUnmount(() => {
   height: 100%;
   place-items: center;
   padding: 12px;
-  color: rgba(255, 255, 255, 0.38);
+  color: rgba(255, 255, 255, 0.52);
   font-size: 12px;
   text-align: center;
 }
@@ -2295,7 +2346,7 @@ onBeforeUnmount(() => {
 .resume .resume__close {
   padding: 2px 7px;
   background: transparent;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.6);
   font-size: 16px;
   line-height: 1;
 }

@@ -1,6 +1,7 @@
 import './styles/base.css'
 import { mountRecentShelf } from './components/recentShelf'
 import { fileExtension, sizeBucket, track } from './lib/track'
+import { initTheme } from './lib/theme'
 
 const isIOS =
   typeof navigator !== 'undefined' &&
@@ -100,4 +101,7 @@ function bootstrap(): void {
   mountRecentShelf((file) => startReader(file, true))
 }
 
+// The prerendered head already set data-theme before first paint; this keeps
+// dev, the SPA fallback and system-theme changes in sync afterwards.
+initTheme()
 bootstrap()

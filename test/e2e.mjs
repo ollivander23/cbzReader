@@ -278,6 +278,47 @@ try {
 
   await page.screenshot({ path: path.join(root, 'test/.cache/e2e-reader.png') })
 
+  // Theme: the ⋮ menu applies and stores the choice, and Auto follows the system.
+  await page.click('[aria-label="More reading options"]')
+  await page.waitForSelector('.menu__panel')
+  await page.evaluate(() => {
+    const item = Array.from(document.querySelectorAll('.menu__panel .menu__item')).find((node) =>
+      node.textContent?.trim().startsWith('Dark'),
+    )
+    if (!item) throw new Error('Dark theme item missing from the options menu')
+    item.click()
+  })
+  await new Promise((resolve) => setTimeout(resolve, 150))
+  const darkState = await page.evaluate(() => ({
+    theme: document.documentElement.getAttribute('data-theme'),
+    stored: localStorage.getItem('cbz-theme'),
+    menuOpen: Boolean(document.querySelector('.menu__panel')),
+  }))
+  if (darkState.theme !== 'dark' || darkState.stored !== 'dark' || darkState.menuOpen) {
+    throw new Error(`Dark theme did not apply: ${JSON.stringify(darkState)}`)
+  }
+
+  await page.reload({ waitUntil: 'networkidle2' })
+  const reloadedTheme = await page.evaluate(() => ({
+    theme: document.documentElement.getAttribute('data-theme'),
+    colorScheme: document.documentElement.style.colorScheme,
+  }))
+  if (reloadedTheme.theme !== 'dark' || reloadedTheme.colorScheme !== 'dark') {
+    throw new Error(`Theme did not survive reload: ${JSON.stringify(reloadedTheme)}`)
+  }
+
+  await page.evaluate(() => localStorage.setItem('cbz-theme', 'auto'))
+  await page.reload({ waitUntil: 'networkidle2' })
+  const autoLight = await page.evaluate(() => document.documentElement.getAttribute('data-theme'))
+  if (autoLight !== 'light') throw new Error(`Auto did not resolve to light: ${autoLight}`)
+
+  await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'dark' }])
+  await new Promise((resolve) => setTimeout(resolve, 150))
+  const autoDark = await page.evaluate(() => document.documentElement.getAttribute('data-theme'))
+  if (autoDark !== 'dark') throw new Error(`Auto did not follow the system: ${autoDark}`)
+
+  await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'light' }])
+
   if (errors.length > 0) throw new Error(`Page errors: ${errors.join(' | ')}`)
 
   console.log(
@@ -306,7 +347,7 @@ try {
       2,
     ),
   )
-  console.log('E2E PASS: paged turn, virtual scroll, position preserved')
+  console.log('E2E PASS: paged turn, virtual scroll, position preserved, theme persists')
 } finally {
   await browser?.close()
   if (server.pid) {
