@@ -170,7 +170,7 @@ const displayName = computed(() => {
   const budget = nameBudget.value
   if (!name || name.length <= budget) return name
   // Keep the extension and the last page number, then spend what is left on the head.
-  const tail = Math.max(5, Math.round(budget * 0.45))
+  const tail = Math.max(6, Math.round(budget * 0.45))
   const head = Math.max(4, budget - tail - 1)
   if (head + tail + 1 >= name.length) return name
   let tailText = name.slice(-tail)
@@ -1342,8 +1342,8 @@ let observedMeta: HTMLElement | null = null
 function measureNameBudget(): void {
   const width = metaEl.value?.clientWidth ?? 0
   if (!width) return
-  // 13px semibold averages roughly 7.2px per character; 7.8 leaves room for wide glyphs.
-  nameBudget.value = Math.max(10, Math.floor(width / 7.8))
+  // 13px semibold averages roughly 7.2px per character; 8.2 leaves room for wide glyphs.
+  nameBudget.value = Math.max(10, Math.floor(width / 8.2))
 }
 
 function attachObserver(): void {
