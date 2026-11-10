@@ -29,7 +29,7 @@
 - 缩放、平移、滑动翻页、点击分区翻页、键盘快捷键、全屏。
 - 从右到左（RTL）漫画模式，可手动切换，也会读取 `ComicInfo.xml` 的 `Manga` 标记。
 - 本地阅读进度：重新导入同一文件时提示恢复上次页码。
-- 深色 / 浅色主题：页头右上角与阅读器菜单都能切换 Auto（跟随系统）、Light、Dark，选择保存在本地，首帧不闪白。
+- 深色 / 浅色主题：页头右上角是二态的太阳/月亮按钮，点一次直接切换；阅读器 `⋮` 菜单里是同一个状态的 `Dark mode` 开关。`auto` 的判定与存储值仍保留并跟随系统，但不再有 UI 入口；选择保存在本地，首帧不闪白。
 - PWA 与离线：`manifest.webmanifest` + 生产环境 Service Worker；首次访问后应用外壳可离线打开，本地的 CBZ 断网也能正常翻页；可添加到主屏。
 - CBZ → PDF 转换：`/cbz-to-pdf/` 页内解压 CBZ，把图片页合成为 PDF 后直接下载。页面尺寸可选「原图尺寸」（默认，1 像素 = 1pt，不缩放）与「A4 适配」（等比不裁剪）；JPEG 页直接嵌入原始数据不重编码，PNG 无损嵌入，WebP/GIF/AVIF/BMP 转一次 JPEG(q=0.92)。转换显示逐页进度、可取消，失败按原因给出具体提示。
 - 英文落地页与 SEO 元信息，构建时输出真实 HTML。
@@ -102,10 +102,11 @@
 | 最近阅读 | ✅ | 首页「Recently opened」列出文件名、总页数、当前页、模式、更新时间与 168px JPEG 封面（约 7–15KB/条）；点条目续读，支持删除单条与 Clear all |
 | 续读策略 | ✅ | ≤32MB 的包在 IndexedDB 存副本（最多保留最近 3 个），点条目直接续读；超限或副本已被淘汰时只留指纹，点条目打开文件选择器并提示重新选同一文件 |
 | 书签 | ✅ | `⋮` 菜单可给当前页加/取消书签，菜单内按页序列出、点击跳转、× 删除；按文件指纹存 IndexedDB，与续读进度互不覆盖 |
-| 深色 / 浅色主题 | ✅ | 页头右上角的太阳/月亮按钮（13 条路由与 404 都有）展开 Auto / Light / Dark；阅读器 `⋮` 菜单内的 `Theme` 分组改同一份状态，任一处切换另一处立即同步。选择存 `localStorage['cbz-theme']`，Auto 用 `matchMedia` 跟随系统并实时切换；`src/prerender/head.ts` 在样式表之前输出阻塞内联脚本，先给 `<html>` 打 `data-theme` 再绘制，因此不会先白后黑。页头按钮的静态标记随预渲染 HTML 一起输出，`src/lib/themeSwitch.ts` 只做事件增强（Esc 回焦、方向键、点外部关闭），JS 未执行时页面仍按 head 脚本的主题正常显示，只是按钮不可点。图标显隐由 `:root[data-theme='dark']` 控制，不依赖 JS。颜色统一收敛为 `base.css` 的 `--token`（`:root` 浅色 + `:root[data-theme='dark']` 覆盖），覆盖落地页正文/列表/CTA/相关内链/页脚、书架卡片、404、`color-scheme` 滚动条、选中色与焦点环。漫画页面本身不做反色或背景替换 |
+| 深色 / 浅色主题 | ✅ | 页头右上角的太阳/月亮按钮是二态直切（13 条路由与 404 都有）：点一次就在 light / dark 之间切换，图标随 `data-theme` 同步，按钮带 `aria-pressed` 与随状态变化的 `aria-label`（`Switch to dark theme` / `Switch to light theme`），鼠标悬停有同样的 `title`。阅读器 `⋮` 菜单的 `Theme` 分组是一个 `menuitemcheckbox` 的 `Dark mode` 开关（右侧显示 On / Off），与页头共用 `resolvedTheme`，任一处改动另一处立即同步。存储仍是 `localStorage['cbz-theme']`；`auto` 继续是合法值并随系统实时切换，但 UI 不再提供入口，首次点击时按当前屏幕外观取反（系统浅色→dark，系统深色→light），之后写入明确的 light/dark。`src/prerender/head.ts` 在样式表之前输出阻塞内联脚本，先给 `<html>` 打 `data-theme` 再绘制，因此不会先白后黑。页头按钮的静态标记随预渲染 HTML 一起输出，`src/lib/themeSwitch.ts` 只负责增强（用 `watch(resolvedTheme)` 同步 ARIA 与点击切换），JS 未执行时页面仍按 head 脚本的主题正常显示，只是按钮不可点。图标显隐由 `:root[data-theme='dark']` 控制，不依赖 JS。颜色统一收敛为 `base.css` 的 `--token`（`:root` 浅色 + `:root[data-theme='dark']` 覆盖），覆盖落地页正文/列表/CTA/相关内链/页脚、书架卡片、404、`color-scheme` 滚动条、选中色与焦点环。漫画页面本身不做反色或背景替换 |
 | PWA 清单与图标 | ✅ | `public/manifest.webmanifest` 声明 `display: standalone`、`start_url` / `scope`、`lang`、192/512 与 maskable 图标；深浅色各一份 manifest，用 `<link rel="manifest" media="(prefers-color-scheme: …)">` 区分 `theme_color` / `background_color`（不支持 `media` 的浏览器会回退到先出现的浅色那份）。`renderHead()` 同时输出 manifest 与 `apple-touch-icon` 链接，随预渲染 HTML 一起落地。图标由 `npm run icons` 从 `favicon.svg` 渲染 |
 | 离线可用 | ✅ | `scripts/sw-template.js` 由 `scripts/prerender.mjs` 注入版本号与预缓存清单后写成 `dist/sw.js`（版本取自带 hash 的资源名，旧缓存自动清理）。导航请求 network-first + 缓存兜底，`/assets/*` cache-first，同源其它资源 stale-while-revalidate；只预缓存首页外壳与静态资源，未访问过的内容页不进缓存。新版本 install 后停在 waiting，由下一次导航的页面发 `SKIP_WAITING` 接管，不在阅读中途刷新；dev 环境不注册 |
-| 安装到主屏 | 🟡 | 可添加到主屏（Chrome 安装入口、iOS Safari 分享→添加到主屏）；独立窗口、启动画面与图标遮罩只在桌面无头 Edge 验证过，真机待确认 |
+| 站点标识 | ✅ | 页头 chip 与 favicon 统一为 `CBZ` 字标（此前页头 chip 是 `CB`，favicon 是书本图形）。`public/favicon.svg` 保持原有深底 `#0d0d12` + 米白 `#f7f5f0` + 橙红 `#c2410c` 配色：深色圆角方块内是压紧字距的 `CBZ`，下方一条橙红短线；字标用 `textLength` 锁定宽度，避免不同系统字体把三字母撑出方块。`npm run icons` 从同一个 SVG 渲染 192/512/maskable 与 Apple 图标，maskable 用 56% 内缩，字标整体落在 80% 安全圆内 |
+| 安装到主屏 | ✅ | 可添加到主屏（Chrome 安装入口、iOS Safari 分享→添加到主屏）；安卓与 iPhone 真机均已确认可添加成功。独立窗口、启动画面与 maskable 遮罩的实际观感尚未截图记录 |
 | CBZ → PDF 转换 | ✅ | `/cbz-to-pdf/` 用 zip.js 在标签页内解压，再用 pdf-lib（懒加载，约 440KB）逐页合成 PDF。JPEG 页走 `embedJpg` 直接写入原始 JPEG 数据，PNG 走 `embedPng` 无损嵌入；WebP/GIF/AVIF/BMP 转一次 JPEG(q=0.92)。下载由页面内的 blob 链接触发，文件名为原文件名换 `.pdf` |
 | 转换页面尺寸 | ✅ | 默认「Original size」：页面等于图片像素，1 像素 = 1pt，不重采样；「Fit to A4」：等比缩放到 595.28×841.89pt 内并居中，不裁剪 |
 | 转换进度与错误 | ✅ | 逐页进度条（`role="progressbar"` + `aria-valuetext`）与取消（AbortSignal，逐页与收尾各检查一次）；错误按原因区分：非 ZIP、加密包、无图片条目（带条目总数）、内存不足、单页读取/嵌入失败（带页码），CBR/CB7 给出具体处理建议而不是笼统报错 |
@@ -134,20 +135,23 @@
 | 长包滚动与窗口滑动 | `long-120pages.cbz`（120 页） | ✅ 安卓真机通过 |
 | 自然排序 | `messy-order.cbz`（乱序命名） | ✅ 安卓真机通过：页序正确 |
 | 超长文件名省略 | `long-name_Herman-Melville-Moby-Dick-Chapter-037-Complete-Scan.cbz` | ✅ 安卓真机通过：顶栏省略正常 |
+| 暗色主题 | 首页 + 阅读器 | ✅ 安卓与 iPhone 真机确认：深色下正文、菜单与页头图标正常 |
+| 离线（飞行模式） | 已访问过一次的站点 + 本地 `demo-30pages.cbz` | ✅ 安卓与 iPhone 真机确认：飞行模式下刷新首页可打开，本地 CBZ 可导入并翻页 |
+| 添加到主屏 | 站点首页 | ✅ 安卓与 iPhone 真机确认可添加成功 |
 
 ### 3.3 仍需真机确认（含 iOS 盲区）
 
-以下项目**尚未**验证。其中 iOS 侧是明确盲区：目前没有 iOS 设备，安卓通过不代表 iOS 通过。
+以下项目**尚未**验证。iOS 侧仍需在 pCloudy 设备云上按第 5 节清单跑一遍；安卓通过不代表 iOS 通过。
 
-- 🟡 **iOS 全部场景均未验证**：文件导入、`accept` 放宽、捏合阻止页面整体缩放、安全区（刘海/圆角/Home 指示条）、触控热区、惯性滚动、Safari 全屏缺失时的菜单行为。
+- 🟡 **iOS 大规模场景未验证**：文件导入链路（含 `accept` 放宽、从「文件」App 分享进来）、捏合阻止页面整体缩放、安全区（刘海/圆角/Home 指示条）、触控热区、惯性滚动、Safari 全屏缺失时的菜单行为。
 - 🟡 **12MP 档下的大图包待重测**：`large-pages-20.cbz` 与 `extreme-6pages-5000x7500.cbz` 在 8MP 档曾有安卓通过记录，本轮把上限提到 12MP 后需要在安卓上重新跑一遍解码、翻页与连续多页后的内存表现。
 - 🟡 **iOS 上的画布上限是盲区**：`extreme-6pages-5000x7500.cbz`（5000×7500，37.5MP）在安卓上没有触发画布上限，iOS Safari 的真实上限（历史版本对解码面积更保守）没有被实测覆盖。当前实现已按统一档位把单页钳制到 4096px / 12MP，理论上不依赖平台差异，但仍需 iOS 实测确认。
-- 🟡 **离线能力只在桌面无头 Edge 上验证**：断网刷新首页、断网打开本地 CBZ、翻页与更新接管都已在 `npm run test:offline` 中通过，但 iOS Safari 的 Service Worker 注册、系统在长期不访问后清理缓存的行为、以及安卓 WebView/Chrome 的差异都没有真机记录。
-- 🟡 **安装体验未验证**：添加到主屏后的独立窗口、启动画面、maskable 图标的实际遮罩效果、以及深色系统下启动时的主题色都没有真机截图。
+- 🟡 **离线的长期行为未验证**：安卓与 iPhone 真机已确认飞行模式下刷新首页、打开本地 CBZ 与翻页；iOS 长期不访问后系统清理缓存、新版本 SW 在真机上的接管时机仍未记录（`npm run test:offline` 覆盖的是桌面流程）。
+- 🟡 **添加到主屏的视觉细节未验证**：两端真机确认可添加；独立窗口、启动画面、maskable 图标的实际遮罩效果、以及深色系统下启动时的主题色都还没有真机截图。
 - 🟡 2x–3x 缩放后的拖动与滚动：桌面已用 Ctrl + 滚轮模拟（锚点不跑位、窗口仍 12 页、复位正常）；真机上放大后的双指拖动、跨窗口滚动与惯性未实测。
 - 🟡 移动端其它手势：滑动翻页、点击分区翻页、双击复位只在桌面无头 Chromium 中验证。
 - 🟡 双页模式在窄屏下的默认值：宽度 ≥980px 默认双页，否则默认单页；小屏双页可读性未评估。
-- 🟡 暗色主题只在桌面无头 Edge 上截图与计算过对比度（正文 13.1:1、次要文字 7.8:1、主按钮 6.9:1、⋮ 菜单 14:1、页头主题按钮图标 16.4:1），320/375px 下页头无横向溢出、按钮完整可见；真机上的系统主题切换（iOS 自动深浅、安卓深色与强制深色）、`color-scheme` 滚动条、选中色与焦点环表现待确认。
+- 🟡 **暗色的边缘行为未验证**：安卓与 iPhone 真机已确认暗色显示；对比度仍是桌面测量（正文 13.1:1、次要文字 7.8:1、主按钮 6.9:1、⋮ 菜单 14:1、页头主题按钮图标 16.4:1），系统主题实时切换、强制深色（forced dark）、`color-scheme` 滚动条、选中色与焦点环只有桌面记录。
 - 🟡 CBZ → PDF 转换只在桌面无头 Edge 上验证：页数、页面尺寸、JPEG 直通与零上传都有测试覆盖，但没有真机记录；iOS Safari 上 30 页 3000×4500 这类包的内存上限是明确盲区。
 - 🟡 超大包压力测试：尚未用 300 页以上、单页 4K 的真实漫画包做压测。
 

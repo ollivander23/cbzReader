@@ -15,7 +15,13 @@ import {
 import { ReaderError, type PageAsset } from './core/types'
 import { ZipPageSource } from './core/zipSource'
 import { fileExtension, sizeBucket, track } from '../lib/track'
-import { readThemeSetting, setTheme, themeSetting, type ThemeSetting } from '../lib/theme'
+import {
+  readThemeSetting,
+  resolvedTheme,
+  setTheme,
+  themeSetting,
+  toggleTheme,
+} from '../lib/theme'
 
 const props = defineProps<{ initialFile?: File | null }>()
 
@@ -77,12 +83,6 @@ const resumePage = ref(0)
 const hasFullscreen = ref(false)
 const fileFingerprint = ref('')
 const bookmarks = ref<Bookmark[]>([])
-
-const THEME_OPTIONS: Array<{ value: ThemeSetting; label: string }> = [
-  { value: 'auto', label: 'Auto' },
-  { value: 'light', label: 'Light' },
-  { value: 'dark', label: 'Dark' },
-]
 
 const assets = reactive(new Map<number, PageAsset>())
 const pageErrors = reactive(new Map<number, string>())
@@ -1396,8 +1396,8 @@ function menuToggleFullscreen(): void {
   closeMenu()
 }
 
-function menuToggleTheme(next: ThemeSetting): void {
-  setTheme(next)
+function menuToggleDark(): void {
+  toggleTheme()
   closeMenu()
 }
 
@@ -1653,29 +1653,17 @@ onBeforeUnmount(() => {
               <div class="menu__group" role="group" aria-labelledby="menu-theme-label">
                 <p class="menu__label" id="menu-theme-label">Theme</p>
                 <button
-                  v-for="option in THEME_OPTIONS"
-                  :key="option.value"
                   type="button"
                   class="menu__item"
-                  role="menuitemradio"
-                  :aria-checked="themeSetting === option.value ? 'true' : 'false'"
-                  @click="menuToggleTheme(option.value)"
+                  role="menuitemcheckbox"
+                  :aria-checked="resolvedTheme === 'dark' ? 'true' : 'false'"
+                  @click="menuToggleDark"
                 >
-                  <svg v-if="option.value === 'auto'" viewBox="0 0 16 16" aria-hidden="true">
-                    <circle cx="8" cy="8" r="5.5" />
-                    <path d="M8 2.5v11" />
-                  </svg>
-                  <svg v-else-if="option.value === 'light'" viewBox="0 0 16 16" aria-hidden="true">
-                    <circle cx="8" cy="8" r="3" />
-                    <path
-                      d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M12.6 3.4l-1.4 1.4M4.8 11.2l-1.4 1.4"
-                    />
-                  </svg>
-                  <svg v-else viewBox="0 0 16 16" aria-hidden="true">
+                  <svg viewBox="0 0 16 16" aria-hidden="true">
                     <path d="M12.5 9.6A5.5 5.5 0 0 1 6.4 3.5a5.5 5.5 0 1 0 6.1 6.1z" />
                   </svg>
-                  <span>{{ option.label }}</span>
-                  <span v-if="themeSetting === option.value" class="menu__state">On</span>
+                  <span>Dark mode</span>
+                  <span class="menu__state">{{ resolvedTheme === 'dark' ? 'On' : 'Off' }}</span>
                 </button>
               </div>
               <div v-if="bookmarks.length" class="menu__group">

@@ -91,34 +91,63 @@ try {
     throw new Error(`Dev build registered ${registrations} service worker(s)`)
   }
 
-  // Site header theme switch: open, Esc closes and returns focus, Light persists.
-  await page.click('.theme-switch__trigger')
-  await page.waitForSelector('.theme-switch__menu')
-  await page.keyboard.press('Escape')
-  const headerClosed = await page.evaluate(() => ({
-    expanded: document.querySelector('.theme-switch__trigger').getAttribute('aria-expanded'),
-    focused: String(document.activeElement?.className ?? ''),
-  }))
-  if (headerClosed.expanded !== 'false' || !headerClosed.focused.includes('theme-switch__trigger')) {
-    throw new Error(`Header theme menu did not close cleanly: ${JSON.stringify(headerClosed)}`)
+  // Site header theme button: two states, one click flips, no menu.
+  const headerInitial = await page.evaluate(() => {
+    const trigger = document.querySelector('.theme-switch__trigger')
+    return {
+      theme: document.documentElement.getAttribute('data-theme'),
+      pressed: trigger?.getAttribute('aria-pressed'),
+      label: trigger?.getAttribute('aria-label'),
+      hasMenu: Boolean(document.querySelector('.theme-switch__menu')),
+    }
+  })
+  if (
+    headerInitial.theme !== 'light' ||
+    headerInitial.pressed !== 'false' ||
+    headerInitial.label !== 'Switch to dark theme' ||
+    headerInitial.hasMenu
+  ) {
+    throw new Error(`Header theme button is not in its default light state: ${JSON.stringify(headerInitial)}`)
   }
 
   await page.click('.theme-switch__trigger')
-  await page.waitForSelector('.theme-switch__menu')
-  await page.evaluate(() => {
-    const item = Array.from(document.querySelectorAll('.theme-switch__menu .theme-switch__item')).find(
-      (node) => node.textContent?.trim().startsWith('Light'),
-    )
-    if (!item) throw new Error('Light item missing from the header switch')
-    item.click()
+  const headerDark = await page.evaluate(() => {
+    const trigger = document.querySelector('.theme-switch__trigger')
+    const icon = (selector) => getComputedStyle(document.querySelector(selector)).display
+    return {
+      theme: document.documentElement.getAttribute('data-theme'),
+      stored: localStorage.getItem('cbz-theme'),
+      pressed: trigger?.getAttribute('aria-pressed'),
+      label: trigger?.getAttribute('aria-label'),
+      sun: icon('.theme-switch__icon--sun'),
+      moon: icon('.theme-switch__icon--moon'),
+    }
   })
-  const headerLight = await page.evaluate(() => ({
+  if (
+    headerDark.theme !== 'dark' ||
+    headerDark.stored !== 'dark' ||
+    headerDark.pressed !== 'true' ||
+    headerDark.label !== 'Switch to light theme' ||
+    headerDark.sun !== 'none' ||
+    headerDark.moon === 'none'
+  ) {
+    throw new Error(`Header theme button did not switch to dark: ${JSON.stringify(headerDark)}`)
+  }
+
+  await page.click('.theme-switch__trigger')
+  const headerBackToLight = await page.evaluate(() => ({
     theme: document.documentElement.getAttribute('data-theme'),
     stored: localStorage.getItem('cbz-theme'),
-    expanded: document.querySelector('.theme-switch__trigger').getAttribute('aria-expanded'),
+    pressed: document.querySelector('.theme-switch__trigger')?.getAttribute('aria-pressed'),
+    label: document.querySelector('.theme-switch__trigger')?.getAttribute('aria-label'),
   }))
-  if (headerLight.theme !== 'light' || headerLight.stored !== 'light' || headerLight.expanded !== 'false') {
-    throw new Error(`Header theme switch did not apply Light: ${JSON.stringify(headerLight)}`)
+  if (
+    headerBackToLight.theme !== 'light' ||
+    headerBackToLight.stored !== 'light' ||
+    headerBackToLight.pressed !== 'false' ||
+    headerBackToLight.label !== 'Switch to dark theme'
+  ) {
+    throw new Error(`Header theme button did not switch back: ${JSON.stringify(headerBackToLight)}`)
   }
 
   const input = await page.$('#reader-app input[type="file"]')
@@ -317,47 +346,62 @@ try {
 
   await page.screenshot({ path: path.join(root, 'test/.cache/e2e-reader.png') })
 
-  // Theme: the ⋮ menu applies and stores the choice, and Auto follows the system.
+  // Theme: the ⋮ menu has a single Dark mode toggle that shares the header state.
   await page.click('[aria-label="More reading options"]')
   await page.waitForSelector('.menu__panel')
   const readerChecked = await page.evaluate(() => {
     const item = Array.from(document.querySelectorAll('.menu__panel .menu__item')).find((node) =>
-      node.textContent?.trim().startsWith('Light'),
+      node.textContent?.trim().startsWith('Dark mode'),
     )
     return item?.getAttribute('aria-checked')
   })
-  if (readerChecked !== 'true') {
-    throw new Error(`Reader theme menu is out of sync with the header switch: ${readerChecked}`)
+  if (readerChecked !== 'false') {
+    throw new Error(`Reader Dark mode toggle is out of sync with the light header: ${readerChecked}`)
   }
   await page.evaluate(() => {
     const item = Array.from(document.querySelectorAll('.menu__panel .menu__item')).find((node) =>
-      node.textContent?.trim().startsWith('Dark'),
+      node.textContent?.trim().startsWith('Dark mode'),
     )
-    if (!item) throw new Error('Dark theme item missing from the options menu')
+    if (!item) throw new Error('Dark mode item missing from the options menu')
     item.click()
   })
   await new Promise((resolve) => setTimeout(resolve, 150))
-  const darkState = await page.evaluate(() => ({
-    theme: document.documentElement.getAttribute('data-theme'),
-    stored: localStorage.getItem('cbz-theme'),
-    menuOpen: Boolean(document.querySelector('.menu__panel')),
-  }))
-  if (darkState.theme !== 'dark' || darkState.stored !== 'dark' || darkState.menuOpen) {
-    throw new Error(`Dark theme did not apply: ${JSON.stringify(darkState)}`)
+  const darkState = await page.evaluate(() => {
+    const trigger = document.querySelector('.theme-switch__trigger')
+    return {
+      theme: document.documentElement.getAttribute('data-theme'),
+      stored: localStorage.getItem('cbz-theme'),
+      menuOpen: Boolean(document.querySelector('.menu__panel')),
+      pressed: trigger?.getAttribute('aria-pressed'),
+      label: trigger?.getAttribute('aria-label'),
+    }
+  })
+  if (
+    darkState.theme !== 'dark' ||
+    darkState.stored !== 'dark' ||
+    darkState.menuOpen ||
+    darkState.pressed !== 'true' ||
+    darkState.label !== 'Switch to light theme'
+  ) {
+    throw new Error(`Dark mode did not apply or did not reach the header: ${JSON.stringify(darkState)}`)
   }
 
-  // The header switch must reflect a change made from the reader menu.
+  // The reader toggle must read the shared state after the header changed it.
   await page.click('.theme-switch__trigger')
-  const headerChecked = await page.evaluate(() => {
-    const item = Array.from(document.querySelectorAll('.theme-switch__menu .theme-switch__item')).find(
-      (node) => node.textContent?.trim().startsWith('Dark'),
+  await page.click('[aria-label="More reading options"]')
+  await page.waitForSelector('.menu__panel')
+  const readerAfterHeader = await page.evaluate(() => {
+    const item = Array.from(document.querySelectorAll('.menu__panel .menu__item')).find((node) =>
+      node.textContent?.trim().startsWith('Dark mode'),
     )
-    return item?.getAttribute('aria-checked')
+    return { checked: item?.getAttribute('aria-checked'), state: item?.textContent?.includes('Off') }
   })
   await page.keyboard.press('Escape')
-  if (headerChecked !== 'true') {
-    throw new Error(`Header switch did not follow the reader menu: ${headerChecked}`)
+  if (readerAfterHeader.checked !== 'false' || readerAfterHeader.state !== true) {
+    throw new Error(`Reader toggle did not follow the header: ${JSON.stringify(readerAfterHeader)}`)
   }
+
+  await page.click('.theme-switch__trigger')
 
   await page.reload({ waitUntil: 'networkidle2' })
   const reloadedTheme = await page.evaluate(() => ({
@@ -375,8 +419,29 @@ try {
 
   await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'dark' }])
   await new Promise((resolve) => setTimeout(resolve, 150))
-  const autoDark = await page.evaluate(() => document.documentElement.getAttribute('data-theme'))
-  if (autoDark !== 'dark') throw new Error(`Auto did not follow the system: ${autoDark}`)
+  const autoDark = await page.evaluate(() => ({
+    theme: document.documentElement.getAttribute('data-theme'),
+    stored: localStorage.getItem('cbz-theme'),
+    label: document.querySelector('.theme-switch__trigger')?.getAttribute('aria-label'),
+  }))
+  if (
+    autoDark.theme !== 'dark' ||
+    autoDark.stored !== 'auto' ||
+    autoDark.label !== 'Switch to light theme'
+  ) {
+    throw new Error(`Auto did not follow the system or lost its stored value: ${JSON.stringify(autoDark)}`)
+  }
+
+  // First click while the stored value is still 'auto' flips the appearance
+  // that is on screen, then stores an explicit value.
+  await page.click('.theme-switch__trigger')
+  const fromAuto = await page.evaluate(() => ({
+    theme: document.documentElement.getAttribute('data-theme'),
+    stored: localStorage.getItem('cbz-theme'),
+  }))
+  if (fromAuto.theme !== 'light' || fromAuto.stored !== 'light') {
+    throw new Error(`Click from auto did not switch against the system: ${JSON.stringify(fromAuto)}`)
+  }
 
   await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'light' }])
 
