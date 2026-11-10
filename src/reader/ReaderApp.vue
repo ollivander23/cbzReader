@@ -3,6 +3,15 @@ import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } 
 import { fingerprint } from './core/fingerprint'
 import { loadPageAsset } from './core/imageLoader'
 import { readProgress, writeProgress, type ReadingMode } from './core/progress'
+import {
+  readBookmarks,
+  rememberArchive,
+  renderCover,
+  setCover,
+  touchEntry,
+  writeBookmarks,
+  type Bookmark,
+} from './core/library'
 import { ReaderError, type PageAsset } from './core/types'
 import { ZipPageSource } from './core/zipSource'
 
@@ -65,6 +74,7 @@ const showResume = ref(false)
 const resumePage = ref(0)
 const hasFullscreen = ref(false)
 const fileFingerprint = ref('')
+const bookmarks = ref<Bookmark[]>([])
 
 const assets = reactive(new Map<number, PageAsset>())
 const pageErrors = reactive(new Map<number, string>())
@@ -99,6 +109,8 @@ const inflight = new Map<number, Promise<void>>()
 let saveTimer: number | undefined
 let resumeTimer: number | undefined
 let tapTimer: number | undefined
+let coverDone = false
+let shelfReady: Promise<void> | null = null
 
 const pointers = new Map<number, { x: number; y: number }>()
 let panStart: { x: number; y: number; tx: number; ty: number } | null = null
@@ -160,6 +172,8 @@ const modeLabel = computed(() =>
 const zoomPercent = computed(() =>
   Math.round((mode.value === 'scroll' ? scrollScale.value : scale.value) * 100),
 )
+
+const bookmarked = computed(() => bookmarks.value.some((item) => item.page === index.value))
 
 /**
  * Keep the head and the extension of a long name, so the middle ellipsis never
@@ -264,6 +278,9 @@ async function resetReader(): Promise<void> {
   pinchState = null
   singleTouch = null
   lastScrollTap = null
+  bookmarks.value = []
+  coverDone = false
+  shelfReady = null
   clearZoom()
   if (current) await current.dispose()
 }
@@ -289,6 +306,15 @@ async function loadOne(page: number): Promise<void> {
       }
       assets.set(page, asset)
       pageErrors.delete(page)
+      if (page === 0 && !coverDone) {
+        coverDone = true
+        const id = fileFingerprint.value
+        const url = asset.url
+        void (shelfReady ?? Promise.resolve()).then(async () => {
+          const cover = await renderCover(url)
+          if (cover && fileFingerprint.value === id) await setCover(id, cover)
+        })
+      }
       if (mode.value !== 'scroll') {
         await nextTick()
         measureContent()
@@ -801,6 +827,11 @@ function scheduleSave(): void {
       rtl: rtl.value,
       updatedAt: Date.now(),
     })
+    void touchEntry(fileFingerprint.value, {
+      index: index.value,
+      mode: mode.value,
+      rtl: rtl.value,
+    })
   }, 350)
 }
 
@@ -847,6 +878,15 @@ async function openFile(file: File): Promise<void> {
 
     if (mode.value === 'scroll') centerScrollWindow(index.value)
     scrollWindowStart.value = Math.min(scrollWindowStart.value, Math.max(0, pageCount.value - SCROLL_WINDOW))
+
+    // Track the file on the landing shelf: metadata now, a small copy in the background.
+    bookmarks.value = await readBookmarks(fileId)
+    shelfReady = rememberArchive(file, fileId, {
+      pageCount: pageCount.value,
+      index: index.value,
+      mode: mode.value,
+      rtl: rtl.value,
+    })
 
     ready.value = true
     await nextTick()
@@ -1324,6 +1364,27 @@ function menuToggleFullscreen(): void {
   closeMenu()
 }
 
+function menuToggleBookmark(): void {
+  const page = index.value
+  const exists = bookmarks.value.some((item) => item.page === page)
+  const next = exists
+    ? bookmarks.value.filter((item) => item.page !== page)
+    : [...bookmarks.value, { page, createdAt: Date.now() }].sort((a, b) => a.page - b.page)
+  bookmarks.value = next
+  void writeBookmarks(fileFingerprint.value, next)
+}
+
+function jumpToBookmark(page: number): void {
+  closeMenu()
+  goToPage(page)
+}
+
+function removeBookmark(page: number): void {
+  const next = bookmarks.value.filter((item) => item.page !== page)
+  bookmarks.value = next
+  void writeBookmarks(fileFingerprint.value, next)
+}
+
 function onDocumentPointerDown(event: PointerEvent): void {
   if (!menuOpen.value) return
   const target = event.target as Node | null
@@ -1533,6 +1594,41 @@ onBeforeUnmount(() => {
                 </svg>
                 <span>{{ fullscreenActive ? 'Exit fullscreen' : 'Fullscreen' }}</span>
               </button>
+              <button
+                type="button"
+                class="menu__item"
+                role="menuitemcheckbox"
+                :aria-checked="bookmarked ? 'true' : 'false'"
+                @click="menuToggleBookmark"
+              >
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M4.5 2.5h7v11l-3.5-2.7-3.5 2.7z" />
+                </svg>
+                <span>{{ bookmarked ? 'Remove bookmark' : 'Bookmark this page' }}</span>
+                <span class="menu__state">{{ bookmarks.length || '' }}</span>
+              </button>
+              <div v-if="bookmarks.length" class="menu__group">
+                <p class="menu__label">Bookmarks</p>
+                <div v-for="mark in bookmarks" :key="mark.page" class="menu__row">
+                  <button
+                    type="button"
+                    class="menu__item menu__item--jump"
+                    role="menuitem"
+                    @click="jumpToBookmark(mark.page)"
+                  >
+                    <span>Page {{ mark.page + 1 }}</span>
+                    <span v-if="mark.page === index" class="menu__state">Here</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="menu__delete"
+                    :aria-label="`Remove bookmark on page ${mark.page + 1}`"
+                    @click="removeBookmark(mark.page)"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1868,6 +1964,9 @@ onBeforeUnmount(() => {
   right: 0;
   z-index: 6;
   min-width: 212px;
+  max-height: min(68vh, 420px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 6px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 10px;
@@ -1917,6 +2016,51 @@ onBeforeUnmount(() => {
 .menu__state {
   color: rgba(255, 255, 255, 0.42);
   font-size: 11px;
+}
+
+.menu__group {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.menu__label {
+  margin: 0 0 4px;
+  padding: 0 10px;
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.menu__row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.menu__item--jump {
+  min-height: 34px;
+}
+
+.menu__delete {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.menu__delete:hover,
+.menu__delete:focus-visible {
+  background: rgba(248, 113, 113, 0.22);
+  color: #fff;
+  outline: none;
 }
 
 .tool:hover {

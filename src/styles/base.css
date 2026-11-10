@@ -248,6 +248,154 @@ h1 {
   font-size: 12.5px;
 }
 
+/* Recent shelf: prerendered hidden, filled by src/components/recentShelf.ts */
+.shelf {
+  margin: 30px 0 0;
+}
+
+.shelf__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.shelf__head h2 {
+  margin: 0;
+  font-size: 17px;
+  letter-spacing: -0.01em;
+}
+
+.shelf__clear {
+  padding: 4px 2px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12.5px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.shelf__clear:hover {
+  color: var(--accent);
+}
+
+.shelf__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.shelf__item {
+  position: relative;
+  display: flex;
+}
+
+.shelf__card {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 10px 36px 10px 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.shelf__card:hover {
+  border-color: #cfc7b8;
+  box-shadow: 0 10px 24px -18px rgba(23, 23, 26, 0.6);
+}
+
+.shelf__cover {
+  flex: 0 0 auto;
+  width: 46px;
+  height: 64px;
+  border-radius: 6px;
+  background: var(--accent-soft);
+  object-fit: cover;
+}
+
+.shelf__cover--empty {
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.shelf__body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.shelf__name {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shelf__meta {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shelf__time {
+  color: #8a8a94;
+  font-size: 11px;
+}
+
+.shelf__delete {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #9a9aa3;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.shelf__delete:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.shelf__hint {
+  margin: 10px 2px 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: #7c2d12;
+  font-size: 12.5px;
+}
+
 /* Static fallback inside #reader-app. Replaced by the Vue reader on first use. */
 .reader-fallback {
   display: grid;

@@ -54,6 +54,15 @@ const year = 2026
       </ul>
     </section>
 
+    <section v-if="page.tool" id="recent-shelf" class="shelf" hidden aria-labelledby="recent-title">
+      <div class="shelf__head">
+        <h2 id="recent-title">Recently opened</h2>
+        <button type="button" class="shelf__clear" data-recent-clear>Clear all</button>
+      </div>
+      <ul class="shelf__list" data-recent-list></ul>
+      <p class="shelf__hint" data-recent-hint hidden></p>
+    </section>
+
     <section v-if="page.tool" id="reader" class="reader-section" aria-label="CBZ reader">
       <div class="reader-frame">
         <div id="reader-app">

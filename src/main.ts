@@ -1,4 +1,5 @@
 import './styles/base.css'
+import { mountRecentShelf } from './components/recentShelf'
 
 const isIOS =
   typeof navigator !== 'undefined' &&
@@ -58,11 +59,13 @@ function bootstrap(): void {
     void import('./dev/devLanding').then(({ mountDevLanding }) => {
       mountDevLanding()
       wireStaticReader()
+      mountRecentShelf(startReader)
     })
     return
   }
 
   wireStaticReader()
+  mountRecentShelf(startReader)
 }
 
 bootstrap()
