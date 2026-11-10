@@ -94,9 +94,11 @@
 | 续读恢复 | ✅ | 重新导入同一文件时恢复到上次页码（含纵向模式），并显示 9 秒恢复提示与「Start over」 |
 | 预渲染落地页 | ✅ | 6 条静态路由：首页、`/read-cbz-online/`、`/manga-reader/`、`/how-to-open-cbz/`、`/cbz-vs-cbr/`、`/privacy/` |
 | SEO 元信息 | ✅ | 每页独立 title/description、canonical、hreflang、OG/Twitter、JSON-LD（WebSite / WebApplication / Article / FAQPage / BreadcrumbList） |
+| 社交分享图 | ✅ | `public/og-image.png` 1200×630；`og:image` 含 width/height/alt，`twitter:image`，卡片类型为 `summary_large_image` |
+| 404 与静态资源 | ✅ | `public/404.html`；未知路径与缺失的 `/assets/*` 由 Cloudflare Pages 返回 404，而不是回退首页 200 |
 | sitemap / robots | ✅ | 构建时按 `SITE_URL` 生成 `sitemap.xml` 与 `robots.txt` |
 | 阅读器懒加载 | ✅ | 阅读器单独 chunk，首屏只加载落地页与样式 |
-| 部署头 | ✅ | `public/_headers` 配置安全头与静态资源长缓存 |
+| 部署头 | ✅ | `public/_headers` 配置安全头、HSTS 与静态资源长缓存 |
 | 端到端自测 | ✅ | `npm run test:e2e` 用本机 Edge/Chrome 打开 CBZ，验证解码、翻页、纵向窗口滑动与模式切换保位 |
 
 ### 3.2 已实现但需要真机确认
@@ -170,7 +172,7 @@ npm run preview
 3. `vite build --ssr src/prerender/entry-server.ts --outDir dist-ssr` 生成 SSR 用的中间产物；
 4. `node scripts/prerender.mjs` 把每条路由渲染成 `dist/<route>/index.html`，并生成 `sitemap.xml`、`robots.txt`。
 
-`dist-ssr/` 只是构建中间产物，不需要部署。
+`public/404.html` 会随构建复制到 `dist/404.html`。Cloudflare Pages 用它作为未匹配路径的响应：状态码为 404，而不是把 `index.html` 以 200 返回。`dist-ssr/` 只是构建中间产物，不需要部署。
 
 ### 5.4 Cloudflare Pages 配置
 
@@ -189,7 +191,13 @@ npm run preview
 - `SITE_URL`：生产域名。当前线上为 `https://cbzreader.mavi.help/`，构建时用于 canonical、hreflang、JSON-LD、sitemap 与 robots。**未设置时会回退到 `https://your-domain.com` 占位值，不能直接上线。**
 - 修改 `SITE_URL` 后必须重新构建，它只影响构建产物，不是运行时变量。
 
-`public/_headers` 会随构建复制到 `dist/_headers`，由 Cloudflare Pages 识别，用于安全头和 `/assets/*` 的长期缓存。
+`public/_headers` 会随构建复制到 `dist/_headers`，由 Cloudflare Pages 识别，用于安全头、HSTS 和 `/assets/*` 的长期缓存。
+
+**HSTS 的选择**：写在 `_headers` 里，而不是只依赖 Cloudflare 面板开关。这样配置跟代码一起版本化、随部署生效，取值 `max-age=31536000`（1 年），**不加 `includeSubDomains`、不提交 `preload`**：
+
+- 不加 `includeSubDomains`：当前只有 `cbzreader.mavi.help` 这一个主机需要强制 HTTPS；加上会把策略扩散到它的所有子域，未来若新增 `api.`、`staging.` 等子域，必须立刻具备有效 HTTPS，否则会被浏览器直接拦截。
+- 不提交 `preload`：预加载列表是单向的，移除需要数月且依赖浏览器更新；对一个刚上线的工具站没有必要承担这个不可逆成本。
+- 副作用：浏览器会在 1 年内拒绝该主机的 HTTP 访问和无效证书。如果将来确实需要回退到 HTTP，只能先通过 HTTPS 下发 `max-age=0` 清除，而用户必须先成功访问一次 HTTPS。
 
 ### 5.5 自定义域名上线检查
 
@@ -199,6 +207,17 @@ npm run preview
 4. 访问 `/sitemap.xml` 与 `/robots.txt`，确认地址可访问且指向生产域名。
 5. 提交 sitemap 到 Google Search Console / Bing Webmaster Tools。
 6. 站点部署在域名根路径下，页面内链接使用绝对路径（`/how-to-open-cbz/`）；如果将来要部署到子路径，需要统一调整链接与 `base`。
+
+#### 可选：让 `www.cbzreader.mavi.help` 可访问并 301 到裸主机
+
+这件事需要你在 Cloudflare 面板操作，仓库里没有可改的代码。建议做：成本低，能接住手输 `www` 的访问，且不会产生重复内容。步骤：
+
+1. 在 Cloudflare 控制台选择 `mavi.help` 这个 Zone → DNS → Records → Add record：Type `CNAME`，Name 填 `www.cbzreader`，Target 填 `cbzreader.mavi.help`，代理状态保持 Proxied（橙色云）。
+2. 回到 Pages 项目 → Custom domains → Set up a custom domain，添加 `www.cbzreader.mavi.help`，让 Pages 也认可这个主机名（DNS 记录已存在时通常直接通过验证）。
+3. 在同一 Zone → Rules → Redirect Rules → Create rule：匹配条件用 `Hostname equals www.cbzreader.mavi.help`（或自定义筛选表达式 `http.host eq "www.cbzreader.mavi.help"`），动作为 Static redirect 到 `https://cbzreader.mavi.help`，状态码 **301**，勾选保留查询字符串。
+4. 验证：`curl -I https://www.cbzreader.mavi.help/` 应返回 `301` 且 `Location: https://cbzreader.mavi.help/`；`https://cbzreader.mavi.help/` 保持 200。canonical 仍然只指向裸主机，不需要修改 `SITE_URL`。
+
+注意：**不要只把 `www` 加成第二个 Pages 自定义域名而不做 301**，否则同一内容会在两个主机名上返回 200，形成重复内容；如果不想做重定向，就不要绑定 `www`。
 
 ### 5.6 本地端到端自测（可选）
 

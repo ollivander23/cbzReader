@@ -29,7 +29,7 @@ export const PAGES: PageContent[] = [
     path: '/',
     title: 'CBZ Reader - Open CBZ Comic Files in Your Browser',
     description:
-      'Read CBZ comics instantly in your browser. Files stay on your device: no uploads, no account. Right-to-left manga, double-page spreads, zoom, and resume where you left off.',
+      'Read CBZ comics in your browser. No uploads, no account: files stay on your device. Manga RTL, double-page spreads, zoom, and resume where you left off.',
     h1: 'Read CBZ comics in your browser',
     eyebrow: 'Local-first comic reader',
     lead: 'Drop a .cbz file and start reading in seconds. Pages are unpacked on your device, never uploaded. No account, no library to maintain, no waiting for a conversion job.',
@@ -204,7 +204,7 @@ export const PAGES: PageContent[] = [
     path: '/how-to-open-cbz/',
     title: 'How to Open a CBZ File on Windows, Mac, iPhone, and Android',
     description:
-      'A CBZ file is a ZIP archive full of comic pages. Learn how to open one on desktop or phone, with or without installing an app, and why page order sometimes breaks.',
+      'A CBZ file is a ZIP archive of comic pages. Learn how to open one on desktop or phone, with or without an app, and why page order sometimes breaks.',
     h1: 'How to open a CBZ file',
     eyebrow: 'Step-by-step guide',
     lead: 'A .cbz file is not a special image format. It is a ZIP archive with comic pages inside, usually JPG or PNG, plus an optional metadata file. That is why almost anything that can open a ZIP can open a CBZ.',
