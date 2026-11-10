@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="CBZ Reader">
+  <rect width="64" height="64" rx="14" fill="#0d0d12" />
+  <path d="M20 14h18a10 10 0 0 1 10 10v26H24a10 10 0 0 0-4 .8V14Z" fill="#f7f5f0" />
+  <path d="M20 14h18a10 10 0 0 1 10 10v2H20V14Z" fill="#c2410c" />
+  <path d="M28 32h12M28 39h12" stroke="#0d0d12" stroke-width="3" stroke-linecap="round" />
+</svg>
