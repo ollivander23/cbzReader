@@ -10,3 +10,12 @@
 
 /favicon.svg
   Cache-Control: public, max-age=604800
+
+/sw.js
+  Cache-Control: no-cache
+
+/manifest.webmanifest
+  Cache-Control: public, max-age=3600
+
+/manifest-dark.webmanifest
+  Cache-Control: public, max-age=3600

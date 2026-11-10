@@ -82,6 +82,15 @@ try {
   await page.goto(base, { waitUntil: 'networkidle2' })
   await page.waitForSelector('#reader-app [data-open-reader]')
 
+  // The service worker must never register outside a production build.
+  const registrations = await page.evaluate(async () => {
+    if (!('serviceWorker' in navigator)) return 0
+    return (await navigator.serviceWorker.getRegistrations()).length
+  })
+  if (registrations !== 0) {
+    throw new Error(`Dev build registered ${registrations} service worker(s)`)
+  }
+
   // Site header theme switch: open, Esc closes and returns focus, Light persists.
   await page.click('.theme-switch__trigger')
   await page.waitForSelector('.theme-switch__menu')

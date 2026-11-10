@@ -1,4 +1,5 @@
-import { readFile, writeFile, mkdir, readdir } from 'node:fs/promises'
+import { readFile, writeFile, mkdir, readdir, access } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 
@@ -67,3 +68,55 @@ await writeFile(
 )
 
 console.log(`[prerender] wrote ${routes.length} pages, sitemap.xml, robots.txt`)
+
+// ---------------------------------------------------------------------------
+// Service worker: app shell precache + a cache version derived from the hashed
+// asset filenames. Only the shell and shared assets are precached; content
+// pages enter the runtime cache the first time someone opens them.
+// ---------------------------------------------------------------------------
+
+async function listFiles(dir, prefix = '') {
+  const entries = await readdir(dir, { withFileTypes: true })
+  const files = []
+  for (const entry of entries) {
+    const relative = `${prefix}${entry.name}`
+    if (entry.isDirectory()) files.push(...(await listFiles(path.join(dir, entry.name), `${relative}/`)))
+    else files.push(relative)
+  }
+  return files
+}
+
+const assetsDir = path.join(distDir, 'assets')
+const assetUrls = (await listFiles(assetsDir))
+  .map((file) => `/assets/${file.split(path.sep).join('/')}`)
+  .sort()
+
+const shellCandidates = [
+  '/',
+  '/manifest.webmanifest',
+  '/manifest-dark.webmanifest',
+  '/favicon.svg',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/icon-maskable-512.png',
+  '/apple-touch-icon.png',
+]
+const shellUrls = []
+for (const url of shellCandidates) {
+  const file = path.join(distDir, url === '/' ? 'index.html' : url.replace(/^\//, ''))
+  try {
+    await access(file)
+    shellUrls.push(url)
+  } catch {
+    console.warn(`[prerender] service worker shell is missing ${url}, skipped`)
+  }
+}
+
+const precache = [...shellUrls, ...assetUrls]
+const version = createHash('sha256').update(precache.join('\n')).digest('hex').slice(0, 12)
+const swTemplate = await readFile(path.join(root, 'scripts/sw-template.js'), 'utf8')
+const sw = swTemplate
+  .replace('__CACHE_VERSION__', version)
+  .replace('__PRECACHE__', JSON.stringify(precache, null, 2))
+await writeFile(path.join(distDir, 'sw.js'), sw, 'utf8')
+console.log(`[prerender] wrote sw.js (${version}, ${precache.length} precached files)`)

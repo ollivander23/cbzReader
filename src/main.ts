@@ -82,6 +82,26 @@ function preventBrowserDrop(event: DragEvent): void {
   event.preventDefault()
 }
 
+// Production only: a service worker in dev would serve stale files and make
+// local debugging confusing. The worker itself is generated at build time.
+function registerServiceWorker(): void {
+  if (!import.meta.env.PROD || !('serviceWorker' in navigator)) return
+  window.addEventListener('load', () => {
+    void navigator.serviceWorker
+      .register('/sw.js')
+      .then((registration) => {
+        // A worker installed during an earlier visit stays in the waiting state
+        // on purpose. Once this fresh page load finishes booting there is no
+        // reading session to interrupt, so it can take over without a reload.
+        registration.waiting?.postMessage({ type: 'SKIP_WAITING' })
+      })
+      .catch(() => {
+        // Offline support is an enhancement; a failed registration must not
+        // break the reader.
+      })
+  })
+}
+
 function bootstrap(): void {
   window.addEventListener('dragover', preventBrowserDrop)
   window.addEventListener('drop', preventBrowserDrop)
@@ -108,3 +128,4 @@ function bootstrap(): void {
 // dev, the SPA fallback and system-theme changes in sync afterwards.
 initTheme()
 bootstrap()
+registerServiceWorker()

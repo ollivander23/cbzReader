@@ -56,6 +56,13 @@ export const PAGES: PageContent[] = [
         ],
       },
       {
+        heading: 'Works offline, and installs like an app',
+        paragraphs: [
+          'After the first visit the reader shell is stored on your device, so reloading the page or reopening it with no connection still works. Your comics were never online in the first place: they are read from local files, so page turning keeps working offline as well.',
+          'On Android and desktop Chrome you can install the site from the browser menu (Install app, or Add to Home screen) and launch it full screen. On iPhone and iPad, open the site in Safari and use Share → Add to Home Screen. Offline support relies on the browser keeping its stored copy; a long gap without visits may clear it, and one online visit restores it.',
+        ],
+      },
+      {
         heading: 'What this version does not do',
         paragraphs: [
           'It does not read CBR (RAR) or CB7 (7z) archives yet, and it does not open files from a URL. There is no cloud library, no sync across devices, and no DRM support. Those are deliberate omissions: the goal of this version is to make CBZ reading fast and dependable before adding more containers.',
@@ -67,6 +74,16 @@ export const PAGES: PageContent[] = [
         question: 'Is my comic uploaded to a server?',
         answer:
           'No. The file is opened with the browser file picker and parsed in the page. Page images are decoded locally. Nothing is sent to this site or to a third party.',
+      },
+      {
+        question: 'Does the reader work offline?',
+        answer:
+          'Yes, after the first visit. The page shell is kept by a service worker, so the reader can be reloaded without a connection, and your CBZ file is read from your device, so page turning does not need the network either. Pages you have never opened on this site are not stored, and a browser may drop its stored copy after a long period without visits; one online visit restores it.',
+      },
+      {
+        question: 'Can I add it to my home screen?',
+        answer:
+          'Yes. On Android and desktop Chrome use the Install app entry in the browser menu; on iPhone and iPad open the site in Safari and choose Share → Add to Home Screen. It then opens full screen without browser chrome.',
       },
       {
         question: 'Does it work on iPhone and iPad?',

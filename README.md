@@ -2,7 +2,7 @@
 
 一个面向海外用户的极简 CBZ 在线阅读器：打开网页、选中或拖入 `.cbz` 文件即可开始阅读，文件不上传、不需要账号。本仓库是「冷门格式阅读器工具站」的第一个站点，DJVU 站不在本期范围。
 
-当前状态：**MVP 已上线**，线上地址 <https://cbzreader.mavi.help/>。已完成文件选择、ZIP 按需解压、单页/双页/纵向连续三种阅读模式、缩放平移、RTL、内存控制、续读指纹，以及构建时预渲染的英文落地页。尚未实现 CBR/CB7、书签和多语言。
+当前状态：**MVP 已上线**，线上地址 <https://cbzreader.mavi.help/>。已完成文件选择、ZIP 按需解压、单页/双页/纵向连续三种阅读模式、缩放平移、RTL、内存控制、续读指纹、书签、深浅色主题、PWA 离线外壳，以及构建时预渲染的英文落地页。尚未实现 CBR/CB7 与多语言。
 
 ---
 
@@ -30,6 +30,7 @@
 - 从右到左（RTL）漫画模式，可手动切换，也会读取 `ComicInfo.xml` 的 `Manga` 标记。
 - 本地阅读进度：重新导入同一文件时提示恢复上次页码。
 - 深色 / 浅色主题：页头右上角与阅读器菜单都能切换 Auto（跟随系统）、Light、Dark，选择保存在本地，首帧不闪白。
+- PWA 与离线：`manifest.webmanifest` + 生产环境 Service Worker；首次访问后应用外壳可离线打开，本地的 CBZ 断网也能正常翻页；可添加到主屏。
 - 英文落地页与 SEO 元信息，构建时输出真实 HTML。
 
 ### 1.4 明确不做
@@ -99,6 +100,9 @@
 | 续读策略 | ✅ | ≤32MB 的包在 IndexedDB 存副本（最多保留最近 3 个），点条目直接续读；超限或副本已被淘汰时只留指纹，点条目打开文件选择器并提示重新选同一文件 |
 | 书签 | ✅ | `⋮` 菜单可给当前页加/取消书签，菜单内按页序列出、点击跳转、× 删除；按文件指纹存 IndexedDB，与续读进度互不覆盖 |
 | 深色 / 浅色主题 | ✅ | 页头右上角的太阳/月亮按钮（12 条路由与 404 都有）展开 Auto / Light / Dark；阅读器 `⋮` 菜单内的 `Theme` 分组改同一份状态，任一处切换另一处立即同步。选择存 `localStorage['cbz-theme']`，Auto 用 `matchMedia` 跟随系统并实时切换；`src/prerender/head.ts` 在样式表之前输出阻塞内联脚本，先给 `<html>` 打 `data-theme` 再绘制，因此不会先白后黑。页头按钮的静态标记随预渲染 HTML 一起输出，`src/lib/themeSwitch.ts` 只做事件增强（Esc 回焦、方向键、点外部关闭），JS 未执行时页面仍按 head 脚本的主题正常显示，只是按钮不可点。图标显隐由 `:root[data-theme='dark']` 控制，不依赖 JS。颜色统一收敛为 `base.css` 的 `--token`（`:root` 浅色 + `:root[data-theme='dark']` 覆盖），覆盖落地页正文/列表/CTA/相关内链/页脚、书架卡片、404、`color-scheme` 滚动条、选中色与焦点环。漫画页面本身不做反色或背景替换 |
+| PWA 清单与图标 | ✅ | `public/manifest.webmanifest` 声明 `display: standalone`、`start_url` / `scope`、`lang`、192/512 与 maskable 图标；深浅色各一份 manifest，用 `<link rel="manifest" media="(prefers-color-scheme: …)">` 区分 `theme_color` / `background_color`（不支持 `media` 的浏览器会回退到先出现的浅色那份）。`renderHead()` 同时输出 manifest 与 `apple-touch-icon` 链接，随预渲染 HTML 一起落地。图标由 `npm run icons` 从 `favicon.svg` 渲染 |
+| 离线可用 | ✅ | `scripts/sw-template.js` 由 `scripts/prerender.mjs` 注入版本号与预缓存清单后写成 `dist/sw.js`（版本取自带 hash 的资源名，旧缓存自动清理）。导航请求 network-first + 缓存兜底，`/assets/*` cache-first，同源其它资源 stale-while-revalidate；只预缓存首页外壳与静态资源，未访问过的内容页不进缓存。新版本 install 后停在 waiting，由下一次导航的页面发 `SKIP_WAITING` 接管，不在阅读中途刷新；dev 环境不注册 |
+| 安装到主屏 | 🟡 | 可添加到主屏（Chrome 安装入口、iOS Safari 分享→添加到主屏）；独立窗口、启动画面与图标遮罩只在桌面无头 Edge 验证过，真机待确认 |
 | 预渲染落地页 | ✅ | 12 条静态路由：首页、`/read-cbz-online/`、`/manga-reader/`、`/how-to-open-cbz/`、`/cbz-vs-cbr/`、`/what-is-a-cbz-file/`、`/cbz-file-format/`、`/read-cbz-on-iphone/`、`/read-cbz-on-android/`、`/how-to-make-a-cbz-file/`、`/cbz-file-wont-open/`、`/privacy/` |
 | SEO 元信息 | ✅ | 每页独立 title/description、canonical、hreflang、OG/Twitter、JSON-LD（WebSite / WebApplication / Article / FAQPage / BreadcrumbList） |
 | 社交分享图 | ✅ | `public/og-image.png` 1200×630；`og:image` 含 width/height/alt，`twitter:image`，卡片类型为 `summary_large_image` |
@@ -108,7 +112,9 @@
 | 访问统计 | ✅ | Cloudflare Web Analytics（无 cookie）+ Umami；事件只带粗粒度属性，口径见 5.8 |
 | 阅读器懒加载 | ✅ | 阅读器单独 chunk，首屏只加载落地页与样式 |
 | 部署头 | ✅ | `public/_headers` 配置安全头、HSTS 与静态资源长缓存 |
-| 端到端自测 | ✅ | `npm run test:e2e` 用本机 Edge/Chrome 打开 CBZ，验证解码、翻页、纵向窗口滑动与模式切换保位 |
+| 端到端自测 | ✅ | `npm run test:e2e` 用本机 Edge/Chrome 打开 CBZ，验证解码、翻页、纵向窗口滑动与模式切换保位，并断言 dev 环境不注册 Service Worker |
+| 离线验收测试 | ✅ | `npm run test:offline` 针对生产构建断言：外壳预缓存不含内容页、断网刷新首页完整显示、断网打开本地 CBZ 并成功翻页、改动后的文档在下一次导航可见 |
+| 格式错误文案 | ✅ | CBR/RAR 与 CB7/7z 会明确提示容器不支持，并给出「解包后重新打包成 .cbz」的建议，而不是笼统的 `not a valid CBZ or ZIP` |
 | 测试样例脚本 | ✅ | `npm run samples` 用无头浏览器渲染图片并打包 CBZ，一次生成 6 个样例到 `D:\edgeDown\testData\archive`（页数/尺寸/文件名可按参数改，输出不进仓库） |
 
 ### 3.2 真机验证记录
@@ -128,6 +134,8 @@
 - 🟡 **iOS 全部场景均未验证**：文件导入、`accept` 放宽、捏合阻止页面整体缩放、安全区（刘海/圆角/Home 指示条）、触控热区、惯性滚动、Safari 全屏缺失时的菜单行为。
 - 🟡 **12MP 档下的大图包待重测**：`large-pages-20.cbz` 与 `extreme-6pages-5000x7500.cbz` 在 8MP 档曾有安卓通过记录，本轮把上限提到 12MP 后需要在安卓上重新跑一遍解码、翻页与连续多页后的内存表现。
 - 🟡 **iOS 上的画布上限是盲区**：`extreme-6pages-5000x7500.cbz`（5000×7500，37.5MP）在安卓上没有触发画布上限，iOS Safari 的真实上限（历史版本对解码面积更保守）没有被实测覆盖。当前实现已按统一档位把单页钳制到 4096px / 12MP，理论上不依赖平台差异，但仍需 iOS 实测确认。
+- 🟡 **离线能力只在桌面无头 Edge 上验证**：断网刷新首页、断网打开本地 CBZ、翻页与更新接管都已在 `npm run test:offline` 中通过，但 iOS Safari 的 Service Worker 注册、系统在长期不访问后清理缓存的行为、以及安卓 WebView/Chrome 的差异都没有真机记录。
+- 🟡 **安装体验未验证**：添加到主屏后的独立窗口、启动画面、maskable 图标的实际遮罩效果、以及深色系统下启动时的主题色都没有真机截图。
 - 🟡 2x–3x 缩放后的拖动与滚动：桌面已用 Ctrl + 滚轮模拟（锚点不跑位、窗口仍 12 页、复位正常）；真机上放大后的双指拖动、跨窗口滚动与惯性未实测。
 - 🟡 移动端其它手势：滑动翻页、点击分区翻页、双击复位只在桌面无头 Chromium 中验证。
 - 🟡 双页模式在窄屏下的默认值：宽度 ≥980px 默认双页，否则默认单页；小屏双页可读性未评估。
@@ -190,8 +198,8 @@
 ### P1：体验补强
 
 1. 阅读设置持久化：默认模式、背景色、是否自动识别宽页。
-2. PWA：manifest + 应用外壳离线缓存（不缓存漫画内容）。
-3. 轻量分析：Cloudflare Web Analytics（无 Cookie）。
+2. 离线补强：为常访问的内容页做显式预缓存、更新可用时的非打断提示。
+3. 安装引导：在合适的位置提示「可添加到主屏」，而不是依赖浏览器菜单。
 
 ### P2：格式与内容扩展
 
@@ -234,7 +242,7 @@ npm run preview
 1. `vue-tsc --noEmit` 类型检查；
 2. `vite build` 生成客户端产物到 `dist/`；
 3. `vite build --ssr src/prerender/entry-server.ts --outDir dist-ssr` 生成 SSR 用的中间产物；
-4. `node scripts/prerender.mjs` 把每条路由渲染成 `dist/<route>/index.html`，并生成 `sitemap.xml`、`robots.txt`。
+4. `node scripts/prerender.mjs` 把每条路由渲染成 `dist/<route>/index.html`，生成 `sitemap.xml`、`robots.txt`，最后写入带版本号与预缓存清单的 `dist/sw.js`。
 
 `public/404.html` 会随构建复制到 `dist/404.html`。Cloudflare Pages 用它作为未匹配路径的响应：状态码为 404，而不是把 `index.html` 以 200 返回。`dist-ssr/` 只是构建中间产物，不需要部署。
 
@@ -294,6 +302,19 @@ npm run test:e2e
 
 脚本会启动开发服务器、用无头浏览器选中样例 CBZ、等待图片解码、点击 Next 验证页码变化，然后切到纵向模式验证窗口化渲染与滚动保位；接着用 Ctrl + 滚轮把纵向模式放大到约 2.5x，断言页面宽度增长、出现横向滚动、窗口仍为 12 页、捏合中心下的内容不跑位，再滚到最后一页验证高倍下的窗口滑动，最后点工具栏读数复位到 100%。截图输出到 `test/.cache/e2e-reader.png`、`test/.cache/e2e-scroll.png` 与 `test/.cache/e2e-scroll-zoom.png`。
 
+#### 离线验收（`npm run test:offline`）
+
+这条需要生产构建，测试直接托管 `dist/`：
+
+```powershell
+$env:SITE_URL="https://cbzreader.mavi.help"
+npm run build
+$env:CBZ_SAMPLE="D:\path\to\your.cbz"
+npm run test:offline
+```
+
+脚本用一个临时静态服务器托管 `dist/`（端口取 `OFFLINE_PORT`，默认 4189），用无头 Edge 断言四件事：外壳缓存只含首页与静态资源、断网刷新首页内容完整、断网打开本地 CBZ 且能翻页、改动后的文档在下一次导航可见（说明 HTML 走 network-first，不会被旧缓存卡住）。
+
 ### 5.7 生成真机测试样例
 
 真机压测需要页数多、尺寸大或文件名极端的包，可以本地生成（图片由无头 Edge/Chrome 渲染，不依赖外部素材）：
@@ -341,7 +362,9 @@ npm run samples -- --only=long      # 只生成文件名含 long 的样例
 - **iOS 文件导入**：iOS 不允许网站注册 `.cbz` 文件处理器，也没有 Web Share Target，因此必须先打开本站再选文件；iCloud 中未下载的文件需要先下载。iPad 上可拖拽，iPhone 上只能走文件选择器。
 - **iOS 内存**：单标签页内存预算明显低于桌面，超大页面会被降采样；极大的包（数百 MB 以上、页面尺寸很高）仍可能触发页面重载。IndexedDB 在长期不访问时可能被系统清理，阅读进度不保证永久保留。
 - **iOS 全屏**：Safari 不支持元素级 Fullscreen API，全屏按钮会自动隐藏。
-- **格式**：当前只支持 CBZ/ZIP；CBR（RAR）与 CB7（7z）会提示不支持。加密 ZIP 无法读取。
+- **格式**：当前只支持 CBZ/ZIP；CBR（RAR）与 CB7（7z）会明确提示不支持并建议先转成 CBZ。加密 ZIP 无法读取。
+- **离线范围**：只有首页外壳与带 hash 的静态资源是预缓存的。没访问过的内容页断网时会显示一个离线提示页（不会把首页内容伪装成该 URL）；访问过的页面保留最后一次的副本，联网后再打开就会更新。
+- **离线缓存的生命周期**：Service Worker 的缓存由浏览器管理。iOS 在长期不访问站点后可能清理它，用户清理站点数据或换浏览器也会丢失；清理后需要联网访问一次才能恢复离线能力。
 - **续读指纹**：指纹包含文件名，重命名文件会被视为新文件；修改文件内容也会导致指纹变化。
 - **续读副本**：只有 ≤32MB 的包会存副本，且最多 3 个；更大的包每次都要重新选文件，浏览器不允许网页自行重开本地文件。
 - **双页配对**：默认封面单页，之后按 2-3、4-5 配对；暂不自动识别宽页（跨页大图）并单独展示。
@@ -358,9 +381,11 @@ npm run samples -- --only=long      # 只生成文件名含 long 的样例
 ```text
 cbz-reader/
 ├─ index.html                  # 预渲染模板（含 <!--head--> / <!--app-html--> 占位）
-├─ scripts/prerender.mjs       # 构建时预渲染、sitemap、robots
+├─ scripts/prerender.mjs       # 构建时预渲染、sitemap、robots、sw.js
+├─ scripts/sw-template.js      # Service Worker 模板（注入版本与预缓存清单）
+├─ scripts/make-icons.mjs      # 从 favicon.svg 渲染 PWA 图标
 ├─ scripts/make-samples.mjs    # 生成真机测试用 CBZ（输出到仓库外）
-├─ public/                     # favicon、_headers、IndexNow key 文件
+├─ public/                     # favicon、manifest、PWA 图标、_headers、IndexNow key 文件
 ├─ src/
 │  ├─ main.ts                  # 静态首屏入口：文件选择 / 拖拽 / 懒加载阅读器
 │  ├─ dev/devLanding.ts        # 仅开发模式：客户端挂载落地页
@@ -372,5 +397,7 @@ cbz-reader/
 │  │  ├─ ReaderApp.vue         # 阅读器 UI 与交互
 │  │  └─ core/                 # ZIP、图片、指纹、进度、书签/最近阅读、排序
 │  └─ styles/base.css          # 设计系统与落地页样式
-└─ test/e2e.mjs                # 本地无头浏览器验证
+└─ test/
+   ├─ e2e.mjs                  # 开发服务器上的阅读器交互验证
+   └─ offline.mjs              # 生产构建上的断网验收
 ```

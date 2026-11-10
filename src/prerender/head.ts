@@ -129,6 +129,9 @@ export function renderHead(page: PageContent, siteUrl: string): string {
 <meta name="robots" content="index,follow,max-image-preview:large" />
 <meta name="theme-color" content="${THEME_COLORS.light}" />
 ${themeScript()}
+<link rel="manifest" href="/manifest.webmanifest" />
+<link rel="manifest" href="/manifest-dark.webmanifest" media="(prefers-color-scheme: dark)" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 <meta property="og:type" content="${ogType}" />
 <meta property="og:site_name" content="${escapeHtml(SITE.name)}" />
 <meta property="og:title" content="${title}" />

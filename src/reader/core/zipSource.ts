@@ -12,6 +12,31 @@ interface ZipEntry {
 const IMAGE_RE = /\.(jpe?g|png|webp|gif|avif|bmp)$/i
 const SKIP_RE = /(^|\/)(__MACOSX|\.DS_Store|Thumbs\.db)(\/|$)/i
 
+function fileExtension(fileName: string): string {
+  const dot = fileName.lastIndexOf('.')
+  return dot === -1 ? '' : fileName.slice(dot + 1).toLowerCase()
+}
+
+// CBR/CB7 fail inside the ZIP parser with an unhelpful low-level error, so the
+// message names the container the user actually picked and gives a next step.
+function unsupportedMessage(fileName: string): string | null {
+  const ext = fileExtension(fileName)
+  if (ext === 'cbr' || ext === 'rar') {
+    return 'CBR (RAR) archives are not supported yet. Convert the file to CBZ first: extract the page images, then re-zip them as a .cbz file. Renaming a .cbr to .cbz is not enough, because the container inside is still RAR.'
+  }
+  if (ext === 'cb7' || ext === '7z') {
+    return 'CB7 (7z) archives are not supported yet. Convert the file to CBZ first: extract the page images and re-pack them as a .cbz file, then open that archive instead.'
+  }
+  return null
+}
+
+function notZipMessage(fileName: string): string {
+  return (
+    unsupportedMessage(fileName) ??
+    'This file could not be read as a CBZ or ZIP archive. If it came from a CBR (RAR) or CB7 (7z) file, convert it to CBZ first and try again.'
+  )
+}
+
 function mimeFor(name: string): string {
   const ext = name.slice(name.lastIndexOf('.') + 1).toLowerCase()
   switch (ext) {
@@ -67,7 +92,7 @@ export class ZipPageSource {
     try {
       reader = new ZipReader(new BlobReader(file))
     } catch {
-      throw new ReaderError('not-zip', 'This file is not a valid CBZ or ZIP archive.')
+      throw new ReaderError('not-zip', notZipMessage(file.name))
     }
 
     let entries: ZipEntry[]
@@ -75,7 +100,7 @@ export class ZipPageSource {
       entries = (await reader.getEntries()) as unknown as ZipEntry[]
     } catch {
       await reader.close().catch(() => undefined)
-      throw new ReaderError('not-zip', 'This file is not a valid CBZ or ZIP archive.')
+      throw new ReaderError('not-zip', notZipMessage(file.name))
     }
 
     const encryptedImages = entries.filter(
