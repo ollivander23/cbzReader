@@ -1,5 +1,6 @@
 import './styles/base.css'
 import { mountRecentShelf } from './components/recentShelf'
+import { fileExtension, sizeBucket, track } from './lib/track'
 
 const isIOS =
   typeof navigator !== 'undefined' &&
@@ -31,7 +32,14 @@ function wireStaticReader(): void {
 
   input.addEventListener('change', () => {
     const file = input.files?.[0]
-    if (file) startReader(file)
+    if (file) {
+      track('tool_open', {
+        source: 'picker',
+        ext: fileExtension(file.name),
+        size_bucket: sizeBucket(file.size),
+      })
+      startReader(file)
+    }
   })
 
   host.addEventListener('dragover', (event) => {
@@ -41,7 +49,30 @@ function wireStaticReader(): void {
   host.addEventListener('drop', (event) => {
     event.preventDefault()
     const file = event.dataTransfer?.files?.[0]
-    if (file) startReader(file)
+    if (file) {
+      track('tool_open', {
+        source: 'drag',
+        ext: fileExtension(file.name),
+        size_bucket: sizeBucket(file.size),
+      })
+      startReader(file)
+    }
+  })
+}
+
+function currentPagePath(): string {
+  const path = location.pathname
+  return path === '/' || path.endsWith('/') ? path : `${path}/`
+}
+
+// Landing pages are prerendered as plain HTML, so clicks are delegated here
+// instead of bound through Vue.
+function wireCtaTracking(): void {
+  document.addEventListener('click', (event) => {
+    const element = event.target instanceof Element ? event.target : null
+    const link = element?.closest<HTMLAnchorElement>('.cta a[href], .related__grid a[href]')
+    if (!link) return
+    track('cta_click', { page: currentPagePath(), target: link.getAttribute('href') ?? '' })
   })
 }
 
@@ -52,6 +83,7 @@ function preventBrowserDrop(event: DragEvent): void {
 function bootstrap(): void {
   window.addEventListener('dragover', preventBrowserDrop)
   window.addEventListener('drop', preventBrowserDrop)
+  wireCtaTracking()
 
   if (import.meta.env.DEV) {
     // Production pages are prerendered into real HTML at build time.

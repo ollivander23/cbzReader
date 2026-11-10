@@ -103,6 +103,7 @@
 | 404 与静态资源 | ✅ | `public/404.html`；未知路径与缺失的 `/assets/*` 由 Cloudflare Pages 返回 404，而不是回退首页 200 |
 | sitemap / robots | ✅ | 构建时按 `SITE_URL` 生成 `sitemap.xml` 与 `robots.txt` |
 | IndexNow key | ✅ | `public/9e8924757260408b8cc99fc55a8da5f7.txt` 是 IndexNow 的 key 文件（内容即 key 本身），部署后可从站点根路径访问；Bing / Yandex 用它校验后即可通过 `POST https://api.indexnow.org/indexnow` 主动推送新页或改动页，不必等抓取 |
+| 访问统计 | ✅ | Cloudflare Web Analytics（无 cookie）+ Umami；事件只带粗粒度属性，口径见 5.8 |
 | 阅读器懒加载 | ✅ | 阅读器单独 chunk，首屏只加载落地页与样式 |
 | 部署头 | ✅ | `public/_headers` 配置安全头、HSTS 与静态资源长缓存 |
 | 端到端自测 | ✅ | `npm run test:e2e` 用本机 Edge/Chrome 打开 CBZ，验证解码、翻页、纵向窗口滑动与模式切换保位 |
@@ -313,6 +314,23 @@ npm run samples -- --only=long      # 只生成文件名含 long 的样例
 
 输出目录在仓库外，不会被提交；重新运行会直接覆盖同名文件。
 
+### 5.8 事件字典（Umami）
+
+统计脚本写在 `src/prerender/head.ts` 的 `renderHead()` 里，随预渲染输出到每个静态页；本地开发没有这段脚本，`src/lib/track.ts` 检测不到 `window.umami` 时直接返回，不报错、不排队。所有事件只允许下列粗粒度属性，**不上报文件名、页面内容、书签内容或任何可识别个人的信息**。
+
+| 事件 | 属性 | 用途 |
+| --- | --- | --- |
+| `tool_open` | `source`: `picker` / `drag`；`ext`（仅扩展名，异常值记 `unknown`）；`size_bucket`: `<10MB` / `10-50MB` / `>50MB` | 打开链路的来源与包体积分布，判断大包比例 |
+| `render_success` | `ms`：从打开文件到首屏解码完成 | 核心转化指标，替代「打开即成功」的误判 |
+| `mode_switch` | `mode`: `single` / `double` / `scroll`（切换后的模式） | 布局偏好，验证纵向与双页的实际使用 |
+| `zoom` | `level`：首次进入放大时的百分比 | 判断高倍缩放需求，只报每本书的第一次 |
+| `bookmark_add` | 无 | 书签使用率；删除书签不上报 |
+| `resume_accept` | 无 | 书架续读被接受（直接用本地副本打开） |
+| `resume_decline` | 无 | 书架续读被拒绝（无副本，走重新选文件分支） |
+| `cta_click` | `page`：所在页面路径；`target`：目标 href | 落地页 CTA 与相关内链的去向 |
+
+隐私页文案与此保持一致：两项统计（Cloudflare Web Analytics、Umami）均为无 cookie、不跨站跟踪、不做设备指纹。
+
 ---
 
 ## 6. 已知限制
@@ -328,7 +346,7 @@ npm run samples -- --only=long      # 只生成文件名含 long 的样例
 - **缩放的清晰度**：所有平台统一上限为单边 4096px、1200 万像素（12MP）解码；超过的页面等比降采样（3000×4500 与 5000×7500 在常规档都收敛到 2400×3600 = 8.64MP，宽屏高倍档收敛到 2731×4096 = 11.19MP）。放大后新进入窗口的页面会按当前缩放请求更高解码宽度（上限 3200px），已在窗口内的页面沿用原解码结果，不会因为放大而重新解码。常规档 2x 已接近 1:1、3x 略软；宽屏高倍档比 8MP 档多约 18% 线性分辨率，3x 的线条更实。
 - **语言**：落地页目前只有英文，尚未接入 i18n。
 - **无服务端**：没有云端备份、没有跨设备同步，清理浏览器数据会丢失进度。
-- **未做分析**：默认不加载任何第三方统计脚本。
+- **统计**：只接 Cloudflare Web Analytics 与 Umami，均为无 cookie 统计；事件口径见 5.8，不记录文件名、页面内容或书签内容。
 
 ---
 

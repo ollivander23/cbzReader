@@ -336,7 +336,7 @@ export const PAGES: PageContent[] = [
     path: '/what-is-a-cbz-file/',
     title: 'What Is a CBZ File? Comic Book ZIP, Explained',
     description:
-      'A CBZ is a ZIP archive of comic pages with a comic-specific extension. See what is inside one, how to confirm a file really is CBZ, and which common beliefs are wrong.',
+      'A CBZ is a ZIP archive of comic pages with a comic-specific extension. See what is inside, how to verify the file yourself, and which beliefs are wrong.',
     h1: 'What is a CBZ file?',
     eyebrow: 'File basics',
     lead: 'A .cbz file is an ordinary ZIP archive with a comic-specific extension. Inside are page images, sometimes a metadata file, and nothing else. The extension is a naming convention, not a new kind of compression.',
@@ -417,7 +417,7 @@ export const PAGES: PageContent[] = [
     path: '/cbz-file-format/',
     title: 'CBZ File Format: ZIP Layout, ComicInfo.xml, and Page Order',
     description:
-      'How a CBZ works inside: ZIP central directory, store versus deflate, filename sorting, ComicInfo.xml fields, encoding quirks, and the archives a browser cannot open.',
+      'How a CBZ works inside: ZIP central directory, store vs deflate, filename sorting, ComicInfo.xml, and the archives a browser cannot open.',
     h1: 'The CBZ file format, from the bytes up',
     eyebrow: 'Format internals',
     lead: 'CBZ has no specification document. What it has is the ZIP specification plus a set of community conventions. Knowing both explains why one comic opens instantly and another stalls at page one.',
@@ -594,7 +594,7 @@ export const PAGES: PageContent[] = [
     path: '/read-cbz-on-android/',
     title: 'How to Read a CBZ File on Android',
     description:
-      'Read CBZ comics on Android from Downloads, SD cards, or cloud providers. Covers Chrome file picking, the .cbz filter workaround, and memory behaviour on phones and tablets.',
+      'Read CBZ comics on Android from Downloads, SD cards, or cloud providers. Covers Chrome file picking, the .cbz filter workaround, and tab memory on phones.',
     h1: 'Read a CBZ file on Android',
     eyebrow: 'Android guide',
     lead: 'Android has no default comic handler either, but its document picker is more forgiving than iOS: the file usually sits in Downloads, and Chrome hands it to the page in two taps.',
@@ -681,7 +681,7 @@ export const PAGES: PageContent[] = [
     path: '/how-to-make-a-cbz-file/',
     title: 'How to Make a CBZ File from Images or a Folder',
     description:
-      'Build a CBZ the right way: zero-padded page names, ZIP settings that do not waste CPU, an optional ComicInfo.xml, and the packing mistakes that break page order.',
+      'Build a CBZ the right way: zero-padded page names, ZIP settings that avoid wasted CPU, optional ComicInfo.xml, and packing mistakes that break page order.',
     h1: 'How to make a CBZ file',
     eyebrow: 'Packing guide',
     lead: 'Making a CBZ is making a ZIP with the right name. The work is not in the compression; it is in page naming, folder structure, and metadata that readers will actually use.',
@@ -865,10 +865,10 @@ export const PAGES: PageContent[] = [
     path: '/privacy/',
     title: 'Privacy - CBZ Reader',
     description:
-      'CBZ Reader processes files locally in your browser. No uploads, no account, no cookies, and no third-party analytics.',
+      'CBZ Reader processes files locally in your browser. No uploads, no account, no cookies, and only cookie-free visit statistics.',
     h1: 'Privacy',
     eyebrow: 'Plain language',
-    lead: 'The short version: your comic never leaves your device, and this site does not ask for an account or set advertising cookies.',
+    lead: 'The short version: your comic never leaves your device, this site does not ask for an account, and the visit statistics it keeps are cookie-free and aggregate.',
     schema: 'article',
     updated: '2026-11-11',
     sections: [
@@ -882,13 +882,14 @@ export const PAGES: PageContent[] = [
       {
         heading: 'Analytics and cookies',
         paragraphs: [
-          'This version does not include third-party analytics, advertising scripts, or tracking cookies. The hosting provider may keep standard access logs (IP address, user agent, requested URL) for security and operations, as any web host does.',
+          'Two cookie-free measurement tools are in use: Cloudflare Web Analytics, provided by the host, and Umami. Neither sets cookies, fingerprints devices, nor follows you across other sites. They are used to count page views and see which pages and features are actually used.',
+          'Umami records page views plus a small set of coarse interaction events: a file was opened (with its extension and size range), the first page finished rendering (with timing), a layout mode was chosen, the first zoom, a bookmark was added, whether a recently opened file was resumed, and clicks on the reader button or related links. An event carries only its name and a few aggregate properties such as mode or size range. File names, page images, bookmark contents, and anything that could identify a person are never sent.',
         ],
       },
       {
         heading: 'Third parties',
         paragraphs: [
-          'The site serves its own JavaScript and CSS. It does not load remote fonts, remote images, or embedded players. If that changes, this page will list what is loaded and why.',
+          'Pages load one third-party script: the Umami tracker from cloud.umami.is, identified by a public website ID. Cloudflare Web Analytics is supplied by the hosting provider. The site does not load remote fonts, remote images, embedded players, or advertising scripts, and it does not sell or share data with anyone else.',
         ],
       },
       {
@@ -910,7 +911,7 @@ export const PAGES: PageContent[] = [
       },
       {
         question: 'Do you use cookies?',
-        answer: 'No. The reader uses IndexedDB for local progress, which is not a cookie and is not sent to a server.',
+        answer: 'No. The reader uses IndexedDB for local progress, which is not a cookie and is not sent to a server. Both analytics tools are cookie-free as well.',
       },
     ],
     related: ['/', '/read-cbz-online/', '/how-to-open-cbz/'],

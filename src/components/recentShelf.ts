@@ -5,6 +5,7 @@ import {
   removeEntry,
   type ShelfEntry,
 } from '../reader/core/library'
+import { track } from '../lib/track'
 
 const isIOS =
   typeof navigator !== 'undefined' &&
@@ -78,6 +79,7 @@ export function mountRecentShelf(startReader: (file: File) => void): void {
     if (entry.copy) {
       const blob = await readArchiveCopy(entry.id)
       if (blob) {
+        track('resume_accept')
         startReader(
           new File([blob], entry.name, {
             type: 'application/vnd.comicbook+zip',
@@ -89,6 +91,7 @@ export function mountRecentShelf(startReader: (file: File) => void): void {
       // The stored copy was evicted or the quota refused it: fall through to the picker.
     }
     pending = entry
+    track('resume_decline')
     showHint(
       `This file is too large to keep a copy (or its copy was cleared). Pick “${entry.name}” again and reading resumes at page ${entry.index + 1}.`,
     )

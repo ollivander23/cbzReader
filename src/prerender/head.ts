@@ -19,7 +19,14 @@ function absolute(siteUrl: string, path: string): string {
 }
 
 function buildSchema(page: PageContent, url: string, siteUrl: string): unknown {
+  const organizationId = `${siteUrl}/#organization`
   const graph: unknown[] = [
+    {
+      '@type': 'Organization',
+      '@id': organizationId,
+      name: SITE.name,
+      url: `${siteUrl}/`,
+    },
     {
       '@type': 'WebSite',
       '@id': `${siteUrl}/#website`,
@@ -27,6 +34,7 @@ function buildSchema(page: PageContent, url: string, siteUrl: string): unknown {
       name: SITE.name,
       description: SITE.description,
       inLanguage: 'en',
+      publisher: { '@id': organizationId },
     },
   ]
 
@@ -54,7 +62,7 @@ function buildSchema(page: PageContent, url: string, siteUrl: string): unknown {
         'Zoom and pan',
         'Local reading progress',
       ],
-      publisher: { '@id': `${siteUrl}/#website` },
+      publisher: { '@id': organizationId },
     })
   } else {
     graph.push({
@@ -67,8 +75,8 @@ function buildSchema(page: PageContent, url: string, siteUrl: string): unknown {
       datePublished: page.updated,
       dateModified: page.updated,
       inLanguage: 'en',
-      author: { '@type': 'Organization', name: SITE.name, url: `${siteUrl}/` },
-      publisher: { '@type': 'Organization', name: SITE.name, url: `${siteUrl}/` },
+      author: { '@id': organizationId },
+      publisher: { '@id': organizationId },
     })
   }
 
@@ -129,5 +137,6 @@ export function renderHead(page: PageContent, siteUrl: string): string {
 <meta name="twitter:description" content="${description}" />
 <meta name="twitter:image" content="${ogImage}" />
 <meta name="twitter:image:alt" content="${title}" />
+<script defer src="https://cloud.umami.is/script.js" data-website-id="3f17a819-f15d-4d7f-8143-ed16f426b12e"></script>
 ${schema}`
 }

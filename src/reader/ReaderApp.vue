@@ -14,6 +14,7 @@ import {
 } from './core/library'
 import { ReaderError, type PageAsset } from './core/types'
 import { ZipPageSource } from './core/zipSource'
+import { fileExtension, sizeBucket, track } from '../lib/track'
 
 const props = defineProps<{ initialFile?: File | null }>()
 
@@ -111,6 +112,9 @@ let resumeTimer: number | undefined
 let tapTimer: number | undefined
 let coverDone = false
 let shelfReady: Promise<void> | null = null
+let openStartedAt = 0
+let renderTracked = false
+let zoomTracked = false
 
 const pointers = new Map<number, { x: number; y: number }>()
 let panStart: { x: number; y: number; tx: number; ty: number } | null = null
@@ -172,6 +176,12 @@ const modeLabel = computed(() =>
 const zoomPercent = computed(() =>
   Math.round((mode.value === 'scroll' ? scrollScale.value : scale.value) * 100),
 )
+
+watch(zoomPercent, (value) => {
+  if (zoomTracked || value <= 100) return
+  zoomTracked = true
+  track('zoom', { level: value })
+})
 
 const bookmarked = computed(() => bookmarks.value.some((item) => item.page === index.value))
 
@@ -281,6 +291,8 @@ async function resetReader(): Promise<void> {
   bookmarks.value = []
   coverDone = false
   shelfReady = null
+  renderTracked = false
+  zoomTracked = false
   clearZoom()
   if (current) await current.dispose()
 }
@@ -306,6 +318,10 @@ async function loadOne(page: number): Promise<void> {
       }
       assets.set(page, asset)
       pageErrors.delete(page)
+      if (page === 0 && !renderTracked) {
+        renderTracked = true
+        track('render_success', { ms: Math.round(performance.now() - openStartedAt) })
+      }
       if (page === 0 && !coverDone) {
         coverDone = true
         const id = fileFingerprint.value
@@ -784,6 +800,7 @@ function toggleMode(): void {
   menuOpen.value = false
   clearZoom()
   mode.value = nextMode
+  track('mode_switch', { mode: nextMode })
 
   if (nextMode === 'scroll') {
     // Enter scrolling at the page that is currently on screen.
@@ -842,6 +859,7 @@ async function openFile(file: File): Promise<void> {
   busy.value = true
   error.value = ''
   await resetReader()
+  openStartedAt = performance.now()
   const gen = generation
 
   try {
@@ -908,7 +926,14 @@ function onFileChange(event: Event): void {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   input.value = ''
-  if (file) void openFile(file)
+  if (file) {
+    track('tool_open', {
+      source: 'picker',
+      ext: fileExtension(file.name),
+      size_bucket: sizeBucket(file.size),
+    })
+    void openFile(file)
+  }
 }
 
 function pickFile(): void {
@@ -1370,6 +1395,7 @@ function menuToggleBookmark(): void {
   const next = exists
     ? bookmarks.value.filter((item) => item.page !== page)
     : [...bookmarks.value, { page, createdAt: Date.now() }].sort((a, b) => a.page - b.page)
+  if (!exists) track('bookmark_add')
   bookmarks.value = next
   void writeBookmarks(fileFingerprint.value, next)
 }

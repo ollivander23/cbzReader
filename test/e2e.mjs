@@ -64,6 +64,13 @@ try {
 
   const page = await browser.newPage()
   await page.setViewport({ width: 1280, height: 900 })
+  // Keep local test runs out of production analytics and prove the wrapper
+  // stays silent when window.umami never appears.
+  await page.setRequestInterception(true)
+  page.on('request', (request) => {
+    if (request.url().includes('cloud.umami.is')) request.abort()
+    else request.continue()
+  })
   const errors = []
   page.on('pageerror', (error) => errors.push(error.message))
   const readerLogs = []
