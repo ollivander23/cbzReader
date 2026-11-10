@@ -2,7 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { fingerprint } from './core/fingerprint'
 import { loadPageAsset } from './core/imageLoader'
-import { readProgress, writeProgress } from './core/progress'
+import { readProgress, writeProgress, type ReadingMode } from './core/progress'
 import { ReaderError, type PageAsset } from './core/types'
 import { ZipPageSource } from './core/zipSource'
 
@@ -14,6 +14,7 @@ const MIN_SCALE = 1
 const MAX_SCALE = 5
 const STAGE_PAD_TOP = 54
 const STAGE_PAD_X = 8
+const SCROLL_WINDOW = 12
 
 const isIOS =
   typeof navigator !== 'undefined' &&
@@ -29,7 +30,7 @@ const fileName = ref('')
 const title = ref('')
 const pageCount = ref(0)
 const index = ref(0)
-const mode = ref<'single' | 'double'>('single')
+const mode = ref<ReadingMode>('single')
 const rtl = ref(false)
 const ready = ref(false)
 const busy = ref(false)
@@ -43,6 +44,8 @@ const fileFingerprint = ref('')
 
 const assets = reactive(new Map<number, PageAsset>())
 const pageErrors = reactive(new Map<number, string>())
+
+const scrollWindowStart = ref(0)
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const viewerEl = ref<HTMLElement | null>(null)
@@ -74,14 +77,27 @@ let pinchStart: { distance: number; scale: number; tx: number; ty: number } | nu
 let tapStart: { x: number; y: number; time: number } | null = null
 let lastTap: { x: number; y: number; time: number } | null = null
 let wheelLock = 0
+let scrollRaf: number | undefined
+let shiftingScroll = false
 
 function spreadStart(page: number): number {
-  if (mode.value === 'single' || page <= 0) return page
+  if (mode.value !== 'double' || page <= 0) return page
   return page % 2 === 1 ? page : page - 1
 }
 
+const scrollIndices = computed<number[]>(() => {
+  if (!source.value || mode.value !== 'scroll') return []
+  const maxStart = Math.max(0, pageCount.value - SCROLL_WINDOW)
+  const start = Math.min(Math.max(0, scrollWindowStart.value), maxStart)
+  const end = Math.min(start + SCROLL_WINDOW, pageCount.value)
+  const pages: number[] = []
+  for (let page = start; page < end; page += 1) pages.push(page)
+  return pages
+})
+
 const visibleIndices = computed<number[]>(() => {
   if (!source.value) return []
+  if (mode.value === 'scroll') return scrollIndices.value
   if (mode.value === 'single') return [index.value]
   const start = spreadStart(index.value)
   // The cover stays on its own page, so spreads pair 2-3, 4-5, and so on.
@@ -90,6 +106,18 @@ const visibleIndices = computed<number[]>(() => {
   if (start + 1 < pageCount.value) pages.push(start + 1)
   return pages
 })
+
+const scrollPages = computed(() =>
+  scrollIndices.value.map((page) => ({
+    index: page,
+    asset: assets.get(page) ?? null,
+    error: pageErrors.get(page) ?? '',
+  })),
+)
+
+const modeLabel = computed(() =>
+  mode.value === 'single' ? 'Single' : mode.value === 'double' ? 'Double' : 'Scroll',
+)
 
 const visiblePages = computed(() =>
   visibleIndices.value.map((page) => ({
@@ -100,7 +128,8 @@ const visiblePages = computed(() =>
 )
 
 const currentLabel = computed(() => {
-  if (mode.value === 'single') return `Page ${index.value + 1} / ${pageCount.value}`
+  if (mode.value === 'single' || mode.value === 'scroll')
+    return `Page ${index.value + 1} / ${pageCount.value}`
   const start = spreadStart(index.value)
   const end = Math.min(start + (start === 0 ? 1 : 2), pageCount.value)
   return start + 1 === end
@@ -132,9 +161,9 @@ function acquire(): Promise<void> {
 }
 
 function release(): void {
+  if (activeLoads > 0) activeLoads -= 1
   const next = loadWaiters.shift()
   if (next) next()
-  else if (activeLoads > 0) activeLoads -= 1
 }
 
 function releaseAssets(): void {
@@ -157,6 +186,11 @@ async function resetReader(): Promise<void> {
   activeLoads = 0
   pageCount.value = 0
   index.value = 0
+  scrollWindowStart.value = 0
+  if (scrollRaf) {
+    cancelAnimationFrame(scrollRaf)
+    scrollRaf = undefined
+  }
   ready.value = false
   fileFingerprint.value = ''
   fileName.value = ''
@@ -185,9 +219,11 @@ async function loadOne(page: number): Promise<void> {
       }
       assets.set(page, asset)
       pageErrors.delete(page)
-      await nextTick()
-      measureContent()
-      clampPan()
+      if (mode.value !== 'scroll') {
+        await nextTick()
+        measureContent()
+        clampPan()
+      }
     } catch (value) {
       if (gen === generation) pageErrors.set(page, messageOf(value))
     } finally {
@@ -212,7 +248,10 @@ function prune(keep: Set<number>): void {
   if (total <= MAX_TOTAL_PIXELS) return
 
   const candidates = [...assets.entries()]
-    .filter(([page]) => !visibleIndices.value.includes(page))
+    .filter(([page]) => {
+      if (mode.value === 'scroll' && Math.abs(page - index.value) > 2) return true
+      return !visibleIndices.value.includes(page)
+    })
     .sort((a, b) => Math.abs(b[0] - index.value) - Math.abs(a[0] - index.value))
 
   for (const [page, asset] of candidates) {
@@ -225,6 +264,16 @@ function prune(keep: Set<number>): void {
 
 async function ensurePages(): Promise<void> {
   if (!source.value) return
+
+  if (mode.value === 'scroll') {
+    const targets = new Set<number>(scrollIndices.value)
+    if (index.value - 1 >= 0) targets.add(index.value - 1)
+    if (index.value + 1 < pageCount.value) targets.add(index.value + 1)
+    prune(targets)
+    await Promise.all([...targets].map((page) => loadOne(page)))
+    return
+  }
+
   const visible = visibleIndices.value
   if (visible.length === 0) return
 
@@ -235,6 +284,7 @@ async function ensurePages(): Promise<void> {
   if (last + 1 < pageCount.value) targets.add(last + 1)
 
   prune(targets)
+  console.info('[reader] ensure', mode.value, [...targets])
   await Promise.all([...targets].map((page) => loadOne(page)))
 }
 
@@ -276,6 +326,99 @@ function measureStage(): void {
   stageW.value = stage.clientWidth
   stageH.value = stage.clientHeight
   measureContent()
+}
+
+function scrollPageStyle(page: number): Record<string, string> {
+  const width = Math.max(120, stageW.value - STAGE_PAD_X * 2)
+  const asset = assets.get(page)
+  const ratio = asset && asset.width > 0 ? `${asset.width} / ${asset.height}` : '2 / 3'
+  return {
+    width: `${Math.round(width)}px`,
+    aspectRatio: ratio,
+  }
+}
+
+function scrollPageEl(page: number): HTMLElement | null {
+  return stageEl.value?.querySelector<HTMLElement>(`[data-page="${page}"]`) ?? null
+}
+
+function centerScrollWindow(page: number): void {
+  const maxStart = Math.max(0, pageCount.value - SCROLL_WINDOW)
+  scrollWindowStart.value = Math.min(
+    Math.max(0, page - Math.floor(SCROLL_WINDOW / 2)),
+    maxStart,
+  )
+}
+
+function scrollPageToTop(page: number): void {
+  const scroller = stageEl.value
+  const element = scrollPageEl(page)
+  if (!scroller || !element) return
+  const offset =
+    element.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop
+  scroller.scrollTop = offset
+}
+
+function scrollByViewport(direction: number): void {
+  const scroller = stageEl.value
+  if (!scroller) return
+  scroller.scrollBy({ top: direction * stageH.value * 0.8, behavior: 'smooth' })
+}
+
+function preserveScrollAnchor(nextStart: number, anchor: number): void {
+  const scroller = stageEl.value
+  const element = scrollPageEl(anchor)
+  if (!scroller || !element) {
+    scrollWindowStart.value = nextStart
+    return
+  }
+  const before = element.getBoundingClientRect().top - scroller.getBoundingClientRect().top
+  shiftingScroll = true
+  scrollWindowStart.value = nextStart
+  void nextTick().then(() => {
+    const nextElement = scrollPageEl(anchor)
+    if (nextElement) {
+      const after = nextElement.getBoundingClientRect().top - scroller.getBoundingClientRect().top
+      scroller.scrollTop += after - before
+    }
+    shiftingScroll = false
+    void ensurePages()
+  })
+}
+
+function syncScroll(): void {
+  const scroller = stageEl.value
+  if (!scroller || mode.value !== 'scroll' || shiftingScroll) return
+  const stageRect = scroller.getBoundingClientRect()
+  const line = stageRect.top + stageRect.height * 0.35
+  let current = index.value
+  for (const block of scroller.querySelectorAll<HTMLElement>('.scroll-page')) {
+    const rect = block.getBoundingClientRect()
+    if (rect.bottom > line) {
+      current = Number(block.dataset.page)
+      break
+    }
+  }
+  if (Number.isFinite(current) && current !== index.value) index.value = current
+
+  const pages = scrollIndices.value
+  if (pages.length === 0) return
+  const start = pages[0]
+  const last = pages[pages.length - 1]
+  if (current - start <= 1 && start > 0) {
+    preserveScrollAnchor(Math.max(0, start - 4), current)
+  } else if (last - current <= 1 && last < pageCount.value - 1) {
+    const maxStart = Math.max(0, pageCount.value - SCROLL_WINDOW)
+    preserveScrollAnchor(Math.min(maxStart, start + 4), current)
+  }
+}
+
+function onScroll(): void {
+  if (mode.value !== 'scroll' || scrollRaf) return
+  scrollRaf = requestAnimationFrame(() => {
+    scrollRaf = undefined
+    syncScroll()
+  })
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -337,11 +480,23 @@ function stagePoint(clientX: number, clientY: number): { x: number; y: number } 
 function goToPage(page: number): void {
   if (!pageCount.value) return
   const clampedPage = clamp(Math.round(page), 0, pageCount.value - 1)
-  const target = mode.value === 'double' ? spreadStart(clampedPage) : clampedPage
-  if (target === index.value) return
   window.clearTimeout(tapTimer)
   lastTap = null
   showResume.value = false
+
+  if (mode.value === 'scroll') {
+    index.value = clampedPage
+    centerScrollWindow(clampedPage)
+    void nextTick().then(async () => {
+      measureStage()
+      await ensurePages()
+      if (mode.value === 'scroll' && index.value === clampedPage) scrollPageToTop(clampedPage)
+    })
+    return
+  }
+
+  const target = mode.value === 'double' ? spreadStart(clampedPage) : clampedPage
+  if (target === index.value) return
   index.value = target
   resetZoom()
   void nextTick().then(() => {
@@ -351,7 +506,7 @@ function goToPage(page: number): void {
 }
 
 function next(): void {
-  if (mode.value === 'single') {
+  if (mode.value === 'single' || mode.value === 'scroll') {
     goToPage(index.value + 1)
     return
   }
@@ -360,7 +515,7 @@ function next(): void {
 }
 
 function prev(): void {
-  if (mode.value === 'single') {
+  if (mode.value === 'single' || mode.value === 'scroll') {
     goToPage(index.value - 1)
     return
   }
@@ -371,9 +526,26 @@ function prev(): void {
 
 function toggleMode(): void {
   const current = index.value
-  mode.value = mode.value === 'single' ? 'double' : 'single'
-  index.value = mode.value === 'double' ? spreadStart(current) : current
+  const order: ReadingMode[] = ['single', 'double', 'scroll']
+  const nextMode = order[(order.indexOf(mode.value) + 1) % order.length]
+  window.clearTimeout(tapTimer)
+  lastTap = null
   resetZoom()
+  mode.value = nextMode
+
+  if (nextMode === 'scroll') {
+    // Enter scrolling at the page that is currently on screen.
+    index.value = current
+    centerScrollWindow(current)
+    void nextTick().then(async () => {
+      measureStage()
+      await ensurePages()
+      if (mode.value === 'scroll') scrollPageToTop(current)
+    })
+    return
+  }
+
+  index.value = nextMode === 'double' ? spreadStart(current) : current
   void nextTick().then(() => {
     measureStage()
     void ensurePages()
@@ -432,9 +604,10 @@ async function openFile(file: File): Promise<void> {
 
     const saved = await readProgress(fileId)
     if (saved && saved.index > 0 && saved.index < archive.info.pageCount) {
-      mode.value = saved.mode === 'double' ? 'double' : 'single'
+      mode.value =
+        saved.mode === 'double' ? 'double' : saved.mode === 'scroll' ? 'scroll' : 'single'
       rtl.value = saved.rtl
-      index.value = spreadStart(saved.index)
+      index.value = mode.value === 'double' ? spreadStart(saved.index) : saved.index
       resumePage.value = saved.index + 1
       showResume.value = true
       window.clearTimeout(resumeTimer)
@@ -446,12 +619,16 @@ async function openFile(file: File): Promise<void> {
       index.value = 0
     }
 
+    if (mode.value === 'scroll') centerScrollWindow(index.value)
+    scrollWindowStart.value = Math.min(scrollWindowStart.value, Math.max(0, pageCount.value - SCROLL_WINDOW))
+
     ready.value = true
     await nextTick()
     measureStage()
     attachObserver()
     await ensurePages()
-    clampPan()
+    if (mode.value === 'scroll') scrollPageToTop(index.value)
+    else clampPan()
   } catch (value) {
     await resetReader()
     ready.value = false
@@ -509,7 +686,7 @@ function distance(a: { x: number; y: number }, b: { x: number; y: number }): num
 }
 
 function onPointerDown(event: PointerEvent): void {
-  if (!ready.value) return
+  if (!ready.value || mode.value === 'scroll') return
   const target = event.currentTarget as HTMLElement
   target.setPointerCapture?.(event.pointerId)
   pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
@@ -630,6 +807,8 @@ function onPointerUp(event: PointerEvent): void {
 
 function onWheel(event: WheelEvent): void {
   if (!ready.value) return
+  if (mode.value === 'scroll') return
+  event.preventDefault()
   if (event.ctrlKey || event.metaKey) {
     const point = stagePoint(event.clientX, event.clientY)
     zoomTo(scale.value * (event.deltaY < 0 ? 1.12 : 0.89), point.x, point.y)
@@ -650,6 +829,25 @@ function onKey(event: KeyboardEvent): void {
     (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
   ) {
     return
+  }
+
+  if (mode.value === 'scroll') {
+    switch (event.key) {
+      case 'ArrowDown':
+      case 'PageDown':
+        event.preventDefault()
+        scrollByViewport(1)
+        return
+      case 'ArrowUp':
+      case 'PageUp':
+        event.preventDefault()
+        scrollByViewport(-1)
+        return
+      case ' ':
+        event.preventDefault()
+        scrollByViewport(event.shiftKey ? -1 : 1)
+        return
+    }
   }
 
   switch (event.key) {
@@ -778,6 +976,7 @@ onBeforeUnmount(() => {
   window.clearTimeout(saveTimer)
   window.clearTimeout(resumeTimer)
   window.clearTimeout(tapTimer)
+  if (scrollRaf) cancelAnimationFrame(scrollRaf)
   void resetReader()
 })
 </script>
@@ -817,13 +1016,21 @@ onBeforeUnmount(() => {
           <span>{{ fileName }} · {{ currentLabel }}</span>
         </div>
         <div class="tools">
-          <button type="button" class="tool" @click="toggleMode">
-            {{ mode === 'single' ? 'Single' : 'Double' }}
+          <button type="button" class="tool" @click="toggleMode" :title="`Reading mode: ${modeLabel}`">
+            {{ modeLabel }}
           </button>
-          <button type="button" class="tool" :class="{ active: rtl }" @click="toggleRtl">
+          <button
+            v-if="mode !== 'scroll'"
+            type="button"
+            class="tool"
+            :class="{ active: rtl }"
+            @click="toggleRtl"
+          >
             RTL
           </button>
-          <button type="button" class="tool" @click="resetZoom">{{ Math.round(scale * 100) }}%</button>
+          <button v-if="mode !== 'scroll'" type="button" class="tool" @click="resetZoom">
+            {{ Math.round(scale * 100) }}%
+          </button>
           <button v-if="hasFullscreen" type="button" class="tool" @click="toggleFullscreen">
             Full
           </button>
@@ -835,15 +1042,40 @@ onBeforeUnmount(() => {
       <div
         ref="stageEl"
         class="stage"
+        :class="{ 'stage--scroll': mode === 'scroll' }"
         role="region"
         aria-label="Comic pages"
         @pointerdown="onPointerDown"
         @pointermove="onPointerMove"
         @pointerup="onPointerUp"
         @pointercancel="onPointerUp"
-        @wheel.prevent="onWheel"
+        @wheel="onWheel"
+        @scroll.passive="onScroll"
       >
-        <div class="page-layer" :style="layerStyle">
+        <div v-if="mode === 'scroll'" class="scroll-track">
+          <div
+            v-for="item in scrollPages"
+            :key="item.index"
+            class="scroll-page"
+            :data-page="item.index"
+            :style="scrollPageStyle(item.index)"
+          >
+            <img
+              v-if="item.asset"
+              :src="item.asset.url"
+              alt=""
+              draggable="false"
+              decoding="async"
+            />
+            <div v-else-if="item.error" class="page-error">
+              <span>{{ item.error }}</span>
+              <button type="button" @click.stop="retryPage(item.index)">Retry</button>
+            </div>
+            <div v-else class="scroll-placeholder">{{ item.index + 1 }}</div>
+          </div>
+        </div>
+
+        <div v-else class="page-layer" :style="layerStyle">
           <div class="page-center">
             <div
               ref="pagesEl"
@@ -1114,6 +1346,54 @@ onBeforeUnmount(() => {
 
 .stage:active {
   cursor: grabbing;
+}
+
+.stage--scroll {
+  overflow-x: hidden;
+  overflow-y: auto;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  cursor: default;
+  user-select: auto;
+  -webkit-user-select: auto;
+}
+
+.stage--scroll:active {
+  cursor: default;
+}
+
+.scroll-track {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 56px 8px 84px;
+}
+
+.scroll-page {
+  position: relative;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border-radius: 3px;
+  background: #121216;
+  box-shadow: 0 14px 46px rgba(0, 0, 0, 0.55);
+}
+
+.scroll-page img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.scroll-placeholder {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  color: rgba(244, 244, 245, 0.32);
+  font-size: 13px;
+  letter-spacing: 0.08em;
 }
 
 .page-layer {

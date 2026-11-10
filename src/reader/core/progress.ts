@@ -1,8 +1,10 @@
 import { get, set } from 'idb-keyval'
 
+export type ReadingMode = 'single' | 'double' | 'scroll'
+
 export interface StoredProgress {
   index: number
-  mode: 'single' | 'double'
+  mode: ReadingMode
   rtl: boolean
   updatedAt: number
 }

@@ -19,7 +19,7 @@ if (!executablePath) {
   throw new Error('No Edge or Chrome executable found. Set EDGE_PATH to run the E2E check.')
 }
 
-const sample = process.env.CBZ_SAMPLE || path.join(root, 'test/.cache/local-test.cbz')
+const sample = process.env.CBZ_SAMPLE || path.join(root, 'test/.cache/scroll-test.cbz')
 if (!existsSync(sample)) {
   throw new Error(`Sample CBZ not found at ${sample}. Set CBZ_SAMPLE to a .cbz file.`)
 }
@@ -66,6 +66,11 @@ try {
   await page.setViewport({ width: 1280, height: 900 })
   const errors = []
   page.on('pageerror', (error) => errors.push(error.message))
+  const readerLogs = []
+  page.on('console', (message) => {
+    const text = message.text()
+    if (text.startsWith('[reader]')) readerLogs.push(text)
+  })
 
   await page.goto(base, { waitUntil: 'networkidle2' })
   await page.waitForSelector('#reader-app [data-open-reader]')
@@ -101,18 +106,97 @@ try {
   )
   const second = await page.$eval('.counter', (el) => el.textContent?.trim())
 
+  const total = Number((second ?? '').match(/\/\s*(\d+)/)?.[1] ?? 0)
+  if (!total) throw new Error(`Could not parse page count from "${second}"`)
+
+  // Switch to the scrolling mode (Single -> Double -> Scroll).
+  const modeButton = await page.$('.toolbar .tool')
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const label = await modeButton.evaluate((el) => el.textContent?.trim())
+    if (label === 'Scroll') break
+    await modeButton.click()
+    await new Promise((resolve) => setTimeout(resolve, 300))
+  }
+  await page.waitForSelector('.scroll-page', { timeout: 10_000 })
+
+  const scrollStartWindow = await page.$$eval('.scroll-page', (nodes) => nodes.length)
+  if (scrollStartWindow > 12) {
+    throw new Error(`Scroll mode mounted ${scrollStartWindow} pages, expected at most 12`)
+  }
+
+  // Scroll far enough to force the virtual window to slide.
+  for (let step = 0; step < 12; step += 1) {
+    await page.$eval('.stage', (el) => {
+      el.scrollTop = el.scrollHeight
+    })
+    await new Promise((resolve) => setTimeout(resolve, 250))
+  }
+
+  const scrollLabel = await page.$eval('.counter', (el) => el.textContent?.trim())
+  const scrollPage = Number((scrollLabel ?? '').match(/Page\s+(\d+)/)?.[1] ?? 0)
+  const scrollWindow = await page.$$eval('.scroll-page', (nodes) => nodes.length)
+  const firstRendered = await page.$eval('.scroll-page', (el) => Number(el.dataset.page))
+
+  if (scrollPage <= 12) throw new Error(`Scroll position did not advance: ${scrollLabel}`)
+  if (scrollWindow > 12) throw new Error(`Window size grew to ${scrollWindow}`)
+  if (firstRendered === 0) throw new Error('Virtual window did not slide forward')
+
+  await page.screenshot({ path: path.join(root, 'test/.cache/e2e-scroll.png') })
+
+  // Switch back to single page and keep the same reading position.
+  await modeButton.click()
+  await new Promise((resolve) => setTimeout(resolve, 1200))
+  const modeAfter = await modeButton.evaluate((el) => el.textContent?.trim())
+  if (!(await page.$('.page-slot'))) {
+    const state = await page.evaluate(() => ({
+      mode: document.querySelector('.toolbar .tool')?.textContent?.trim(),
+      counter: document.querySelector('.counter')?.textContent?.trim(),
+      slots: document.querySelectorAll('.page-slot').length,
+      scrollPages: document.querySelectorAll('.scroll-page').length,
+      stageScrollTop: document.querySelector('.stage')?.scrollTop,
+    }))
+    throw new Error(
+      `Single-page layer missing after mode switch: ${JSON.stringify({ state, modeAfter, errors })}`,
+    )
+  }
+  try {
+    await page.waitForSelector('.page-slot img', { timeout: 10_000 })
+  } catch {
+    const state = await page.evaluate(() => ({
+      counter: document.querySelector('.counter')?.textContent?.trim(),
+      slot: document.querySelector('.page-slot')?.outerHTML.slice(0, 600),
+      mode: document.querySelector('.toolbar .tool')?.textContent?.trim(),
+    }))
+    throw new Error(`Page image missing after mode switch: ${JSON.stringify({ state, errors, readerLogs })}`)
+  }
+  const backLabel = await page.$eval('.counter', (el) => el.textContent?.trim())
+  const backPage = Number((backLabel ?? '').match(/Page\s+(\d+)/)?.[1] ?? 0)
+  if (backPage !== scrollPage) {
+    throw new Error(`Mode switch lost position: scroll ${scrollPage}, single ${backPage}`)
+  }
+
   await page.screenshot({ path: path.join(root, 'test/.cache/e2e-reader.png') })
 
   if (errors.length > 0) throw new Error(`Page errors: ${errors.join(' | ')}`)
 
   console.log(
     JSON.stringify(
-      { first, second, naturalSize, screenshot: 'test/.cache/e2e-reader.png' },
+      {
+        first,
+        second,
+        total,
+        scrollLabel,
+        scrollWindow,
+        firstRendered,
+        backLabel,
+        naturalSize,
+        screenshots: ['test/.cache/e2e-reader.png', 'test/.cache/e2e-scroll.png'],
+      },
       null,
       2,
     ),
   )
-  console.log('E2E PASS: file opened, image decoded, page turned')
+  console.log('E2E PASS: paged turn, virtual scroll, position preserved')
 } finally {
   await browser?.close()
   if (server.pid) {
