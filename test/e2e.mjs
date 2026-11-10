@@ -112,8 +112,8 @@ try {
   // Switch to the scrolling mode (Single -> Double -> Scroll).
   const modeButton = await page.$('.toolbar .tool')
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    const label = await modeButton.evaluate((el) => el.textContent?.trim())
-    if (label === 'Scroll') break
+    const label = await modeButton.evaluate((el) => el.getAttribute('aria-label') ?? '')
+    if (label.includes(': Scroll.')) break
     await modeButton.click()
     await new Promise((resolve) => setTimeout(resolve, 300))
   }

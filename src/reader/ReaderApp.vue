@@ -58,6 +58,9 @@ const busy = ref(false)
 const error = ref('')
 const dragging = ref(false)
 const toolbarVisible = ref(true)
+const menuOpen = ref(false)
+const nameBudget = ref(24)
+const fullscreenActive = ref(false)
 const showResume = ref(false)
 const resumePage = ref(0)
 const hasFullscreen = ref(false)
@@ -73,6 +76,10 @@ const fileInput = ref<HTMLInputElement | null>(null)
 const viewerEl = ref<HTMLElement | null>(null)
 const stageEl = ref<HTMLElement | null>(null)
 const pagesEl = ref<HTMLElement | null>(null)
+const metaEl = ref<HTMLElement | null>(null)
+const menuRef = ref<HTMLElement | null>(null)
+const menuButtonEl = ref<HTMLButtonElement | null>(null)
+const menuPanelEl = ref<HTMLElement | null>(null)
 
 const stageW = ref(0)
 const stageH = ref(0)
@@ -154,6 +161,25 @@ const zoomPercent = computed(() =>
   Math.round((mode.value === 'scroll' ? scrollScale.value : scale.value) * 100),
 )
 
+/**
+ * Keep the head and the extension of a long name, so the middle ellipsis never
+ * collapses to a single letter when the toolbar is narrow.
+ */
+const displayName = computed(() => {
+  const name = fileName.value || title.value
+  const budget = nameBudget.value
+  if (!name || name.length <= budget) return name
+  // Keep the extension and the last page number, then spend what is left on the head.
+  const tail = Math.max(5, Math.round(budget * 0.45))
+  const head = Math.max(4, budget - tail - 1)
+  if (head + tail + 1 >= name.length) return name
+  let tailText = name.slice(-tail)
+  // Do not start the tail in the middle of a word ("…k 037.cbz" -> "…037.cbz").
+  const boundary = tailText.search(/\s/)
+  if (boundary > 0 && boundary <= 3) tailText = tailText.slice(boundary + 1)
+  return `${name.slice(0, head).trimEnd()}…${tailText.trimStart()}`
+})
+
 const visiblePages = computed(() =>
   visibleIndices.value.map((page) => ({
     index: page,
@@ -232,6 +258,7 @@ async function resetReader(): Promise<void> {
   title.value = ''
   error.value = ''
   dragging.value = false
+  menuOpen.value = false
   showResume.value = false
   scrollGesture = false
   pinchState = null
@@ -728,6 +755,7 @@ function toggleMode(): void {
   const nextMode = order[(order.indexOf(mode.value) + 1) % order.length]
   window.clearTimeout(tapTimer)
   lastTap = null
+  menuOpen.value = false
   clearZoom()
   mode.value = nextMode
 
@@ -1155,6 +1183,15 @@ function onKey(event: KeyboardEvent): void {
     return
   }
 
+  // While the options menu is open, let Tab/Enter reach its buttons and Escape close it.
+  if (menuOpen.value) {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      closeMenu()
+    }
+    return
+  }
+
   if (mode.value === 'scroll') {
     switch (event.key) {
       case 'ArrowDown':
@@ -1260,20 +1297,70 @@ async function toggleFullscreen(): Promise<void> {
   }
 }
 
+function onFullscreenChange(): void {
+  fullscreenActive.value = Boolean(document.fullscreenElement)
+}
+
+async function toggleMenu(): Promise<void> {
+  menuOpen.value = !menuOpen.value
+  if (!menuOpen.value) return
+  await nextTick()
+  menuPanelEl.value?.querySelector<HTMLButtonElement>('button')?.focus()
+}
+
+function closeMenu(): void {
+  if (!menuOpen.value) return
+  menuOpen.value = false
+  menuButtonEl.value?.focus()
+}
+
+function menuToggleRtl(): void {
+  toggleRtl()
+  closeMenu()
+}
+
+function menuToggleFullscreen(): void {
+  void toggleFullscreen()
+  closeMenu()
+}
+
+function onDocumentPointerDown(event: PointerEvent): void {
+  if (!menuOpen.value) return
+  const target = event.target as Node | null
+  if (target && menuRef.value?.contains(target)) return
+  menuOpen.value = false
+}
+
 function preventBrowserDrop(event: DragEvent): void {
   event.preventDefault()
 }
 
 let resizeObserver: ResizeObserver | null = null
 let observedStage: HTMLElement | null = null
+let observedMeta: HTMLElement | null = null
+
+function measureNameBudget(): void {
+  const width = metaEl.value?.clientWidth ?? 0
+  if (!width) return
+  // 13px semibold averages roughly 7.2px per character; 7.8 leaves room for wide glyphs.
+  nameBudget.value = Math.max(10, Math.floor(width / 7.8))
+}
 
 function attachObserver(): void {
   if (!resizeObserver) return
   const stage = stageEl.value
-  if (!stage || stage === observedStage) return
-  if (observedStage) resizeObserver.unobserve(observedStage)
-  observedStage = stage
-  resizeObserver.observe(stage)
+  if (stage && stage !== observedStage) {
+    if (observedStage) resizeObserver.unobserve(observedStage)
+    observedStage = stage
+    resizeObserver.observe(stage)
+  }
+  const meta = metaEl.value
+  if (meta && meta !== observedMeta) {
+    if (observedMeta) resizeObserver.unobserve(observedMeta)
+    observedMeta = meta
+    resizeObserver.observe(meta)
+  }
+  measureNameBudget()
 }
 
 watch(stageEl, () => {
@@ -1291,12 +1378,15 @@ onMounted(async () => {
 
   resizeObserver = new ResizeObserver(() => {
     measureStage()
+    measureNameBudget()
     clampPan()
   })
 
   window.addEventListener('keydown', onKey)
   window.addEventListener('dragover', preventBrowserDrop)
   window.addEventListener('drop', preventBrowserDrop)
+  document.addEventListener('pointerdown', onDocumentPointerDown, true)
+  document.addEventListener('fullscreenchange', onFullscreenChange)
 
   if (props.initialFile) await openFile(props.initialFile)
 
@@ -1309,6 +1399,8 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKey)
   window.removeEventListener('dragover', preventBrowserDrop)
   window.removeEventListener('drop', preventBrowserDrop)
+  document.removeEventListener('pointerdown', onDocumentPointerDown, true)
+  document.removeEventListener('fullscreenchange', onFullscreenChange)
   resizeObserver?.disconnect()
   resizeObserver = null
   window.clearTimeout(saveTimer)
@@ -1349,22 +1441,31 @@ onBeforeUnmount(() => {
 
     <section v-else ref="viewerEl" class="viewer">
       <header class="toolbar" :class="{ 'toolbar--hidden': !toolbarVisible }">
-        <div class="meta">
-          <strong>{{ title || fileName }}</strong>
-          <span>{{ fileName }} · {{ currentLabel }}</span>
+        <div ref="metaEl" class="meta">
+          <strong :title="fileName || title">{{ displayName }}</strong>
+          <span>{{ currentLabel }}</span>
         </div>
         <div class="tools">
-          <button type="button" class="tool" @click="toggleMode" :title="`Reading mode: ${modeLabel}`">
-            {{ modeLabel }}
-          </button>
           <button
-            v-if="mode !== 'scroll'"
             type="button"
-            class="tool"
-            :class="{ active: rtl }"
-            @click="toggleRtl"
+            class="tool tool--icon"
+            :title="`Reading mode: ${modeLabel} — tap to switch`"
+            :aria-label="`Reading mode: ${modeLabel}. Switch to the next mode.`"
+            @click="toggleMode"
           >
-            RTL
+            <svg v-if="mode === 'single'" viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M4.5 2.5h4.2l2.8 2.8v8.2h-7z" />
+              <path d="M8.7 2.5v2.8h2.8" />
+            </svg>
+            <svg v-else-if="mode === 'double'" viewBox="0 0 16 16" aria-hidden="true">
+              <rect x="2" y="3" width="5.5" height="10" rx="1" />
+              <rect x="8.5" y="3" width="5.5" height="10" rx="1" />
+            </svg>
+            <svg v-else viewBox="0 0 16 16" aria-hidden="true">
+              <rect x="4" y="2.5" width="8" height="3.4" rx="1" />
+              <rect x="4" y="6.3" width="8" height="3.4" rx="1" />
+              <rect x="4" y="10.1" width="8" height="3.4" rx="1" />
+            </svg>
           </button>
           <button
             type="button"
@@ -1375,10 +1476,65 @@ onBeforeUnmount(() => {
           >
             {{ zoomPercent }}%
           </button>
-          <button v-if="hasFullscreen" type="button" class="tool" @click="toggleFullscreen">
-            Full
+          <button
+            type="button"
+            class="tool tool--icon tool--accent"
+            title="Open another CBZ file"
+            aria-label="Open another CBZ file"
+            @click="pickFile"
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M2 5.2a1 1 0 0 1 1-1h3l1.3 1.4H13a1 1 0 0 1 1 1v5.2a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z" />
+              <path d="M8 8.2v3M6.5 9.7h3" />
+            </svg>
           </button>
-          <button type="button" class="tool tool--accent" @click="pickFile">Open</button>
+          <div ref="menuRef" class="menu">
+            <button
+              ref="menuButtonEl"
+              type="button"
+              class="tool tool--icon"
+              :class="{ active: menuOpen }"
+              aria-haspopup="menu"
+              :aria-expanded="menuOpen ? 'true' : 'false'"
+              aria-label="More reading options"
+              title="More options"
+              @click="toggleMenu"
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true" class="dots">
+                <circle cx="8" cy="3.6" r="1.25" />
+                <circle cx="8" cy="8" r="1.25" />
+                <circle cx="8" cy="12.4" r="1.25" />
+              </svg>
+            </button>
+            <div v-if="menuOpen" ref="menuPanelEl" class="menu__panel" role="menu" aria-label="Reading options">
+              <button
+                v-if="mode !== 'scroll'"
+                type="button"
+                class="menu__item"
+                role="menuitemcheckbox"
+                :aria-checked="rtl ? 'true' : 'false'"
+                @click="menuToggleRtl"
+              >
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M13 8H3M6.5 4.5 3 8l3.5 3.5" />
+                </svg>
+                <span>Right-to-left reading</span>
+                <span class="menu__state">{{ rtl ? 'On' : 'Off' }}</span>
+              </button>
+              <button
+                v-if="hasFullscreen"
+                type="button"
+                class="menu__item"
+                role="menuitem"
+                @click="menuToggleFullscreen"
+              >
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M6 2.5H2.5V6M10 2.5h3.5V6M6 13.5H2.5V10M10 13.5h3.5V10" />
+                </svg>
+                <span>{{ fullscreenActive ? 'Exit fullscreen' : 'Fullscreen' }}</span>
+              </button>
+            </div>
+          </div>
         </div>
         <input ref="fileInput" type="file" hidden :accept="accept" @change="onFileChange" />
       </header>
@@ -1608,8 +1764,10 @@ onBeforeUnmount(() => {
   right: 0;
   z-index: 5;
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  min-width: 0;
   padding: 10px 12px;
   background: linear-gradient(to bottom, rgba(8, 8, 11, 0.94), rgba(8, 8, 11, 0));
   transition: opacity 0.18s ease, transform 0.18s ease;
@@ -1622,8 +1780,9 @@ onBeforeUnmount(() => {
 }
 
 .meta {
-  min-width: 0;
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 80px;
+  max-width: 52%;
 }
 
 .meta strong {
@@ -1647,13 +1806,16 @@ onBeforeUnmount(() => {
 
 .tools {
   display: flex;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
+  margin-left: auto;
   justify-content: flex-end;
 }
 
 .tool {
+  flex: 0 0 auto;
   min-height: 32px;
   padding: 0 10px;
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -1662,7 +1824,99 @@ onBeforeUnmount(() => {
   color: rgba(255, 255, 255, 0.82);
   font-size: 12px;
   font-weight: 550;
+  white-space: nowrap;
   transition: background 0.15s ease, color 0.15s ease;
+}
+
+.tool--icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  padding: 0;
+}
+
+.tool--icon svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.tool--icon svg.dots {
+  fill: currentColor;
+  stroke: none;
+}
+
+.tool--zoom {
+  min-width: 46px;
+  padding: 0 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.menu {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.menu__panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 6;
+  min-width: 212px;
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(17, 17, 22, 0.98);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+}
+
+.menu__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 12px;
+  font-weight: 550;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.menu__item:hover,
+.menu__item:focus-visible {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  outline: none;
+}
+
+.menu__item svg {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.menu__item span:first-of-type {
+  flex: 1;
+}
+
+.menu__state {
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 11px;
 }
 
 .tool:hover {
@@ -1925,8 +2179,12 @@ onBeforeUnmount(() => {
   }
 
   .toolbar {
-    gap: 8px;
+    gap: 6px;
     padding: 8px 10px;
+  }
+
+  .meta {
+    max-width: 50%;
   }
 
   .meta span {
@@ -1934,9 +2192,19 @@ onBeforeUnmount(() => {
   }
 
   .tool {
-    min-height: 30px;
+    min-height: 32px;
     padding: 0 8px;
     font-size: 11px;
+  }
+
+  .tool--icon {
+    width: 32px;
+    padding: 0;
+  }
+
+  .tool--zoom {
+    min-width: 42px;
+    padding: 0 6px;
   }
 
   .counter {
