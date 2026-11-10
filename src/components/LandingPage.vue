@@ -155,6 +155,13 @@ const trustItems = computed(() => props.page.trust ?? DEFAULT_TRUST)
         <ul v-if="section.bullets">
           <li v-for="bullet in section.bullets" :key="bullet">{{ bullet }}</li>
         </ul>
+        <aside v-if="section.note" class="section-note">
+          <h3>{{ section.note.title }}</h3>
+          <p v-for="paragraph in section.note.paragraphs" :key="paragraph">{{ paragraph }}</p>
+          <ul v-if="section.note.bullets">
+            <li v-for="bullet in section.note.bullets" :key="bullet">{{ bullet }}</li>
+          </ul>
+        </aside>
       </section>
     </div>
 

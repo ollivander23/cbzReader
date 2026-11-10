@@ -2,6 +2,13 @@ export interface PageSection {
   heading: string
   paragraphs?: string[]
   bullets?: string[]
+  note?: PageSectionNote
+}
+
+export interface PageSectionNote {
+  title: string
+  paragraphs?: string[]
+  bullets?: string[]
 }
 
 export interface FaqItem {
@@ -976,6 +983,16 @@ export const PAGES: PageContent[] = [
           'Page order follows a natural sort of the image file names, the same order the reader uses.',
           'The finished PDF downloads directly; no link expires and no copy is kept.',
         ],
+        note: {
+          title: 'Verify it yourself',
+          paragraphs: [
+            'You do not have to take this on trust. Both checks take about a minute and only involve this converter.',
+          ],
+          bullets: [
+            'On a desktop, open DevTools → Network and start a conversion. The page and its scripts load, but no request carries your archive or page images; the analytics event sent during a run records only the page count, the elapsed time and the page-size choice.',
+            'On a phone, open this page once while you still have a connection, then switch on airplane mode and reload it. Convert a local CBZ with no network at all: the PDF is still built and downloaded.',
+          ],
+        },
       },
       {
         heading: 'Original size or A4',
@@ -1027,6 +1044,11 @@ export const PAGES: PageContent[] = [
         question: 'Are my files uploaded anywhere?',
         answer:
           'No. The archive is read with the browser file API and the PDF is assembled in the tab. No request carries file content; the analytics events for a conversion record only the page count, the elapsed time and the page-size choice.',
+      },
+      {
+        question: 'How can I check that the conversion does not upload my file?',
+        answer:
+          'Open this page once, then either watch DevTools → Network while converting or switch a phone to airplane mode and convert. On desktop the request list shows the page, its scripts and an analytics ping, but nothing that carries the archive or the page images. With the network off, the same conversion still finishes and downloads a PDF. This applies to this converter only: the archive and the finished PDF never leave the tab.',
       },
       {
         question: 'Does the converter work offline?',

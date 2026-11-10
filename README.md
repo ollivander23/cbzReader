@@ -116,7 +116,8 @@
 | CBZ → PDF 转换 | ✅ | `/cbz-to-pdf/` 用 zip.js 在标签页内解压，再用 pdf-lib（懒加载，约 440KB）逐页合成 PDF。JPEG 页走 `embedJpg` 直接写入原始 JPEG 数据，PNG 走 `embedPng` 无损嵌入；WebP/GIF/AVIF/BMP 转一次 JPEG(q=0.92)。下载由页面内的 blob 链接触发，文件名为原文件名换 `.pdf` |
 | 转换页面尺寸 | ✅ | 默认「Original size」：页面等于图片像素，1 像素 = 1pt，不重采样；「Fit to A4」：等比缩放到 595.28×841.89pt 内并居中，不裁剪 |
 | 转换进度与错误 | ✅ | 逐页进度条（`role="progressbar"` + `aria-valuetext`）与取消（AbortSignal，逐页与收尾各检查一次）；错误按原因区分：非 ZIP、加密包、无图片条目（带条目总数）、内存不足、单页读取/嵌入失败（带页码），CBR/CB7 给出具体处理建议而不是笼统报错 |
-| 转换不上传 | ✅ | 转换链路只读本地文件与本地 blob，不发任何请求；`npm run test:convert` 拦截页面上所有非 GET/HEAD/OPTIONS 请求并断言为 0 |
+| 转换不上传 | ✅ | 转换链路只读本地文件与本地 blob，全程不发起携带文件内容或页面图像的请求（转换期间只有一次不含文件数据的统计事件）；`npm run test:convert` 拦截页面上所有非 GET/HEAD/OPTIONS 请求并断言为 0 |
+| 转换页可自行验证 | ✅ | `/cbz-to-pdf/` 的 *How the conversion works in this tab* 一节内嵌一块 *Verify it yourself*（桌面 DevTools → Network、手机飞行模式两条可执行步骤），FAQ 增加对应问答。文案严格限定在转换功能上（`this converter` / `the conversion runs entirely in this tab`），不写成全站承诺，也不使用「没有任何网络请求」这类与统计脚本矛盾的表述。**这段话与实现绑定：若转换功能的实现方式变化（例如引入服务端转换），必须同步修改这一块与对应 FAQ。** |
 | 转换测试 | ✅ | `npm run test:convert` 覆盖：30 页 PNG 包的原图尺寸与页数、A4 页盒、JPEG 包的直通（PDF ≥ 原 JPEG 字节 95%）、CBR 文案、20 页 3000×4500 压力包，以及全程零上传 |
 | 预渲染落地页 | ✅ | 13 条静态路由：首页、`/cbz-to-pdf/`、`/read-cbz-online/`、`/manga-reader/`、`/how-to-open-cbz/`、`/cbz-vs-cbr/`、`/what-is-a-cbz-file/`、`/cbz-file-format/`、`/read-cbz-on-iphone/`、`/read-cbz-on-android/`、`/how-to-make-a-cbz-file/`、`/cbz-file-wont-open/`、`/privacy/` |
 | SEO 元信息 | ✅ | 每页独立 title/description、canonical、hreflang、OG/Twitter、JSON-LD（WebSite / WebApplication / Article / FAQPage / BreadcrumbList） |
@@ -145,6 +146,7 @@
 | 离线（飞行模式） | 已访问过一次的站点 + 本地 `demo-30pages.cbz` | ✅ 安卓与 iPhone 真机确认：飞行模式下刷新首页可打开，本地 CBZ 可导入并翻页 |
 | 添加到主屏 | 站点首页 | ✅ 安卓与 iPhone 真机确认可添加成功 |
 | 沉浸式阅读层与浮动工具栏 | `demo-30pages.cbz` | 🟡 桌面无头 Edge 通过：阅读层四角覆盖、关闭回原滚动位置、`popstate` 关闭、`F` 进入/退出全屏、`fullscreenEnabled` 为假时菜单无该项且 `F` 无效；安全区与下滑隐藏待真机 |
+| 离线转换（生产构建 + 浏览器离线模式） | `demo-30pages.cbz`（30 页） | ✅ 联网状态访问过 `/cbz-to-pdf/` 后断网重新加载，页面仍可打开（来自运行时缓存），转换完成并下载 16.6MB PDF，全程无网络。真机飞行模式未在本机复跑，文案里已写明「先把这页打开一次」这一前提 |
 
 ### 3.3 仍需真机确认（含 iOS 盲区）
 
