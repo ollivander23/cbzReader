@@ -103,6 +103,7 @@ export function renderHead(page: PageContent, siteUrl: string): string {
   const title = escapeHtml(page.title)
   const description = escapeHtml(page.description)
   const ogType = page.schema === 'app' ? 'website' : 'article'
+  const ogImage = `${siteUrl.replace(/\/$/, '')}/og-image.png`
   const schema = scriptJson(buildSchema(page, url, siteUrl))
 
   return `<title>${title}</title>
@@ -118,8 +119,15 @@ export function renderHead(page: PageContent, siteUrl: string): string {
 <meta property="og:description" content="${description}" />
 <meta property="og:url" content="${url}" />
 <meta property="og:locale" content="en_US" />
-<meta name="twitter:card" content="summary" />
+<meta property="og:image" content="${ogImage}" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="${title}" />
+<meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="${title}" />
 <meta name="twitter:description" content="${description}" />
+<meta name="twitter:image" content="${ogImage}" />
+<meta name="twitter:image:alt" content="${title}" />
 ${schema}`
 }
