@@ -7,6 +7,7 @@ export const SITE = {
 
 export const NAV = [
   { label: 'Reader', href: '/' },
+  { label: 'CBZ to PDF', href: '/cbz-to-pdf/' },
   { label: 'How to open CBZ', href: '/how-to-open-cbz/' },
   { label: 'Manga mode', href: '/manga-reader/' },
   { label: 'CBZ vs CBR', href: '/cbz-vs-cbr/' },

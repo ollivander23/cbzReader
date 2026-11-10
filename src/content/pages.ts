@@ -17,6 +17,9 @@ export interface PageContent {
   eyebrow: string
   lead: string
   tool?: boolean
+  converter?: boolean
+  trust?: string[]
+  schemaFeatures?: string[]
   schema: 'app' | 'article'
   updated: string
   sections: PageSection[]
@@ -110,7 +113,7 @@ export const PAGES: PageContent[] = [
         answer: 'Yes. The reader runs entirely in your browser and does not require an account.',
       },
     ],
-    related: ['/what-is-a-cbz-file/', '/how-to-open-cbz/', '/manga-reader/', '/cbz-vs-cbr/'],
+    related: ['/cbz-to-pdf/', '/what-is-a-cbz-file/', '/how-to-open-cbz/', '/manga-reader/'],
   },
   {
     path: '/read-cbz-online/',
@@ -932,6 +935,106 @@ export const PAGES: PageContent[] = [
       },
     ],
     related: ['/', '/read-cbz-online/', '/how-to-open-cbz/'],
+  },
+  {
+    path: '/cbz-to-pdf/',
+    title: 'CBZ to PDF Converter - Local, No Upload',
+    description:
+      'Convert a CBZ comic archive to PDF in your browser. Nothing is uploaded, JPEG pages are copied unchanged, and pages keep their original size or fit A4.',
+    h1: 'Convert CBZ to PDF without uploading',
+    eyebrow: 'CBZ to PDF',
+    lead: 'Pick a .cbz file and get a PDF back without a round trip to a server. The archive is unpacked and the PDF is assembled in this tab, so the pages never leave your device.',
+    converter: true,
+    trust: ['No upload', 'JPEG pages copied as-is', 'Original size or A4', 'Works offline'],
+    schema: 'app',
+    schemaFeatures: [
+      'Convert a CBZ archive to PDF in the browser',
+      'JPEG pages embedded without re-encoding',
+      'Original image size or A4 pages',
+      'No upload and no account',
+      'Cancelable conversion with specific error messages',
+    ],
+    updated: '2026-11-11',
+    sections: [
+      {
+        heading: 'Why most CBZ to PDF converters upload your file',
+        paragraphs: [
+          'Uploading is the simplest way to build this tool. The archive goes to a server, a machine with a PDF library and plenty of memory unpacks it, and the finished file comes back as a download link. The browser only has to send and receive bytes.',
+          'That design suits the operator, not the reader. A copy of your comic exists somewhere else even if it is deleted an hour later, large files usually need an account or a paid tier, and the result depends on someone else keeping the service online. For a file that is already on your disk, the round trip buys nothing.',
+        ],
+      },
+      {
+        heading: 'How the conversion works in this tab',
+        paragraphs: [
+          'Browsers can read a ZIP central directory and write binary data, so the whole job can stay local. The converter opens the archive with the same ZIP reader as the comic reader, sorts image entries naturally (2.jpg before 10.jpg), and ignores directory entries, __MACOSX folders and ComicInfo.xml.',
+          'Each JPEG page is copied into the PDF as a DCT stream: the compressed image data is passed through untouched, with no decode and no re-encode. PNG pages are embedded losslessly too, including transparency. PDF has no native format for WebP, GIF, AVIF or BMP, so those pages are decoded once and written as JPEG at quality 92; that is the only path where pixels are re-compressed.',
+          'Pages are processed one at a time with a pause between them, so the progress bar updates, the tab stays responsive, and Cancel is checked before every page.',
+        ],
+        bullets: [
+          'JPEG and PNG pages: embedded without re-encoding.',
+          'WebP, GIF, AVIF, BMP pages: re-encoded once as JPEG at quality 92.',
+          'Page order follows a natural sort of the image file names, the same order the reader uses.',
+          'The finished PDF downloads directly; no link expires and no copy is kept.',
+        ],
+      },
+      {
+        heading: 'Original size or A4',
+        paragraphs: [
+          'With original size, one image pixel becomes one PDF point, so a 3000 × 4500 scan produces a 3000 × 4500 point page. Nothing is scaled, and viewers or printers shrink it to fit their own output. This is how most comic PDFs are built, and it preserves every pixel.',
+          'With A4, every page becomes 595 × 842 points and the image is scaled to fit inside it without cropping or stretching, centred with margins. Choose this when the PDF is meant for printing or for an app that handles very large page boxes badly. The embedded image data is identical in both modes, so file size barely changes; only the page geometry does.',
+        ],
+      },
+      {
+        heading: 'What this converter does not do',
+        bullets: [
+          'No OCR and no text layer. Output pages are images, so text cannot be selected, searched or read aloud.',
+          'One archive at a time. Batch conversion is not implemented.',
+          'No CBR (RAR) or CB7 (7z) input. Browsers cannot open those containers; convert them to CBZ first.',
+          'No password-protected archives. Encrypted pages are rejected before anything is written.',
+          'No server fallback. If a very large archive exhausts the tab memory, the conversion stops with an error instead of uploading the file.',
+        ],
+      },
+      {
+        heading: 'When a conversion fails',
+        paragraphs: [
+          'Encrypted archives are rejected up front. An archive with no image entries is rejected with the number of entries that were found. A page that cannot be decoded stops the run and names the file inside the archive. Running out of memory, which usually takes hundreds of very large pages, is reported as a memory error; closing other tabs or splitting the archive is the practical fix.',
+          'Cancel stops the run between pages and discards the partial PDF. Nothing is downloaded and no temporary file is left behind.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: 'Does converting to PDF reduce image quality?',
+        answer:
+          'For JPEG and PNG pages, no. The compressed image data is copied into the PDF unchanged. WebP, GIF, AVIF and BMP pages are re-encoded once as JPEG at quality 92, because PDF has no native format for them. If your archive is made of JPEG scans, as most CBZ files are, each page image in the PDF is the same data as in the archive.',
+      },
+      {
+        question: 'Can I convert several CBZ files at once?',
+        answer:
+          'No. One archive at a time keeps memory bounded and makes cancellation predictable. Start the next file after the first PDF has downloaded.',
+      },
+      {
+        question: 'What happens with a password-protected archive?',
+        answer:
+          'It is rejected with an explanation. Remove the password in your archive tool, save a plain CBZ, then convert that file.',
+      },
+      {
+        question: 'Which page size should I choose?',
+        answer:
+          'Use original size for an archival PDF that matches the scans exactly, and A4 when the PDF will be printed. The image data is the same in both modes, so quality and file size barely change.',
+      },
+      {
+        question: 'Are my files uploaded anywhere?',
+        answer:
+          'No. The archive is read with the browser file API and the PDF is assembled in the tab. No request carries file content; the analytics events for a conversion record only the page count, the elapsed time and the page-size choice.',
+      },
+      {
+        question: 'Does the converter work offline?',
+        answer:
+          'Yes, after the first visit. The converter ships in the same offline-capable shell as the reader, and your CBZ is a local file either way.',
+      },
+    ],
+    related: ['/', '/what-is-a-cbz-file/', '/cbz-file-format/', '/cbz-file-wont-open/'],
   },
 ]
 

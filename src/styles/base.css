@@ -440,6 +440,64 @@ h1 {
   font-size: 12.5px;
 }
 
+/* CBZ to PDF: prerendered shell, replaced by src/convert when a file is picked */
+.converter-section {
+  margin: 38px 0 8px;
+}
+
+.converter-shell {
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) + 6px);
+  background: var(--card-bg);
+  box-shadow:
+    0 1px 0 var(--frame-inset) inset,
+    0 24px 60px -38px var(--shadow);
+}
+
+.converter-fallback {
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 40px 22px;
+  border: 1.5px dashed var(--line-strong);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--ink);
+  text-align: center;
+}
+
+.converter-kicker {
+  margin: 0 0 10px;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.converter-fallback h2 {
+  margin: 0;
+  font-size: clamp(1.35rem, 3vw, 1.8rem);
+  letter-spacing: -0.02em;
+}
+
+.converter-fallback p {
+  max-width: 46ch;
+  margin: 12px auto 0;
+  color: var(--muted);
+  font-size: 14.5px;
+  line-height: 1.6;
+}
+
+.converter-fallback p.converter-fine {
+  margin-top: 18px;
+  color: var(--faint);
+  font-size: 12.5px;
+}
+
 /* Recent shelf: prerendered hidden, filled by src/components/recentShelf.ts */
 .shelf {
   margin: 30px 0 0;
@@ -931,6 +989,11 @@ h1 {
   .reader-fallback {
     min-height: 340px;
     padding: 14px;
+  }
+
+  .converter-fallback {
+    min-height: 280px;
+    padding: 30px 14px;
   }
 
   .dropzone {

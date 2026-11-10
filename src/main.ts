@@ -62,6 +62,36 @@ function wireStaticReader(): void {
   })
 }
 
+function wireStaticConverter(): void {
+  const host = document.getElementById('converter-app')
+  if (!host) return
+
+  const button = host.querySelector<HTMLButtonElement>('[data-convert-open]')
+  const input = host.querySelector<HTMLInputElement>('input[type="file"]')
+  if (!button || !input) return
+
+  const start = (file: File): void => {
+    // The mounted app replaces this markup and handles drops itself.
+    if (host.dataset.mounted === 'true') return
+    void import('./convert/mount').then(({ mountConverter }) => mountConverter(host, file))
+  }
+
+  button.addEventListener('click', () => input.click())
+
+  input.addEventListener('change', () => {
+    const file = input.files?.[0]
+    if (file) start(file)
+  })
+
+  host.addEventListener('dragover', (event) => event.preventDefault())
+
+  host.addEventListener('drop', (event) => {
+    event.preventDefault()
+    const file = event.dataTransfer?.files?.[0]
+    if (file) start(file)
+  })
+}
+
 function currentPagePath(): string {
   const path = location.pathname
   return path === '/' || path.endsWith('/') ? path : `${path}/`
@@ -114,6 +144,7 @@ function bootstrap(): void {
       mountDevLanding()
       mountThemeSwitch()
       wireStaticReader()
+      wireStaticConverter()
       mountRecentShelf((file) => startReader(file, true))
     })
     return
@@ -121,6 +152,7 @@ function bootstrap(): void {
 
   mountThemeSwitch()
   wireStaticReader()
+  wireStaticConverter()
   mountRecentShelf((file) => startReader(file, true))
 }
 

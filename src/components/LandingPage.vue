@@ -13,6 +13,8 @@ const related = computed(() =>
 )
 
 const year = 2026
+const DEFAULT_TRUST = ['No upload', 'No account', 'Right-to-left ready', 'Remembers your page']
+const trustItems = computed(() => props.page.trust ?? DEFAULT_TRUST)
 </script>
 
 <template>
@@ -114,10 +116,7 @@ const year = 2026
       <h1>{{ page.h1 }}</h1>
       <p class="lead">{{ page.lead }}</p>
       <ul class="trust">
-        <li>No upload</li>
-        <li>No account</li>
-        <li>Right-to-left ready</li>
-        <li>Remembers your page</li>
+        <li v-for="item in trustItems" :key="item">{{ item }}</li>
       </ul>
     </section>
 
@@ -164,6 +163,37 @@ const year = 2026
       </noscript>
     </section>
 
+    <section v-if="page.converter" id="converter" class="converter-section" aria-label="CBZ to PDF converter">
+      <div class="converter-shell">
+        <div id="converter-app">
+          <div class="converter-fallback">
+            <p class="converter-kicker">CBZ → PDF</p>
+            <h2>Convert a CBZ to PDF</h2>
+            <p>
+              Drop a .cbz file here, or choose one from your device. The archive is unpacked and
+              the PDF is built in this tab.
+            </p>
+            <button class="btn-primary" type="button" data-convert-open>Choose a CBZ file</button>
+            <input
+              type="file"
+              hidden
+              accept=".cbz,.zip,application/vnd.comicbook+zip,application/zip"
+              aria-label="Choose a CBZ file to convert"
+            />
+            <p class="converter-fine">
+              Nothing is uploaded. JPEG pages are embedded without re-encoding.
+            </p>
+          </div>
+        </div>
+      </div>
+      <noscript>
+        <p class="noscript">
+          JavaScript is required to unpack the archive and build the PDF. Everything runs in your
+          browser; the file is never sent to a server.
+        </p>
+      </noscript>
+    </section>
+
     <div class="content">
       <section v-for="section in page.sections" :key="section.heading">
         <h2>{{ section.heading }}</h2>
@@ -205,6 +235,7 @@ const year = 2026
       <span>&copy; {{ year }} {{ SITE.name }}. Files stay on your device.</span>
       <nav aria-label="Footer">
         <a href="/">Reader</a>
+        <a href="/cbz-to-pdf/">CBZ to PDF</a>
         <a href="/how-to-open-cbz/">How to open CBZ</a>
         <a href="/manga-reader/">Manga mode</a>
         <a href="/cbz-vs-cbr/">CBZ vs CBR</a>

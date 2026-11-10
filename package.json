@@ -11,11 +11,13 @@
     "samples": "node scripts/make-samples.mjs",
     "icons": "node scripts/make-icons.mjs",
     "test:e2e": "node test/e2e.mjs",
-    "test:offline": "node test/offline.mjs"
+    "test:offline": "node test/offline.mjs",
+    "test:convert": "node test/convert.mjs"
   },
   "dependencies": {
     "@zip.js/zip.js": "^2.7.62",
     "idb-keyval": "^6.2.1",
+    "pdf-lib": "^1.17.1",
     "vue": "^3.5.13"
   },
   "devDependencies": {

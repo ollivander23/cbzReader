@@ -62,7 +62,7 @@ function buildSchema(page: PageContent, url: string, siteUrl: string): unknown {
         price: '0',
         priceCurrency: 'USD',
       },
-      featureList: [
+      featureList: page.schemaFeatures ?? [
         'Open CBZ and ZIP comic archives locally',
         'Right-to-left manga reading mode',
         'Single-page and double-page layouts',

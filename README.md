@@ -2,7 +2,7 @@
 
 一个面向海外用户的极简 CBZ 在线阅读器：打开网页、选中或拖入 `.cbz` 文件即可开始阅读，文件不上传、不需要账号。本仓库是「冷门格式阅读器工具站」的第一个站点，DJVU 站不在本期范围。
 
-当前状态：**MVP 已上线**，线上地址 <https://cbzreader.mavi.help/>。已完成文件选择、ZIP 按需解压、单页/双页/纵向连续三种阅读模式、缩放平移、RTL、内存控制、续读指纹、书签、深浅色主题、PWA 离线外壳，以及构建时预渲染的英文落地页。尚未实现 CBR/CB7 与多语言。
+当前状态：**MVP 已上线**，线上地址 <https://cbzreader.mavi.help/>。已完成文件选择、ZIP 按需解压、单页/双页/纵向连续三种阅读模式、缩放平移、RTL、内存控制、续读指纹、书签、深浅色主题、PWA 离线外壳、本地 CBZ → PDF 转换，以及构建时预渲染的英文落地页。尚未实现 CBR/CB7 与多语言。
 
 ---
 
@@ -11,7 +11,7 @@
 ### 1.1 产品定位
 
 - 面向海内外用户、**以海外英文用户为主**的极简 CBZ 在线阅读器。
-- 纯前端、纯静态：没有服务端、没有上传、没有转换任务、没有账号体系。
+- 纯前端、纯静态：没有服务端、没有上传、没有账号体系。CBZ → PDF 转换同样在浏览器标签页里完成，没有服务端任务、没有上传队列。
 - 一个页面解决一件事：选中本地 CBZ → 立即阅读 → 关闭页面即结束，不留副本。
 
 ### 1.2 目标用户与典型场景
@@ -31,13 +31,15 @@
 - 本地阅读进度：重新导入同一文件时提示恢复上次页码。
 - 深色 / 浅色主题：页头右上角与阅读器菜单都能切换 Auto（跟随系统）、Light、Dark，选择保存在本地，首帧不闪白。
 - PWA 与离线：`manifest.webmanifest` + 生产环境 Service Worker；首次访问后应用外壳可离线打开，本地的 CBZ 断网也能正常翻页；可添加到主屏。
+- CBZ → PDF 转换：`/cbz-to-pdf/` 页内解压 CBZ，把图片页合成为 PDF 后直接下载。页面尺寸可选「原图尺寸」（默认，1 像素 = 1pt，不缩放）与「A4 适配」（等比不裁剪）；JPEG 页直接嵌入原始数据不重编码，PNG 无损嵌入，WebP/GIF/AVIF/BMP 转一次 JPEG(q=0.92)。转换显示逐页进度、可取消，失败按原因给出具体提示。
 - 英文落地页与 SEO 元信息，构建时输出真实 HTML。
 
 ### 1.4 明确不做
 
 - 不做登录、注册、云书架、跨设备同步。
 - 不上传文件到服务端，不做服务端解压或转码。
-- 不做格式转换（CBZ → PDF 等），不提供下载产物。
+- 不做 PDF 或图片转回 CBZ，不做批量转换，不做把转换结果存到服务端或以链接分享。
+- 转换只接受 CBZ/ZIP 输入：CBR（RAR）、CB7（7z）与加密包会明确提示不支持，非图片条目会被跳过。
 - 本期不支持 DJVU；CBR（RAR）与 CB7（7z）也不支持。
 - 不做 DRM 破解、不做付费内容分发。
 
@@ -53,6 +55,7 @@
 | 状态管理 | Vue Composition API | 单页应用状态简单，不引入 Pinia |
 | 路由 | 无运行时路由 | 每条内容页是独立静态 HTML，阅读器按需挂载 |
 | ZIP 解析 | `@zip.js/zip.js` | 读取中央目录，按条目按需解压单页，支持 Blob 输入 |
+| PDF 生成 | `pdf-lib`（懒加载） | 只在 `/cbz-to-pdf/` 用到；`embedJpg` 把 JPEG 原始数据直接写进 PDF，`embedPng` 无损嵌入，避免无必要重编码 |
 | 本地存储 | `idb-keyval`（IndexedDB） | 保存阅读进度；失败时静默降级，不阻塞阅读 |
 | 部署 | Cloudflare Pages | 静态托管、免费额度、自带 HTTPS 与边缘缓存 |
 | 预渲染 | `@vue/server-renderer` + 自定义脚本 | 复用 Vue 组件生成 HTML 字符串，不引入 Nuxt |
@@ -99,11 +102,16 @@
 | 最近阅读 | ✅ | 首页「Recently opened」列出文件名、总页数、当前页、模式、更新时间与 168px JPEG 封面（约 7–15KB/条）；点条目续读，支持删除单条与 Clear all |
 | 续读策略 | ✅ | ≤32MB 的包在 IndexedDB 存副本（最多保留最近 3 个），点条目直接续读；超限或副本已被淘汰时只留指纹，点条目打开文件选择器并提示重新选同一文件 |
 | 书签 | ✅ | `⋮` 菜单可给当前页加/取消书签，菜单内按页序列出、点击跳转、× 删除；按文件指纹存 IndexedDB，与续读进度互不覆盖 |
-| 深色 / 浅色主题 | ✅ | 页头右上角的太阳/月亮按钮（12 条路由与 404 都有）展开 Auto / Light / Dark；阅读器 `⋮` 菜单内的 `Theme` 分组改同一份状态，任一处切换另一处立即同步。选择存 `localStorage['cbz-theme']`，Auto 用 `matchMedia` 跟随系统并实时切换；`src/prerender/head.ts` 在样式表之前输出阻塞内联脚本，先给 `<html>` 打 `data-theme` 再绘制，因此不会先白后黑。页头按钮的静态标记随预渲染 HTML 一起输出，`src/lib/themeSwitch.ts` 只做事件增强（Esc 回焦、方向键、点外部关闭），JS 未执行时页面仍按 head 脚本的主题正常显示，只是按钮不可点。图标显隐由 `:root[data-theme='dark']` 控制，不依赖 JS。颜色统一收敛为 `base.css` 的 `--token`（`:root` 浅色 + `:root[data-theme='dark']` 覆盖），覆盖落地页正文/列表/CTA/相关内链/页脚、书架卡片、404、`color-scheme` 滚动条、选中色与焦点环。漫画页面本身不做反色或背景替换 |
+| 深色 / 浅色主题 | ✅ | 页头右上角的太阳/月亮按钮（13 条路由与 404 都有）展开 Auto / Light / Dark；阅读器 `⋮` 菜单内的 `Theme` 分组改同一份状态，任一处切换另一处立即同步。选择存 `localStorage['cbz-theme']`，Auto 用 `matchMedia` 跟随系统并实时切换；`src/prerender/head.ts` 在样式表之前输出阻塞内联脚本，先给 `<html>` 打 `data-theme` 再绘制，因此不会先白后黑。页头按钮的静态标记随预渲染 HTML 一起输出，`src/lib/themeSwitch.ts` 只做事件增强（Esc 回焦、方向键、点外部关闭），JS 未执行时页面仍按 head 脚本的主题正常显示，只是按钮不可点。图标显隐由 `:root[data-theme='dark']` 控制，不依赖 JS。颜色统一收敛为 `base.css` 的 `--token`（`:root` 浅色 + `:root[data-theme='dark']` 覆盖），覆盖落地页正文/列表/CTA/相关内链/页脚、书架卡片、404、`color-scheme` 滚动条、选中色与焦点环。漫画页面本身不做反色或背景替换 |
 | PWA 清单与图标 | ✅ | `public/manifest.webmanifest` 声明 `display: standalone`、`start_url` / `scope`、`lang`、192/512 与 maskable 图标；深浅色各一份 manifest，用 `<link rel="manifest" media="(prefers-color-scheme: …)">` 区分 `theme_color` / `background_color`（不支持 `media` 的浏览器会回退到先出现的浅色那份）。`renderHead()` 同时输出 manifest 与 `apple-touch-icon` 链接，随预渲染 HTML 一起落地。图标由 `npm run icons` 从 `favicon.svg` 渲染 |
 | 离线可用 | ✅ | `scripts/sw-template.js` 由 `scripts/prerender.mjs` 注入版本号与预缓存清单后写成 `dist/sw.js`（版本取自带 hash 的资源名，旧缓存自动清理）。导航请求 network-first + 缓存兜底，`/assets/*` cache-first，同源其它资源 stale-while-revalidate；只预缓存首页外壳与静态资源，未访问过的内容页不进缓存。新版本 install 后停在 waiting，由下一次导航的页面发 `SKIP_WAITING` 接管，不在阅读中途刷新；dev 环境不注册 |
 | 安装到主屏 | 🟡 | 可添加到主屏（Chrome 安装入口、iOS Safari 分享→添加到主屏）；独立窗口、启动画面与图标遮罩只在桌面无头 Edge 验证过，真机待确认 |
-| 预渲染落地页 | ✅ | 12 条静态路由：首页、`/read-cbz-online/`、`/manga-reader/`、`/how-to-open-cbz/`、`/cbz-vs-cbr/`、`/what-is-a-cbz-file/`、`/cbz-file-format/`、`/read-cbz-on-iphone/`、`/read-cbz-on-android/`、`/how-to-make-a-cbz-file/`、`/cbz-file-wont-open/`、`/privacy/` |
+| CBZ → PDF 转换 | ✅ | `/cbz-to-pdf/` 用 zip.js 在标签页内解压，再用 pdf-lib（懒加载，约 440KB）逐页合成 PDF。JPEG 页走 `embedJpg` 直接写入原始 JPEG 数据，PNG 走 `embedPng` 无损嵌入；WebP/GIF/AVIF/BMP 转一次 JPEG(q=0.92)。下载由页面内的 blob 链接触发，文件名为原文件名换 `.pdf` |
+| 转换页面尺寸 | ✅ | 默认「Original size」：页面等于图片像素，1 像素 = 1pt，不重采样；「Fit to A4」：等比缩放到 595.28×841.89pt 内并居中，不裁剪 |
+| 转换进度与错误 | ✅ | 逐页进度条（`role="progressbar"` + `aria-valuetext`）与取消（AbortSignal，逐页与收尾各检查一次）；错误按原因区分：非 ZIP、加密包、无图片条目（带条目总数）、内存不足、单页读取/嵌入失败（带页码），CBR/CB7 给出具体处理建议而不是笼统报错 |
+| 转换不上传 | ✅ | 转换链路只读本地文件与本地 blob，不发任何请求；`npm run test:convert` 拦截页面上所有非 GET/HEAD/OPTIONS 请求并断言为 0 |
+| 转换测试 | ✅ | `npm run test:convert` 覆盖：30 页 PNG 包的原图尺寸与页数、A4 页盒、JPEG 包的直通（PDF ≥ 原 JPEG 字节 95%）、CBR 文案、20 页 3000×4500 压力包，以及全程零上传 |
+| 预渲染落地页 | ✅ | 13 条静态路由：首页、`/cbz-to-pdf/`、`/read-cbz-online/`、`/manga-reader/`、`/how-to-open-cbz/`、`/cbz-vs-cbr/`、`/what-is-a-cbz-file/`、`/cbz-file-format/`、`/read-cbz-on-iphone/`、`/read-cbz-on-android/`、`/how-to-make-a-cbz-file/`、`/cbz-file-wont-open/`、`/privacy/` |
 | SEO 元信息 | ✅ | 每页独立 title/description、canonical、hreflang、OG/Twitter、JSON-LD（WebSite / WebApplication / Article / FAQPage / BreadcrumbList） |
 | 社交分享图 | ✅ | `public/og-image.png` 1200×630；`og:image` 含 width/height/alt，`twitter:image`，卡片类型为 `summary_large_image` |
 | 404 与静态资源 | ✅ | `public/404.html`；未知路径与缺失的 `/assets/*` 由 Cloudflare Pages 返回 404，而不是回退首页 200 |
@@ -140,6 +148,7 @@
 - 🟡 移动端其它手势：滑动翻页、点击分区翻页、双击复位只在桌面无头 Chromium 中验证。
 - 🟡 双页模式在窄屏下的默认值：宽度 ≥980px 默认双页，否则默认单页；小屏双页可读性未评估。
 - 🟡 暗色主题只在桌面无头 Edge 上截图与计算过对比度（正文 13.1:1、次要文字 7.8:1、主按钮 6.9:1、⋮ 菜单 14:1、页头主题按钮图标 16.4:1），320/375px 下页头无横向溢出、按钮完整可见；真机上的系统主题切换（iOS 自动深浅、安卓深色与强制深色）、`color-scheme` 滚动条、选中色与焦点环表现待确认。
+- 🟡 CBZ → PDF 转换只在桌面无头 Edge 上验证：页数、页面尺寸、JPEG 直通与零上传都有测试覆盖，但没有真机记录；iOS Safari 上 30 页 3000×4500 这类包的内存上限是明确盲区。
 - 🟡 超大包压力测试：尚未用 300 页以上、单页 4K 的真实漫画包做压测。
 
 ### 3.4 续读策略与统一解码上限
@@ -315,6 +324,26 @@ npm run test:offline
 
 脚本用一个临时静态服务器托管 `dist/`（端口取 `OFFLINE_PORT`，默认 4189），用无头 Edge 断言四件事：外壳缓存只含首页与静态资源、断网刷新首页内容完整、断网打开本地 CBZ 且能翻页、改动后的文档在下一次导航可见（说明 HTML 走 network-first，不会被旧缓存卡住）。
 
+#### CBZ → PDF 验收（`npm run test:convert`）
+
+```powershell
+$env:CBZ_SAMPLE="D:\edgeDown\testData\archive\demo-30pages.cbz"
+$env:CBZ_JPEG="D:\edgeDown\testData\archive\hermano_lobo_1972_001 .cbz"   # 可选，JPEG 直通样例
+$env:CBZ_STRESS="D:\edgeDown\testData\archive\large-pages-20.cbz"        # 可选，压力包
+npm run test:convert
+```
+
+脚本在开发服务器（端口取 `CONVERT_PORT`，默认 5201）上打开 `/cbz-to-pdf/`，依次转换：
+
+1. 默认「Original size」：用 `PDFDocument.load()` 读回产物，断言页数等于 ZIP 内图片条目数、首页页面尺寸与源 PNG 的像素尺寸完全一致（1 像素 = 1pt）。
+2. 「Fit to A4」：断言所有页的页面盒为 595.28×841.89pt。
+3. JPEG 包：断言 PDF 体积 ≥ 源 JPEG 字节总和的 95%，证明页面走的是原始 JPEG 直通而不是重编码。
+4. `.cbr` 输入：断言错误文案点名 `CBR (RAR) archives are not supported` 并给出建议。
+5. 压力包（20 页 3000×4500）：断言页数与首页尺寸，记录耗时。
+6. 全程拦截页面请求，断言没有任何带 body 的请求（`POST` / `PUT` / `PATCH` 等），即文件内容没有离开标签页。
+
+Chrome 对同一站点的第二次自动下载会要求用户手势，因此第一轮校验真实落在下载目录里的文件，后续轮次直接从 `[data-convert-download]` 指向的 blob 读取字节，并校验 `download` 属性等于「原文件名 + `.pdf`」。
+
 ### 5.7 生成真机测试样例
 
 真机压测需要页数多、尺寸大或文件名极端的包，可以本地生成（图片由无头 Edge/Chrome 渲染，不依赖外部素材）：
@@ -352,6 +381,9 @@ npm run samples -- --only=long      # 只生成文件名含 long 的样例
 | `resume_accept` | 无 | 书架续读被接受（直接用本地副本打开） |
 | `resume_decline` | 无 | 书架续读被拒绝（无副本，走重新选文件分支） |
 | `cta_click` | `page`：所在页面路径；`target`：目标 href | 落地页 CTA 与相关内链的去向 |
+| `conv_start` | `page_size`: `original` / `a4` | 转换被发起，用于看尺寸偏好 |
+| `conv_success` | `pages`：页数；`ms`：从点击到 PDF 生成完成；`page_size` | 转换成功率与耗时分布 |
+| `conv_fail` | `reason`: `not-zip` / `encrypted` / `no-images` / `memory` / `unknown`；`page_size` | 失败原因分类，`cancelled` 不上报 |
 
 隐私页文案与此保持一致：两项统计（Cloudflare Web Analytics、Umami）均为无 cookie、不跨站跟踪、不做设备指纹。
 
@@ -363,6 +395,10 @@ npm run samples -- --only=long      # 只生成文件名含 long 的样例
 - **iOS 内存**：单标签页内存预算明显低于桌面，超大页面会被降采样；极大的包（数百 MB 以上、页面尺寸很高）仍可能触发页面重载。IndexedDB 在长期不访问时可能被系统清理，阅读进度不保证永久保留。
 - **iOS 全屏**：Safari 不支持元素级 Fullscreen API，全屏按钮会自动隐藏。
 - **格式**：当前只支持 CBZ/ZIP；CBR（RAR）与 CB7（7z）会明确提示不支持并建议先转成 CBZ。加密 ZIP 无法读取。
+- **转换输入**：只接受 CBZ/ZIP，CBR/CB7 与加密包会直接报错并说明原因；非图片条目（`ComicInfo.xml`、封面缓存、`__MACOSX`）会被跳过，因此 PDF 页数可能少于 ZIP 条目数。
+- **转换的像素与体积**：原图尺寸模式下 1 像素 = 1pt，不做缩放；因此 3000×4500 的页面在 PDF 里也是 3000×4500。JPEG 直通不重编码，PNG 无损嵌入，WebP/GIF/AVIF/BMP 会转一次 JPEG(q=0.92)，这一步是有损的。
+- **转换的内存**：整个 PDF 在标签页内构建，页数多、单页大的包需要同时容纳源码流与 PDF 缓冲；内存不足时会明确提示，但极高分辨率与极大页数组合仍可能失败，桌面比移动端更稳。
+- **批量转换**：一次只处理一个文件，不支持队列或打包下载。
 - **离线范围**：只有首页外壳与带 hash 的静态资源是预缓存的。没访问过的内容页断网时会显示一个离线提示页（不会把首页内容伪装成该 URL）；访问过的页面保留最后一次的副本，联网后再打开就会更新。
 - **离线缓存的生命周期**：Service Worker 的缓存由浏览器管理。iOS 在长期不访问站点后可能清理它，用户清理站点数据或换浏览器也会丢失；清理后需要联网访问一次才能恢复离线能力。
 - **续读指纹**：指纹包含文件名，重命名文件会被视为新文件；修改文件内容也会导致指纹变化。
@@ -396,8 +432,10 @@ cbz-reader/
 │  ├─ reader/
 │  │  ├─ ReaderApp.vue         # 阅读器 UI 与交互
 │  │  └─ core/                 # ZIP、图片、指纹、进度、书签/最近阅读、排序
+│  ├─ convert/                 # CBZ → PDF：pdf.ts 转换核心、ConvertApp.vue、mount.ts
 │  └─ styles/base.css          # 设计系统与落地页样式
 └─ test/
    ├─ e2e.mjs                  # 开发服务器上的阅读器交互验证
-   └─ offline.mjs              # 生产构建上的断网验收
+   ├─ offline.mjs              # 生产构建上的断网验收
+   └─ convert.mjs              # CBZ → PDF 的产物与零上传校验
 ```
