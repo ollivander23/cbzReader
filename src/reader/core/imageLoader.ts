@@ -172,7 +172,11 @@ async function downsample(blob: Blob, width: number, height: number): Promise<Bl
   }
 }
 
-export async function loadPageAsset(index: number, blob: Blob): Promise<PageAsset> {
+export async function loadPageAsset(
+  index: number,
+  blob: Blob,
+  minWidth?: number,
+): Promise<PageAsset> {
   const rawUrl = URL.createObjectURL(blob)
   const headerSize = await readImageSize(blob)
 
@@ -196,9 +200,10 @@ export async function loadPageAsset(index: number, blob: Blob): Promise<PageAsse
 
   URL.revokeObjectURL(rawUrl)
 
+  const targetWidth = Math.max(TARGET_WIDTH, minWidth ?? 0)
   const ratio = Math.min(
     1,
-    TARGET_WIDTH / size.width,
+    targetWidth / size.width,
     MAX_CANVAS_DIM / size.height,
     Math.sqrt(MAX_CANVAS_PIXELS / pixels),
   )

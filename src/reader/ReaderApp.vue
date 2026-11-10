@@ -15,6 +15,27 @@ const MAX_SCALE = 5
 const STAGE_PAD_TOP = 54
 const STAGE_PAD_X = 8
 const SCROLL_WINDOW = 12
+const MAX_SCROLL_SCALE = 4
+const SCROLL_DECODE_WIDTH = 3200
+
+interface ScrollAnchor {
+  page: number
+  relX: number
+  relY: number
+}
+
+interface ScrollZoomRequest {
+  scale: number
+  x: number
+  y: number
+  anchor?: ScrollAnchor | null
+}
+
+interface ScrollPinch {
+  distance: number
+  scale: number
+  anchor: ScrollAnchor | null
+}
 
 const isIOS =
   typeof navigator !== 'undefined' &&
@@ -46,6 +67,7 @@ const assets = reactive(new Map<number, PageAsset>())
 const pageErrors = reactive(new Map<number, string>())
 
 const scrollWindowStart = ref(0)
+const scrollScale = ref(1)
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const viewerEl = ref<HTMLElement | null>(null)
@@ -79,6 +101,15 @@ let lastTap: { x: number; y: number; time: number } | null = null
 let wheelLock = 0
 let scrollRaf: number | undefined
 let shiftingScroll = false
+let scrollGesture = false
+let zoomApplying = false
+let zoomToken = 0
+let pendingZoom: ScrollZoomRequest | null = null
+let pinchState: ScrollPinch | null = null
+let singleTouch: { x: number; y: number; time: number } | null = null
+let lastScrollTap: { x: number; y: number; time: number } | null = null
+let lastTouchAt = 0
+let gestureStartScale: number | null = null
 
 function spreadStart(page: number): number {
   if (mode.value !== 'double' || page <= 0) return page
@@ -117,6 +148,10 @@ const scrollPages = computed(() =>
 
 const modeLabel = computed(() =>
   mode.value === 'single' ? 'Single' : mode.value === 'double' ? 'Double' : 'Scroll',
+)
+
+const zoomPercent = computed(() =>
+  Math.round((mode.value === 'scroll' ? scrollScale.value : scale.value) * 100),
 )
 
 const visiblePages = computed(() =>
@@ -198,7 +233,11 @@ async function resetReader(): Promise<void> {
   error.value = ''
   dragging.value = false
   showResume.value = false
-  resetZoom()
+  scrollGesture = false
+  pinchState = null
+  singleTouch = null
+  lastScrollTap = null
+  clearZoom()
   if (current) await current.dispose()
 }
 
@@ -212,7 +251,11 @@ async function loadOne(page: number): Promise<void> {
     try {
       if (gen !== generation || !source.value) return
       const blob = await source.value.getPage(page)
-      const asset = await loadPageAsset(page, blob)
+      const asset = await loadPageAsset(
+        page,
+        blob,
+        mode.value === 'scroll' ? scrollDecodeWidth() : undefined,
+      )
       if (gen !== generation) {
         URL.revokeObjectURL(asset.url)
         return
@@ -329,13 +372,23 @@ function measureStage(): void {
 }
 
 function scrollPageStyle(page: number): Record<string, string> {
-  const width = Math.max(120, stageW.value - STAGE_PAD_X * 2)
+  const width = Math.max(120, (stageW.value - STAGE_PAD_X * 2) * scrollScale.value)
   const asset = assets.get(page)
   const ratio = asset && asset.width > 0 ? `${asset.width} / ${asset.height}` : '2 / 3'
   return {
     width: `${Math.round(width)}px`,
     aspectRatio: ratio,
   }
+}
+
+/**
+ * Pages are decoded for their on-screen size. Zooming in asks for more pixels
+ * for pages that enter the window afterwards; the 8MP canvas cap and the 32MP
+ * LRU budget stay in place, so this never turns into a memory regression.
+ */
+function scrollDecodeWidth(): number {
+  const width = Math.max(120, (stageW.value - STAGE_PAD_X * 2) * scrollScale.value)
+  return Math.min(SCROLL_DECODE_WIDTH, Math.round(width))
 }
 
 function scrollPageEl(page: number): HTMLElement | null {
@@ -388,7 +441,7 @@ function preserveScrollAnchor(nextStart: number, anchor: number): void {
 
 function syncScroll(): void {
   const scroller = stageEl.value
-  if (!scroller || mode.value !== 'scroll' || shiftingScroll) return
+  if (!scroller || mode.value !== 'scroll' || shiftingScroll || scrollGesture) return
   const stageRect = scroller.getBoundingClientRect()
   const line = stageRect.top + stageRect.height * 0.35
   let current = index.value
@@ -457,10 +510,155 @@ function clampPan(): void {
   }
 }
 
-function resetZoom(): void {
+function clearZoom(): void {
+  zoomToken += 1
+  zoomApplying = false
+  pendingZoom = null
+  scrollScale.value = 1
   scale.value = 1
   tx.value = 0
   ty.value = 0
+}
+
+function resetZoom(): void {
+  if (mode.value === 'scroll') {
+    resetScrollZoom()
+    return
+  }
+  scale.value = 1
+  tx.value = 0
+  ty.value = 0
+}
+
+/**
+ * Scroll mode only keeps 12 pages mounted, so zooming changes every page's
+ * placeholder height and therefore the scroll offset. Instead of guessing the
+ * new offset, remember which page pixel sits under the pinch centre and put
+ * that same pixel back under it after the layout update.
+ */
+function scrollAnchorAt(clientX: number, clientY: number): ScrollAnchor | null {
+  const scroller = stageEl.value
+  if (!scroller) return null
+  let last: ScrollAnchor | null = null
+  for (const block of scroller.querySelectorAll<HTMLElement>('.scroll-page')) {
+    const rect = block.getBoundingClientRect()
+    const page = Number(block.dataset.page)
+    if (!Number.isFinite(page)) continue
+    const relX = rect.width > 0 ? clamp((clientX - rect.left) / rect.width, 0, 1) : 0.5
+    if (rect.bottom > clientY) {
+      const relY = rect.height > 0 ? clamp((clientY - rect.top) / rect.height, 0, 1) : 0
+      return { page, relX, relY }
+    }
+    last = { page, relX, relY: 1 }
+  }
+  return last
+}
+
+function alignScrollAnchor(anchor: ScrollAnchor | null, clientX: number, clientY: number): void {
+  const scroller = stageEl.value
+  if (!scroller || !anchor) return
+  const element = scrollPageEl(anchor.page)
+  if (!element) return
+  const rect = element.getBoundingClientRect()
+  scroller.scrollTop += rect.top + anchor.relY * rect.height - clientY
+  scroller.scrollLeft += rect.left + anchor.relX * rect.width - clientX
+}
+
+function requestScrollZoom(
+  next: number,
+  clientX: number,
+  clientY: number,
+  anchor?: ScrollAnchor | null,
+): void {
+  if (mode.value !== 'scroll') return
+  pendingZoom = { scale: clamp(next, 1, MAX_SCROLL_SCALE), x: clientX, y: clientY, anchor }
+  if (zoomApplying) return
+  applyScrollZoom()
+}
+
+function applyScrollZoom(): void {
+  const request = pendingZoom
+  pendingZoom = null
+  if (!request || mode.value !== 'scroll') {
+    zoomApplying = false
+    return
+  }
+  const scroller = stageEl.value
+  if (!scroller) {
+    scrollScale.value = request.scale
+    zoomApplying = false
+    return
+  }
+
+  const anchor = request.anchor ?? scrollAnchorAt(request.x, request.y)
+  const beforeRect = scroller.getBoundingClientRect()
+  const before = {
+    top: scroller.scrollTop,
+    left: scroller.scrollLeft,
+    height: Math.max(1, scroller.scrollHeight),
+    width: Math.max(1, scroller.scrollWidth),
+    offsetX: request.x - beforeRect.left,
+    offsetY: request.y - beforeRect.top,
+  }
+
+  if (Math.abs(request.scale - scrollScale.value) < 0.002) {
+    alignScrollAnchor(anchor, request.x, request.y)
+    if (pendingZoom) {
+      applyScrollZoom()
+      return
+    }
+    zoomApplying = false
+    return
+  }
+
+  zoomApplying = true
+  const token = zoomToken
+  scrollScale.value = request.scale
+  void nextTick().then(() => {
+    if (token !== zoomToken) return
+    if (anchor && scrollPageEl(anchor.page)) {
+      alignScrollAnchor(anchor, request.x, request.y)
+    } else {
+      // The anchor page left the window: fall back to proportional offsets.
+      scroller.scrollTop =
+        (before.top + before.offsetY) * (scroller.scrollHeight / before.height) - before.offsetY
+      scroller.scrollLeft =
+        (before.left + before.offsetX) * (scroller.scrollWidth / before.width) - before.offsetX
+    }
+    if (pendingZoom) {
+      applyScrollZoom()
+      return
+    }
+    zoomApplying = false
+    if (scrollScale.value <= 1.001) scroller.scrollLeft = 0
+    void ensurePages()
+  })
+}
+
+function resetScrollZoom(): void {
+  const scroller = stageEl.value
+  if (!scroller) {
+    scrollScale.value = 1
+    return
+  }
+  const rect = scroller.getBoundingClientRect()
+  requestScrollZoom(1, rect.left + rect.width / 2, rect.top + rect.height * 0.35)
+}
+
+/** A burst of wheel events must compound, not all multiply the last rendered scale. */
+function pendingScrollScale(): number {
+  return pendingZoom?.scale ?? scrollScale.value
+}
+
+function zoomScrollBy(delta: number): void {
+  const scroller = stageEl.value
+  if (!scroller) return
+  const rect = scroller.getBoundingClientRect()
+  requestScrollZoom(
+    pendingScrollScale() + delta,
+    rect.left + rect.width / 2,
+    rect.top + rect.height / 2,
+  )
 }
 
 function zoomTo(next: number, anchorX: number, anchorY: number): void {
@@ -530,7 +728,7 @@ function toggleMode(): void {
   const nextMode = order[(order.indexOf(mode.value) + 1) % order.length]
   window.clearTimeout(tapTimer)
   lastTap = null
-  resetZoom()
+  clearZoom()
   mode.value = nextMode
 
   if (nextMode === 'scroll') {
@@ -805,9 +1003,135 @@ function onPointerUp(event: PointerEvent): void {
   if (moved < 10 && Date.now() - start.time < 500) handleTap(event)
 }
 
+function onScrollTouchStart(event: TouchEvent): void {
+  if (!ready.value || mode.value !== 'scroll') return
+  lastTouchAt = Date.now()
+
+  if (event.touches.length === 2) {
+    const [a, b] = [event.touches[0], event.touches[1]]
+    const midX = (a.clientX + b.clientX) / 2
+    const midY = (a.clientY + b.clientY) / 2
+    pinchState = {
+      distance: Math.max(1, Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)),
+      scale: scrollScale.value,
+      anchor: scrollAnchorAt(midX, midY),
+    }
+    scrollGesture = true
+    singleTouch = null
+    lastScrollTap = null
+    return
+  }
+
+  if (event.touches.length === 1) {
+    const touch = event.touches[0]
+    singleTouch = { x: touch.clientX, y: touch.clientY, time: Date.now() }
+  }
+}
+
+function onScrollTouchMove(event: TouchEvent): void {
+  if (!ready.value || mode.value !== 'scroll') return
+  lastTouchAt = Date.now()
+  if (event.touches.length !== 2 || !pinchState) return
+  // Keep the browser from turning the pinch into a page zoom or a native scroll.
+  event.preventDefault()
+  const [a, b] = [event.touches[0], event.touches[1]]
+  const distance = Math.max(1, Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY))
+  const nextScale = clamp(
+    (pinchState.scale * distance) / pinchState.distance,
+    1,
+    MAX_SCROLL_SCALE,
+  )
+  requestScrollZoom(
+    nextScale,
+    (a.clientX + b.clientX) / 2,
+    (a.clientY + b.clientY) / 2,
+    pinchState.anchor,
+  )
+}
+
+function onScrollTouchEnd(event: TouchEvent): void {
+  if (mode.value !== 'scroll') return
+  lastTouchAt = Date.now()
+  if (event.touches.length >= 2) return
+
+  if (pinchState) {
+    pinchState = null
+    scrollGesture = false
+    singleTouch = null
+    // Never zoom below fit-width, so snap the remaining sliver back to 100%.
+    if (scrollScale.value < 1.05) resetScrollZoom()
+    onScroll()
+    return
+  }
+
+  const start = singleTouch
+  const touch = event.changedTouches[0]
+  singleTouch = null
+  if (!start || !touch) return
+
+  const moved = Math.hypot(touch.clientX - start.x, touch.clientY - start.y)
+  if (moved > 12 || Date.now() - start.time > 400) {
+    lastScrollTap = null
+    return
+  }
+
+  const now = Date.now()
+  if (
+    lastScrollTap &&
+    now - lastScrollTap.time < 320 &&
+    Math.hypot(touch.clientX - lastScrollTap.x, touch.clientY - lastScrollTap.y) < 30
+  ) {
+    lastScrollTap = null
+    if (scrollScale.value > 1.01) resetScrollZoom()
+    else requestScrollZoom(2, touch.clientX, touch.clientY)
+    return
+  }
+
+  lastScrollTap = { x: touch.clientX, y: touch.clientY, time: now }
+}
+
+function onStageDoubleClick(event: MouseEvent): void {
+  if (!ready.value || mode.value !== 'scroll') return
+  if (Date.now() - lastTouchAt < 800) return
+  if (scrollScale.value > 1.01) resetScrollZoom()
+  else requestScrollZoom(2, event.clientX, event.clientY)
+}
+
+function onGestureStart(): void {
+  gestureStartScale = null
+}
+
+function onGestureChange(event: Event): void {
+  if (!ready.value || mode.value !== 'scroll' || pinchState) return
+  const gesture = event as Event & { scale?: number; clientX?: number; clientY?: number }
+  const ratio = gesture.scale
+  if (!ratio || !Number.isFinite(ratio)) return
+  if (gestureStartScale === null) gestureStartScale = scrollScale.value
+  const rect = stageEl.value?.getBoundingClientRect()
+  requestScrollZoom(
+    gestureStartScale * ratio,
+    gesture.clientX ?? (rect ? rect.left + rect.width / 2 : 0),
+    gesture.clientY ?? (rect ? rect.top + rect.height / 2 : 0),
+  )
+}
+
+function onGestureEnd(): void {
+  gestureStartScale = null
+}
+
 function onWheel(event: WheelEvent): void {
   if (!ready.value) return
-  if (mode.value === 'scroll') return
+  if (mode.value === 'scroll') {
+    // Trackpad pinch and Ctrl/Cmd + wheel zoom; plain wheel keeps scrolling.
+    if (!event.ctrlKey && !event.metaKey) return
+    event.preventDefault()
+    requestScrollZoom(
+      pendingScrollScale() * (event.deltaY < 0 ? 1.12 : 0.89),
+      event.clientX,
+      event.clientY,
+    )
+    return
+  }
   event.preventDefault()
   if (event.ctrlKey || event.metaKey) {
     const point = stagePoint(event.clientX, event.clientY)
@@ -846,6 +1170,20 @@ function onKey(event: KeyboardEvent): void {
       case ' ':
         event.preventDefault()
         scrollByViewport(event.shiftKey ? -1 : 1)
+        return
+      case '+':
+      case '=':
+        event.preventDefault()
+        zoomScrollBy(0.25)
+        return
+      case '-':
+      case '_':
+        event.preventDefault()
+        zoomScrollBy(-0.25)
+        return
+      case '0':
+        event.preventDefault()
+        resetScrollZoom()
         return
     }
   }
@@ -1028,8 +1366,14 @@ onBeforeUnmount(() => {
           >
             RTL
           </button>
-          <button v-if="mode !== 'scroll'" type="button" class="tool" @click="resetZoom">
-            {{ Math.round(scale * 100) }}%
+          <button
+            type="button"
+            class="tool tool--zoom"
+            :title="`Zoom ${zoomPercent}% — click to fit width`"
+            :aria-label="`Zoom ${zoomPercent}%, reset to fit width`"
+            @click="resetZoom"
+          >
+            {{ zoomPercent }}%
           </button>
           <button v-if="hasFullscreen" type="button" class="tool" @click="toggleFullscreen">
             Full
@@ -1051,6 +1395,14 @@ onBeforeUnmount(() => {
         @pointercancel="onPointerUp"
         @wheel="onWheel"
         @scroll.passive="onScroll"
+        @touchstart="onScrollTouchStart"
+        @touchmove="onScrollTouchMove"
+        @touchend="onScrollTouchEnd"
+        @touchcancel="onScrollTouchEnd"
+        @dblclick="onStageDoubleClick"
+        @gesturestart.prevent="onGestureStart"
+        @gesturechange.prevent="onGestureChange"
+        @gestureend="onGestureEnd"
       >
         <div v-if="mode === 'scroll'" class="scroll-track">
           <div
@@ -1349,9 +1701,8 @@ onBeforeUnmount(() => {
 }
 
 .stage--scroll {
-  overflow-x: hidden;
-  overflow-y: auto;
-  touch-action: pan-y;
+  overflow: auto;
+  touch-action: pan-x pan-y;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   cursor: default;
@@ -1368,6 +1719,9 @@ onBeforeUnmount(() => {
   flex-direction: column;
   align-items: center;
   gap: 12px;
+  width: max-content;
+  min-width: 100%;
+  box-sizing: border-box;
   padding: 56px 8px 84px;
 }
 

@@ -124,7 +124,77 @@ try {
     throw new Error(`Scroll mode mounted ${scrollStartWindow} pages, expected at most 12`)
   }
 
-  // Scroll far enough to force the virtual window to slide.
+  // Ctrl/Cmd + wheel (trackpad pinch) zooms the scrolling column around the pointer.
+  const baseWidth = await page.$eval('.scroll-page', (el) => el.offsetWidth)
+  const readCenterAnchor = () =>
+    page.evaluate(() => {
+      const stage = document.querySelector('.stage')
+      const rect = stage.getBoundingClientRect()
+      const x = rect.left + rect.width / 2
+      const y = rect.top + rect.height / 2
+      for (const block of stage.querySelectorAll('.scroll-page')) {
+        const box = block.getBoundingClientRect()
+        if (box.bottom > y) {
+          return { page: Number(block.dataset.page), relY: (y - box.top) / box.height }
+        }
+      }
+      return null
+    })
+  const anchorBefore = await readCenterAnchor()
+  await page.evaluate(() => {
+    const stage = document.querySelector('.stage')
+    const rect = stage.getBoundingClientRect()
+    for (let step = 0; step < 8; step += 1) {
+      stage.dispatchEvent(
+        new WheelEvent('wheel', {
+          deltaY: -120,
+          ctrlKey: true,
+          bubbles: true,
+          cancelable: true,
+          clientX: rect.left + rect.width / 2,
+          clientY: rect.top + rect.height / 2,
+        }),
+      )
+    }
+  })
+  await new Promise((resolve) => setTimeout(resolve, 600))
+
+  const zoomed = await page.evaluate(() => {
+    const stage = document.querySelector('.stage')
+    const block = document.querySelector('.scroll-page')
+    return {
+      pages: document.querySelectorAll('.scroll-page').length,
+      width: block?.offsetWidth ?? 0,
+      scrollWidth: stage?.scrollWidth ?? 0,
+      clientWidth: stage?.clientWidth ?? 0,
+      label: document.querySelector('.tool--zoom')?.textContent?.trim(),
+    }
+  })
+
+  if (zoomed.width < baseWidth * 1.8) {
+    throw new Error(`Scroll zoom did not grow pages: ${baseWidth} -> ${zoomed.width} ${JSON.stringify(zoomed)}`)
+  }
+  if (zoomed.scrollWidth <= zoomed.clientWidth) {
+    throw new Error('Zoomed column is not horizontally scrollable')
+  }
+  if (zoomed.pages > 12) {
+    throw new Error(`Zoom mounted ${zoomed.pages} pages, expected at most 12`)
+  }
+
+  // The page pixel under the pinch centre must stay under it.
+  const anchorAfter = await readCenterAnchor()
+  if (!anchorBefore || !anchorAfter || anchorAfter.page !== anchorBefore.page) {
+    throw new Error(`Zoom moved the anchor page: ${JSON.stringify({ anchorBefore, anchorAfter })}`)
+  }
+  if (Math.abs(anchorAfter.relY - anchorBefore.relY) > 0.03) {
+    throw new Error(
+      `Zoom shifted the anchor within the page: ${anchorBefore.relY.toFixed(3)} -> ${anchorAfter.relY.toFixed(3)}`,
+    )
+  }
+
+  await page.screenshot({ path: path.join(root, 'test/.cache/e2e-scroll-zoom.png') })
+
+  // Scroll far enough to force the virtual window to slide while zoomed.
   for (let step = 0; step < 12; step += 1) {
     await page.$eval('.stage', (el) => {
       el.scrollTop = el.scrollHeight
@@ -140,6 +210,30 @@ try {
   if (scrollPage <= 12) throw new Error(`Scroll position did not advance: ${scrollLabel}`)
   if (scrollWindow > 12) throw new Error(`Window size grew to ${scrollWindow}`)
   if (firstRendered === 0) throw new Error('Virtual window did not slide forward')
+
+  // The toolbar readout resets the scroll column to fit width.
+  await page.click('.tool--zoom')
+  await new Promise((resolve) => setTimeout(resolve, 600))
+  const resetState = await page.evaluate(() => {
+    const stage = document.querySelector('.stage')
+    const block = document.querySelector('.scroll-page')
+    return {
+      label: document.querySelector('.tool--zoom')?.textContent?.trim(),
+      width: block?.offsetWidth ?? 0,
+      overflow: stage ? stage.scrollWidth - stage.clientWidth : 0,
+    }
+  })
+  if (resetState.label !== '100%') {
+    throw new Error(`Zoom reset did not report 100%: ${resetState.label}`)
+  }
+  if (Math.abs(resetState.width - baseWidth) > 2) {
+    throw new Error(`Fit width not restored: ${baseWidth} -> ${resetState.width}`)
+  }
+  if (resetState.overflow > 2) {
+    throw new Error(`Horizontal overflow after reset: ${resetState.overflow}px`)
+  }
+  const resetLabel = await page.$eval('.counter', (el) => el.textContent?.trim())
+  const resetPage = Number((resetLabel ?? '').match(/Page\s+(\d+)/)?.[1] ?? 0)
 
   await page.screenshot({ path: path.join(root, 'test/.cache/e2e-scroll.png') })
 
@@ -171,8 +265,8 @@ try {
   }
   const backLabel = await page.$eval('.counter', (el) => el.textContent?.trim())
   const backPage = Number((backLabel ?? '').match(/Page\s+(\d+)/)?.[1] ?? 0)
-  if (backPage !== scrollPage) {
-    throw new Error(`Mode switch lost position: scroll ${scrollPage}, single ${backPage}`)
+  if (backPage !== resetPage) {
+    throw new Error(`Mode switch lost position: scroll ${resetPage}, single ${backPage}`)
   }
 
   await page.screenshot({ path: path.join(root, 'test/.cache/e2e-reader.png') })
@@ -188,9 +282,18 @@ try {
         scrollLabel,
         scrollWindow,
         firstRendered,
+        zoomed,
+        anchorBefore,
+        anchorAfter,
+        resetState,
+        resetLabel,
         backLabel,
         naturalSize,
-        screenshots: ['test/.cache/e2e-reader.png', 'test/.cache/e2e-scroll.png'],
+        screenshots: [
+          'test/.cache/e2e-reader.png',
+          'test/.cache/e2e-scroll.png',
+          'test/.cache/e2e-scroll-zoom.png',
+        ],
       },
       null,
       2,
