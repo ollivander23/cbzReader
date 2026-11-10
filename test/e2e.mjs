@@ -54,6 +54,18 @@ async function waitForServer() {
 
 let browser
 
+// Scrolling hides the floating chrome, so tests that need a toolbar button
+// first tap the middle of the page to bring it back.
+async function showToolbar(page) {
+  const hidden = await page.evaluate(() =>
+    Boolean(document.querySelector('.toolbar')?.classList.contains('toolbar--hidden')),
+  )
+  if (!hidden) return
+  const viewport = page.viewport()
+  await page.mouse.click(viewport.width / 2, viewport.height / 2)
+  await page.waitForFunction(() => !document.querySelector('.toolbar--hidden'), { timeout: 3_000 })
+}
+
 try {
   await waitForServer()
   browser = await puppeteer.launch({
@@ -162,6 +174,79 @@ try {
     },
     { timeout: 20_000 },
   )
+
+  // Opening a file turns the reader into a viewport-sized layer that covers
+  // the page header and footer instead of sitting inside the document flow.
+  const overlay = await page.evaluate(() => {
+    const reader = document.querySelector('.reader--open')
+    if (!reader) return null
+    const rect = reader.getBoundingClientRect()
+    const points = [
+      [4, 4],
+      [window.innerWidth - 4, 4],
+      [4, window.innerHeight - 4],
+      [window.innerWidth / 2, window.innerHeight - 4],
+    ]
+    // The site header and footer still exist in the DOM; the reader layer must
+    // sit on top of them so nothing outside the viewer can be seen or clicked.
+    const covers = (selector) => {
+      const el = document.querySelector(selector)
+      if (!el) return false
+      const box = el.getBoundingClientRect()
+      const x = box.left + box.width / 2
+      const y = Math.min(Math.max(box.top + box.height / 2, 1), window.innerHeight - 2)
+      return Boolean(document.elementFromPoint(x, y)?.closest('.reader--open'))
+    }
+    return {
+      position: getComputedStyle(reader).position,
+      top: rect.top,
+      left: rect.left,
+      width: rect.width,
+      height: rect.height,
+      innerWidth: window.innerWidth,
+      innerHeight: window.innerHeight,
+      covered: points.map(([x, y]) => Boolean(document.elementFromPoint(x, y)?.closest('.reader--open'))),
+      header: covers('.site-header'),
+      footer: covers('.site-footer'),
+    }
+  })
+  if (
+    !overlay ||
+    overlay.position !== 'fixed' ||
+    overlay.top !== 0 ||
+    overlay.left !== 0 ||
+    Math.abs(overlay.width - overlay.innerWidth) > 1 ||
+    Math.abs(overlay.height - overlay.innerHeight) > 1 ||
+    !overlay.header ||
+    !overlay.footer ||
+    overlay.covered.some((covered) => !covered)
+  ) {
+    throw new Error(`Reader does not own the viewport: ${JSON.stringify(overlay)}`)
+  }
+
+  // A tap on the page area hides the floating chrome, another brings it back.
+  const viewport = page.viewport()
+  await page.mouse.click(viewport.width / 2, viewport.height / 2)
+  await page.waitForSelector('.toolbar--hidden', { timeout: 3_000 })
+  const hiddenBars = await page.evaluate(() => ({
+    toolbar: document.querySelector('.toolbar')?.classList.contains('toolbar--hidden'),
+    bottombar: document.querySelector('.bottombar')?.classList.contains('bottombar--hidden'),
+  }))
+  if (!hiddenBars.toolbar || !hiddenBars.bottombar) {
+    throw new Error(`Toolbar tap did not hide both bars: ${JSON.stringify(hiddenBars)}`)
+  }
+  await page.mouse.click(viewport.width / 2, viewport.height / 2)
+  await page.waitForFunction(() => !document.querySelector('.toolbar--hidden'), { timeout: 3_000 })
+
+  // F only hides the browser's own interface, and fullscreen must be available.
+  const fullscreen = { available: await page.evaluate(() => document.fullscreenEnabled), entered: false }
+  if (fullscreen.available) {
+    await page.keyboard.press('f')
+    await page.waitForFunction(() => Boolean(document.fullscreenElement), { timeout: 3_000 })
+    fullscreen.entered = true
+    await page.keyboard.press('Escape')
+    await page.waitForFunction(() => !document.fullscreenElement, { timeout: 3_000 })
+  }
 
   const first = await page.$eval('.counter', (el) => el.textContent?.trim())
   const naturalSize = await page.$eval('.page-slot img', (img) => ({
@@ -287,6 +372,7 @@ try {
   if (firstRendered === 0) throw new Error('Virtual window did not slide forward')
 
   // The toolbar readout resets the scroll column to fit width.
+  await showToolbar(page)
   await page.click('.tool--zoom')
   await new Promise((resolve) => setTimeout(resolve, 600))
   const resetState = await page.evaluate(() => {
@@ -313,6 +399,7 @@ try {
   await page.screenshot({ path: path.join(root, 'test/.cache/e2e-scroll.png') })
 
   // Switch back to single page and keep the same reading position.
+  await showToolbar(page)
   await modeButton.click()
   await new Promise((resolve) => setTimeout(resolve, 1200))
   const modeAfter = await modeButton.evaluate((el) => el.textContent?.trim())
@@ -347,6 +434,7 @@ try {
   await page.screenshot({ path: path.join(root, 'test/.cache/e2e-reader.png') })
 
   // Theme: the ⋮ menu has a single Dark mode toggle that shares the header state.
+  await showToolbar(page)
   await page.click('[aria-label="More reading options"]')
   await page.waitForSelector('.menu__panel')
   const readerChecked = await page.evaluate(() => {
@@ -387,7 +475,11 @@ try {
   }
 
   // The reader toggle must read the shared state after the header changed it.
-  await page.click('.theme-switch__trigger')
+  // The site header is deliberately covered by the reader layer, so the header
+  // button is driven through its own click handler instead of the pointer.
+  const clickHeaderTheme = () =>
+    page.evaluate(() => document.querySelector('.theme-switch__trigger')?.click())
+  await clickHeaderTheme()
   await page.click('[aria-label="More reading options"]')
   await page.waitForSelector('.menu__panel')
   const readerAfterHeader = await page.evaluate(() => {
@@ -401,14 +493,19 @@ try {
     throw new Error(`Reader toggle did not follow the header: ${JSON.stringify(readerAfterHeader)}`)
   }
 
-  await page.click('.theme-switch__trigger')
+  await clickHeaderTheme()
 
   await page.reload({ waitUntil: 'networkidle2' })
   const reloadedTheme = await page.evaluate(() => ({
     theme: document.documentElement.getAttribute('data-theme'),
     colorScheme: document.documentElement.style.colorScheme,
+    readerOpen: Boolean(document.querySelector('.reader--open')),
   }))
-  if (reloadedTheme.theme !== 'dark' || reloadedTheme.colorScheme !== 'dark') {
+  if (
+    reloadedTheme.theme !== 'dark' ||
+    reloadedTheme.colorScheme !== 'dark' ||
+    reloadedTheme.readerOpen
+  ) {
     throw new Error(`Theme did not survive reload: ${JSON.stringify(reloadedTheme)}`)
   }
 
@@ -445,6 +542,87 @@ try {
 
   await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'light' }])
 
+  // Closing the reader must return to the landing page at the offset the file
+  // was opened from, with the site chrome clickable again.
+  const roomToScroll = await page.evaluate(
+    () => document.documentElement.scrollHeight - window.innerHeight,
+  )
+  if (roomToScroll < 500) {
+    throw new Error(`Landing page is too short for the scroll hand-off check: ${roomToScroll}`)
+  }
+  await page.evaluate(() => window.scrollTo(0, 480))
+  await new Promise((resolve) => setTimeout(resolve, 100))
+  const scrollBeforeOpen = await page.evaluate(() => window.scrollY)
+
+  const reopen = await page.$('#reader-app input[type="file"]')
+  await reopen.uploadFile(sample)
+  await page.waitForSelector('.reader--open', { timeout: 20_000 })
+  await page.waitForSelector('.page-slot img', { timeout: 20_000 })
+
+  await page.click('[data-reader-close]')
+  await page.waitForFunction(() => !document.querySelector('.reader--open'), { timeout: 5_000 })
+  await page.waitForFunction(
+    (target) => Math.abs(window.scrollY - target) <= 2,
+    { timeout: 3_000 },
+    scrollBeforeOpen,
+  )
+  const afterClose = await page.evaluate(() => {
+    const header = document.querySelector('.site-header')
+    const box = header?.getBoundingClientRect()
+    const hit = box ? document.elementFromPoint(box.width / 2, Math.max(box.top + box.height / 2, 1)) : null
+    return {
+      scrollY: window.scrollY,
+      headerClickable: Boolean(hit && !hit.closest('.reader--open')),
+      path: location.pathname,
+    }
+  })
+  if (Math.abs(afterClose.scrollY - scrollBeforeOpen) > 2) {
+    throw new Error(`Close did not restore the scroll offset: ${scrollBeforeOpen} -> ${afterClose.scrollY}`)
+  }
+  if (!afterClose.headerClickable) throw new Error('Site header is still covered after close')
+  if (afterClose.path !== '/') throw new Error(`Close navigated away from the landing page: ${afterClose.path}`)
+
+  // The Android back gesture fires popstate: it must close the reader instead
+  // of leaving the site.
+  await page.evaluate(() => window.scrollTo(0, 300))
+  await new Promise((resolve) => setTimeout(resolve, 100))
+  const reopenForBack = await page.$('#reader-app input[type="file"]')
+  await reopenForBack.uploadFile(sample)
+  await page.waitForSelector('.reader--open', { timeout: 20_000 })
+  await page.evaluate(() => window.history.back())
+  await page.waitForFunction(() => !document.querySelector('.reader--open'), { timeout: 5_000 })
+  await page.waitForFunction(() => Math.abs(window.scrollY - 300) <= 2, { timeout: 3_000 })
+  const afterPop = await page.evaluate(() => ({ path: location.pathname, scrollY: window.scrollY }))
+  if (afterPop.path !== '/') throw new Error(`Back left the site: ${afterPop.path}`)
+  if (Math.abs(afterPop.scrollY - 300) > 2) {
+    throw new Error(`Back did not restore the scroll offset: ${afterPop.scrollY}`)
+  }
+
+  // Without the Fullscreen API the menu must not advertise "browser interface"
+  // and F must not try to hide anything.
+  await page.evaluateOnNewDocument(() => {
+    Object.defineProperty(document, 'fullscreenEnabled', { get: () => false, configurable: true })
+  })
+  await page.reload({ waitUntil: 'networkidle2' })
+  await page.waitForSelector('#reader-app [data-open-reader]')
+  const noFullscreenInput = await page.$('#reader-app input[type="file"]')
+  await noFullscreenInput.uploadFile(sample)
+  await page.waitForSelector('.page-slot img', { timeout: 20_000 })
+  await page.click('[aria-label="More reading options"]')
+  await page.waitForSelector('.menu__panel')
+  const noFullscreenMenu = await page.$$eval('.menu__panel .menu__item', (items) =>
+    items.map((item) => item.textContent?.trim() ?? ''),
+  )
+  if (noFullscreenMenu.some((text) => /browser interface/i.test(text))) {
+    throw new Error(`Menu offers fullscreen without the API: ${JSON.stringify(noFullscreenMenu)}`)
+  }
+  await page.keyboard.press('Escape')
+  await page.keyboard.press('f')
+  await new Promise((resolve) => setTimeout(resolve, 300))
+  if (await page.evaluate(() => Boolean(document.fullscreenElement))) {
+    throw new Error('F entered fullscreen although document.fullscreenEnabled is false')
+  }
+
   if (errors.length > 0) throw new Error(`Page errors: ${errors.join(' | ')}`)
 
   console.log(
@@ -463,6 +641,7 @@ try {
         resetLabel,
         backLabel,
         naturalSize,
+        fullscreen,
         screenshots: [
           'test/.cache/e2e-reader.png',
           'test/.cache/e2e-scroll.png',
@@ -473,7 +652,7 @@ try {
       2,
     ),
   )
-  console.log('E2E PASS: paged turn, virtual scroll, position preserved, theme persists')
+  console.log('E2E PASS: immersive layer, floating chrome, back to landing, theme persists')
 } finally {
   await browser?.close()
   if (server.pid) {

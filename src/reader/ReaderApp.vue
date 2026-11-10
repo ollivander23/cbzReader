@@ -29,11 +29,14 @@ const MAX_TOTAL_PIXELS = 32_000_000
 const CONCURRENCY = 2
 const MIN_SCALE = 1
 const MAX_SCALE = 5
-const STAGE_PAD_TOP = 54
+// The toolbar floats over the page, so a page only needs a hair of breathing
+// room at the edges; the stage owns the whole viewport.
+const STAGE_PAD_TOP = 8
 const STAGE_PAD_X = 8
 const SCROLL_WINDOW = 12
 const MAX_SCROLL_SCALE = 4
 const SCROLL_DECODE_WIDTH = 3200
+const IOS_HINT_KEY = 'cbz-ios-fullscreen-hint'
 
 interface ScrollAnchor {
   page: number
@@ -81,6 +84,7 @@ const fullscreenActive = ref(false)
 const showResume = ref(false)
 const resumePage = ref(0)
 const hasFullscreen = ref(false)
+const iosHintVisible = ref(false)
 const fileFingerprint = ref('')
 const bookmarks = ref<Bookmark[]>([])
 
@@ -140,6 +144,10 @@ let singleTouch: { x: number; y: number; time: number } | null = null
 let lastScrollTap: { x: number; y: number; time: number } | null = null
 let lastTouchAt = 0
 let gestureStartScale: number | null = null
+let scrollTapTimer: number | undefined
+let lastScrollTop = 0
+let savedScrollY = 0
+let historyPushed = false
 
 function spreadStart(page: number): number {
   if (mode.value !== 'double' || page <= 0) return page
@@ -543,7 +551,16 @@ function syncScroll(): void {
 }
 
 function onScroll(): void {
-  if (mode.value !== 'scroll' || scrollRaf) return
+  if (mode.value !== 'scroll') return
+  const scroller = stageEl.value
+  if (scroller) {
+    // Scrolling fades the floating chrome out; tapping brings it back.
+    if (Math.abs(scroller.scrollTop - lastScrollTop) > 4) {
+      toolbarVisible.value = false
+    }
+    lastScrollTop = scroller.scrollTop
+  }
+  if (scrollRaf) return
   scrollRaf = requestAnimationFrame(() => {
     scrollRaf = undefined
     syncScroll()
@@ -914,6 +931,7 @@ async function openFile(file: File): Promise<void> {
     })
 
     ready.value = true
+    enterImmersive()
     await nextTick()
     measureStage()
     attachObserver()
@@ -921,12 +939,70 @@ async function openFile(file: File): Promise<void> {
     if (mode.value === 'scroll') scrollPageToTop(index.value)
     else clampPan()
   } catch (value) {
+    leaveImmersive(true)
     await resetReader()
     ready.value = false
     error.value = messageOf(value)
+    if (historyPushed && window.history.state?.cbzReader) {
+      historyPushed = false
+      window.history.back()
+    }
   } finally {
     busy.value = false
   }
+}
+
+function enterImmersive(): void {
+  savedScrollY = window.scrollY
+  if (!historyPushed) {
+    // A reader session gets its own entry so the Android back gesture closes
+    // the reader instead of leaving the site.
+    window.history.pushState({ cbzReader: true }, '', window.location.href)
+    historyPushed = true
+  }
+  if (isIOS) {
+    let seen = false
+    try {
+      seen = window.localStorage.getItem(IOS_HINT_KEY) === '1'
+    } catch {
+      seen = false
+    }
+    if (!seen) {
+      iosHintVisible.value = true
+      try {
+        window.localStorage.setItem(IOS_HINT_KEY, '1')
+      } catch {
+        // Private mode: the hint just shows again next time.
+      }
+    }
+  }
+}
+
+function leaveImmersive(restoreScroll: boolean): void {
+  iosHintVisible.value = false
+  if (restoreScroll) window.scrollTo({ top: savedScrollY, behavior: 'auto' })
+}
+
+async function closeReader(): Promise<void> {
+  if (!ready.value && !busy.value) return
+  if (document.fullscreenElement) {
+    void document.exitFullscreen().catch(() => undefined)
+  }
+  const ownsHistory = historyPushed
+  historyPushed = false
+  leaveImmersive(true)
+  await resetReader()
+  if (ownsHistory && window.history.state?.cbzReader) {
+    // Drop the entry we added; popstate then finds nothing to close.
+    window.history.back()
+  }
+}
+
+function onPopState(): void {
+  if (!ready.value) return
+  historyPushed = false
+  leaveImmersive(true)
+  void resetReader()
 }
 
 function onFileChange(event: Event): void {
@@ -1100,7 +1176,20 @@ function onPointerUp(event: PointerEvent): void {
     return
   }
 
+  // Swipe down hides the floating chrome; a tap in the middle brings it back.
+  if (moved > 56 && Math.abs(dy) > Math.abs(dx) * 1.2 && dy > 0) {
+    toolbarVisible.value = false
+    return
+  }
+
   if (moved < 10 && Date.now() - start.time < 500) handleTap(event)
+}
+
+function scheduleToolbarToggle(): void {
+  window.clearTimeout(scrollTapTimer)
+  scrollTapTimer = window.setTimeout(() => {
+    toolbarVisible.value = !toolbarVisible.value
+  }, 300)
 }
 
 function onScrollTouchStart(event: TouchEvent): void {
@@ -1182,19 +1271,30 @@ function onScrollTouchEnd(event: TouchEvent): void {
     Math.hypot(touch.clientX - lastScrollTap.x, touch.clientY - lastScrollTap.y) < 30
   ) {
     lastScrollTap = null
+    // A double tap is zoom, not a request to toggle the chrome.
+    window.clearTimeout(scrollTapTimer)
     if (scrollScale.value > 1.01) resetScrollZoom()
     else requestScrollZoom(2, touch.clientX, touch.clientY)
     return
   }
 
   lastScrollTap = { x: touch.clientX, y: touch.clientY, time: now }
+  // Single tap toggles the chrome, deferred so a double tap can cancel it.
+  scheduleToolbarToggle()
 }
 
 function onStageDoubleClick(event: MouseEvent): void {
   if (!ready.value || mode.value !== 'scroll') return
   if (Date.now() - lastTouchAt < 800) return
+  window.clearTimeout(scrollTapTimer)
   if (scrollScale.value > 1.01) resetScrollZoom()
   else requestScrollZoom(2, event.clientX, event.clientY)
+}
+
+function onStageClick(): void {
+  if (!ready.value || mode.value !== 'scroll') return
+  if (Date.now() - lastTouchAt < 800) return
+  scheduleToolbarToggle()
 }
 
 function onGestureStart(): void {
@@ -1339,7 +1439,9 @@ function onKey(event: KeyboardEvent): void {
       break
     case 'f':
     case 'F':
-      void toggleFullscreen()
+      // Fullscreen here only hides the browser chrome; the reader is already
+      // viewport-sized, so do nothing where that API is unavailable.
+      if (hasFullscreen.value) void toggleFullscreen()
       break
     case '+':
     case '=':
@@ -1476,9 +1578,7 @@ onMounted(async () => {
   if (stored !== themeSetting.value) setTheme(stored)
 
   hasFullscreen.value =
-    typeof document !== 'undefined' &&
-    typeof document.documentElement.requestFullscreen === 'function' &&
-    !isIOS
+    typeof document !== 'undefined' && document.fullscreenEnabled === true && !isIOS
 
   resizeObserver = new ResizeObserver(() => {
     measureStage()
@@ -1487,6 +1587,7 @@ onMounted(async () => {
   })
 
   window.addEventListener('keydown', onKey)
+  window.addEventListener('popstate', onPopState)
   window.addEventListener('dragover', preventBrowserDrop)
   window.addEventListener('drop', preventBrowserDrop)
   document.addEventListener('pointerdown', onDocumentPointerDown, true)
@@ -1501,6 +1602,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKey)
+  window.removeEventListener('popstate', onPopState)
   window.removeEventListener('dragover', preventBrowserDrop)
   window.removeEventListener('drop', preventBrowserDrop)
   document.removeEventListener('pointerdown', onDocumentPointerDown, true)
@@ -1510,6 +1612,7 @@ onBeforeUnmount(() => {
   window.clearTimeout(saveTimer)
   window.clearTimeout(resumeTimer)
   window.clearTimeout(tapTimer)
+  window.clearTimeout(scrollTapTimer)
   if (scrollRaf) cancelAnimationFrame(scrollRaf)
   void resetReader()
 })
@@ -1518,6 +1621,7 @@ onBeforeUnmount(() => {
 <template>
   <div
     class="reader"
+    :class="{ 'reader--open': ready }"
     @dragenter.prevent="onDragEnter"
     @dragover.prevent="dragging = true"
     @dragleave="onDragLeave"
@@ -1635,7 +1739,7 @@ onBeforeUnmount(() => {
                 <svg viewBox="0 0 16 16" aria-hidden="true">
                   <path d="M6 2.5H2.5V6M10 2.5h3.5V6M6 13.5H2.5V10M10 13.5h3.5V10" />
                 </svg>
-                <span>{{ fullscreenActive ? 'Exit fullscreen' : 'Fullscreen' }}</span>
+                <span>{{ fullscreenActive ? 'Show browser interface (F)' : 'Hide browser interface (F)' }}</span>
               </button>
               <button
                 type="button"
@@ -1690,6 +1794,18 @@ onBeforeUnmount(() => {
               </div>
             </div>
           </div>
+          <button
+            type="button"
+            class="tool tool--icon"
+            data-reader-close
+            aria-label="Close reader"
+            title="Close reader"
+            @click="closeReader"
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M4 4l8 8M12 4l-8 8" />
+            </svg>
+          </button>
         </div>
         <input ref="fileInput" type="file" hidden :accept="accept" @change="onFileChange" />
       </header>
@@ -1711,6 +1827,7 @@ onBeforeUnmount(() => {
         @touchend="onScrollTouchEnd"
         @touchcancel="onScrollTouchEnd"
         @dblclick="onStageDoubleClick"
+        @click="onStageClick"
         @gesturestart.prevent="onGestureStart"
         @gesturechange.prevent="onGestureChange"
         @gestureend="onGestureEnd"
@@ -1784,7 +1901,12 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <footer class="bottombar">
+      <div v-if="iosHintVisible" class="ios-hint" role="status">
+        <span>Add to Home Screen to read without Safari's bars.</span>
+        <button type="button" aria-label="Dismiss hint" @click="iosHintVisible = false">×</button>
+      </div>
+
+      <footer class="bottombar" :class="{ 'bottombar--hidden': !toolbarVisible }">
         <button type="button" class="nav" :disabled="index === 0" @click="prev">Prev</button>
         <input
           class="slider"
@@ -1815,6 +1937,25 @@ onBeforeUnmount(() => {
   min-height: 420px;
   background: #0b0b0f;
   color: #f4f4f5;
+}
+
+/*
+ * While a file is open the reader owns the viewport: the page header, copy and
+ * footer stay where they are but are fully covered and stop taking part in the
+ * layout visible to the user. svh keeps iOS from re-laying out as the address
+ * bar collapses; browsers without svh fall back to the vh line above it.
+ */
+.reader--open {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100svh;
+  min-height: 0;
+  overscroll-behavior: none;
+  background: #08080b;
 }
 
 .empty {
@@ -1906,12 +2047,19 @@ onBeforeUnmount(() => {
 }
 
 .viewer {
+  position: relative;
   display: flex;
   flex-direction: column;
-  height: clamp(460px, 74vh, 840px);
+  height: 100%;
+  min-height: 0;
   background: #08080b;
 }
 
+/*
+ * The toolbar floats over the page instead of taking layout height. The
+ * gradient is click-through so tapping near the top edge still reaches the
+ * page-turn hot zones; only the controls themselves take pointer events.
+ */
 .toolbar {
   position: absolute;
   top: 0;
@@ -1923,8 +2071,10 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 10px;
   min-width: 0;
-  padding: 10px 12px;
+  padding: calc(10px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 10px
+    calc(12px + env(safe-area-inset-left));
   background: linear-gradient(to bottom, rgba(8, 8, 11, 0.94), rgba(8, 8, 11, 0));
+  pointer-events: none;
   transition: opacity 0.18s ease, transform 0.18s ease;
 }
 
@@ -1932,6 +2082,14 @@ onBeforeUnmount(() => {
   opacity: 0;
   pointer-events: none;
   transform: translateY(-6px);
+}
+
+.toolbar--hidden .tools {
+  pointer-events: none;
+}
+
+.tools {
+  pointer-events: auto;
 }
 
 .meta {
@@ -2179,7 +2337,8 @@ onBeforeUnmount(() => {
   width: max-content;
   min-width: 100%;
   box-sizing: border-box;
-  padding: 56px 8px 84px;
+  padding: calc(8px + env(safe-area-inset-top)) calc(8px + env(safe-area-inset-right))
+    calc(64px + env(safe-area-inset-bottom)) calc(8px + env(safe-area-inset-left));
 }
 
 .scroll-page {
@@ -2220,7 +2379,8 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 54px 8px 8px;
+  padding: calc(8px + env(safe-area-inset-top)) calc(8px + env(safe-area-inset-right))
+    calc(8px + env(safe-area-inset-bottom)) calc(8px + env(safe-area-inset-left));
 }
 
 .pages-content {
@@ -2295,7 +2455,7 @@ onBeforeUnmount(() => {
 
 .resume {
   position: absolute;
-  top: 58px;
+  top: calc(58px + env(safe-area-inset-top));
   left: 50%;
   z-index: 6;
   display: flex;
@@ -2334,12 +2494,62 @@ onBeforeUnmount(() => {
 }
 
 .bottombar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  background: #0b0b0f;
+  padding: 8px calc(12px + env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom))
+    calc(12px + env(safe-area-inset-left));
+  background: linear-gradient(to top, rgba(11, 11, 15, 0.96), rgba(11, 11, 15, 0));
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.bottombar > * {
+  pointer-events: auto;
+}
+
+.bottombar--hidden {
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+}
+
+.bottombar--hidden > * {
+  pointer-events: none;
+}
+
+.ios-hint {
+  position: absolute;
+  top: calc(64px + env(safe-area-inset-top));
+  left: 50%;
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 32px);
+  padding: 8px 8px 8px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(28, 28, 34, 0.96);
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 12px;
+  box-shadow: 0 12px 30px -14px rgba(0, 0, 0, 0.9);
+  transform: translateX(-50%);
+}
+
+.ios-hint button {
+  padding: 0 6px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 17px;
+  line-height: 1;
 }
 
 .nav {
@@ -2377,17 +2587,14 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 720px) {
-  .viewer {
-    height: clamp(420px, 70vh, 700px);
-  }
-
   .toolbar {
     gap: 6px;
-    padding: 8px 10px;
+    padding: calc(8px + env(safe-area-inset-top)) calc(10px + env(safe-area-inset-right)) 8px
+      calc(10px + env(safe-area-inset-left));
   }
 
   .meta {
-    max-width: 50%;
+    max-width: 42%;
   }
 
   .meta span {
