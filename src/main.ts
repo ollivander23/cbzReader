@@ -2,6 +2,7 @@ import './styles/base.css'
 import { mountRecentShelf } from './components/recentShelf'
 import { fileExtension, sizeBucket, track } from './lib/track'
 import { initTheme } from './lib/theme'
+import { mountThemeSwitch } from './lib/themeSwitch'
 
 const isIOS =
   typeof navigator !== 'undefined' &&
@@ -91,12 +92,14 @@ function bootstrap(): void {
     // In dev the template is empty, so render the landing page on the client.
     void import('./dev/devLanding').then(({ mountDevLanding }) => {
       mountDevLanding()
+      mountThemeSwitch()
       wireStaticReader()
       mountRecentShelf((file) => startReader(file, true))
     })
     return
   }
 
+  mountThemeSwitch()
   wireStaticReader()
   mountRecentShelf((file) => startReader(file, true))
 }

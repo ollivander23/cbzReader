@@ -82,6 +82,36 @@ try {
   await page.goto(base, { waitUntil: 'networkidle2' })
   await page.waitForSelector('#reader-app [data-open-reader]')
 
+  // Site header theme switch: open, Esc closes and returns focus, Light persists.
+  await page.click('.theme-switch__trigger')
+  await page.waitForSelector('.theme-switch__menu')
+  await page.keyboard.press('Escape')
+  const headerClosed = await page.evaluate(() => ({
+    expanded: document.querySelector('.theme-switch__trigger').getAttribute('aria-expanded'),
+    focused: String(document.activeElement?.className ?? ''),
+  }))
+  if (headerClosed.expanded !== 'false' || !headerClosed.focused.includes('theme-switch__trigger')) {
+    throw new Error(`Header theme menu did not close cleanly: ${JSON.stringify(headerClosed)}`)
+  }
+
+  await page.click('.theme-switch__trigger')
+  await page.waitForSelector('.theme-switch__menu')
+  await page.evaluate(() => {
+    const item = Array.from(document.querySelectorAll('.theme-switch__menu .theme-switch__item')).find(
+      (node) => node.textContent?.trim().startsWith('Light'),
+    )
+    if (!item) throw new Error('Light item missing from the header switch')
+    item.click()
+  })
+  const headerLight = await page.evaluate(() => ({
+    theme: document.documentElement.getAttribute('data-theme'),
+    stored: localStorage.getItem('cbz-theme'),
+    expanded: document.querySelector('.theme-switch__trigger').getAttribute('aria-expanded'),
+  }))
+  if (headerLight.theme !== 'light' || headerLight.stored !== 'light' || headerLight.expanded !== 'false') {
+    throw new Error(`Header theme switch did not apply Light: ${JSON.stringify(headerLight)}`)
+  }
+
   const input = await page.$('#reader-app input[type="file"]')
   if (!input) throw new Error('Static file input was not found')
   await input.uploadFile(sample)
@@ -281,6 +311,15 @@ try {
   // Theme: the ⋮ menu applies and stores the choice, and Auto follows the system.
   await page.click('[aria-label="More reading options"]')
   await page.waitForSelector('.menu__panel')
+  const readerChecked = await page.evaluate(() => {
+    const item = Array.from(document.querySelectorAll('.menu__panel .menu__item')).find((node) =>
+      node.textContent?.trim().startsWith('Light'),
+    )
+    return item?.getAttribute('aria-checked')
+  })
+  if (readerChecked !== 'true') {
+    throw new Error(`Reader theme menu is out of sync with the header switch: ${readerChecked}`)
+  }
   await page.evaluate(() => {
     const item = Array.from(document.querySelectorAll('.menu__panel .menu__item')).find((node) =>
       node.textContent?.trim().startsWith('Dark'),
@@ -296,6 +335,19 @@ try {
   }))
   if (darkState.theme !== 'dark' || darkState.stored !== 'dark' || darkState.menuOpen) {
     throw new Error(`Dark theme did not apply: ${JSON.stringify(darkState)}`)
+  }
+
+  // The header switch must reflect a change made from the reader menu.
+  await page.click('.theme-switch__trigger')
+  const headerChecked = await page.evaluate(() => {
+    const item = Array.from(document.querySelectorAll('.theme-switch__menu .theme-switch__item')).find(
+      (node) => node.textContent?.trim().startsWith('Dark'),
+    )
+    return item?.getAttribute('aria-checked')
+  })
+  await page.keyboard.press('Escape')
+  if (headerChecked !== 'true') {
+    throw new Error(`Header switch did not follow the reader menu: ${headerChecked}`)
   }
 
   await page.reload({ waitUntil: 'networkidle2' })

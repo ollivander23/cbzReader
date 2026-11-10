@@ -15,12 +15,7 @@ import {
 import { ReaderError, type PageAsset } from './core/types'
 import { ZipPageSource } from './core/zipSource'
 import { fileExtension, sizeBucket, track } from '../lib/track'
-import {
-  applyTheme,
-  readThemeSetting,
-  writeThemeSetting,
-  type ThemeSetting,
-} from '../lib/theme'
+import { readThemeSetting, setTheme, themeSetting, type ThemeSetting } from '../lib/theme'
 
 const props = defineProps<{ initialFile?: File | null }>()
 
@@ -82,7 +77,6 @@ const resumePage = ref(0)
 const hasFullscreen = ref(false)
 const fileFingerprint = ref('')
 const bookmarks = ref<Bookmark[]>([])
-const themeSetting = ref<ThemeSetting>(readThemeSetting())
 
 const THEME_OPTIONS: Array<{ value: ThemeSetting; label: string }> = [
   { value: 'auto', label: 'Auto' },
@@ -1403,9 +1397,7 @@ function menuToggleFullscreen(): void {
 }
 
 function menuToggleTheme(next: ThemeSetting): void {
-  themeSetting.value = next
-  writeThemeSetting(next)
-  applyTheme(next)
+  setTheme(next)
   closeMenu()
 }
 
@@ -1478,8 +1470,10 @@ watch(stageEl, () => {
 })
 
 onMounted(async () => {
-  themeSetting.value = readThemeSetting()
-  applyTheme(themeSetting.value)
+  // main.ts seeds the shared theme state at boot; re-read here so a change made
+  // in another tab while this page was open is picked up before the menu renders.
+  const stored = readThemeSetting()
+  if (stored !== themeSetting.value) setTheme(stored)
 
   hasFullscreen.value =
     typeof document !== 'undefined' &&

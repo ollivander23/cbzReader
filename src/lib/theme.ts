@@ -1,3 +1,5 @@
+import { ref } from 'vue'
+
 export type ThemeSetting = 'auto' | 'light' | 'dark'
 export type ResolvedTheme = 'light' | 'dark'
 
@@ -10,11 +12,16 @@ export const THEME_COLORS: Record<ResolvedTheme, string> = {
 
 const DARK_QUERY = '(prefers-color-scheme: dark)'
 
+// Shared by every control on the page (header switch, reader menu) so they
+// never disagree. Server rendering starts from the default.
+export const themeSetting = ref<ThemeSetting>('auto')
+
 function normalize(value: string | null): ThemeSetting {
   return value === 'light' || value === 'dark' ? value : 'auto'
 }
 
 export function readThemeSetting(): ThemeSetting {
+  if (typeof window === 'undefined') return 'auto'
   try {
     return normalize(window.localStorage.getItem(THEME_KEY))
   } catch {
@@ -57,10 +64,18 @@ export function watchSystemTheme(onChange: () => void): () => void {
   return () => media.removeEventListener('change', listener)
 }
 
+// Single write path: persist, resolve, apply, and update every control.
+export function setTheme(setting: ThemeSetting): ResolvedTheme {
+  themeSetting.value = setting
+  writeThemeSetting(setting)
+  return applyTheme(setting)
+}
+
 // Applied once at boot so dev and any non-prerendered entry still get the choice.
 export function initTheme(): void {
-  applyTheme(readThemeSetting())
+  themeSetting.value = readThemeSetting()
+  applyTheme(themeSetting.value)
   watchSystemTheme(() => {
-    if (readThemeSetting() === 'auto') applyTheme('auto')
+    if (themeSetting.value === 'auto') applyTheme('auto')
   })
 }

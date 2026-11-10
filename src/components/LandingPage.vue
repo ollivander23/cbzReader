@@ -22,16 +22,83 @@ const year = 2026
         <span class="brand__mark" aria-hidden="true">CB</span>
         <span>{{ SITE.name }}</span>
       </a>
-      <nav class="site-nav" aria-label="Primary">
-        <a
-          v-for="item in NAV"
-          :key="item.href"
-          :href="item.href"
-          :aria-current="page.path === item.href ? 'page' : undefined"
-        >
-          {{ item.label }}
-        </a>
-      </nav>
+      <div class="site-header__actions">
+        <nav class="site-nav" aria-label="Primary">
+          <a
+            v-for="item in NAV"
+            :key="item.href"
+            :href="item.href"
+            :aria-current="page.path === item.href ? 'page' : undefined"
+          >
+            {{ item.label }}
+          </a>
+        </nav>
+        <div class="theme-switch">
+          <button
+            type="button"
+            class="theme-switch__trigger"
+            aria-label="Change color theme"
+            aria-haspopup="menu"
+            aria-controls="site-theme-menu"
+            aria-expanded="false"
+          >
+            <svg class="theme-switch__icon theme-switch__icon--sun" viewBox="0 0 16 16" aria-hidden="true">
+              <circle cx="8" cy="8" r="3" />
+              <path
+                d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M12.6 3.4l-1.4 1.4M4.8 11.2l-1.4 1.4"
+              />
+            </svg>
+            <svg class="theme-switch__icon theme-switch__icon--moon" viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M12.5 9.6A5.5 5.5 0 0 1 6.4 3.5a5.5 5.5 0 1 0 6.1 6.1z" />
+            </svg>
+          </button>
+          <div class="theme-switch__menu" id="site-theme-menu" role="menu" aria-label="Color theme" hidden>
+            <button
+              type="button"
+              class="theme-switch__item"
+              role="menuitemradio"
+              aria-checked="true"
+              data-theme-value="auto"
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <circle cx="8" cy="8" r="5.5" />
+                <path d="M8 2.5v11" />
+              </svg>
+              <span>Auto</span>
+              <span class="theme-switch__check" aria-hidden="true">✓</span>
+            </button>
+            <button
+              type="button"
+              class="theme-switch__item"
+              role="menuitemradio"
+              aria-checked="false"
+              data-theme-value="light"
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <circle cx="8" cy="8" r="3" />
+                <path
+                  d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M12.6 3.4l-1.4 1.4M4.8 11.2l-1.4 1.4"
+                />
+              </svg>
+              <span>Light</span>
+              <span class="theme-switch__check" aria-hidden="true">✓</span>
+            </button>
+            <button
+              type="button"
+              class="theme-switch__item"
+              role="menuitemradio"
+              aria-checked="false"
+              data-theme-value="dark"
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M12.5 9.6A5.5 5.5 0 0 1 6.4 3.5a5.5 5.5 0 1 0 6.1 6.1z" />
+              </svg>
+              <span>Dark</span>
+              <span class="theme-switch__check" aria-hidden="true">✓</span>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </header>
 
