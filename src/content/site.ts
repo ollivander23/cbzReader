@@ -2,7 +2,7 @@ export const SITE = {
   name: 'CBZ Reader',
   tagline: 'Read CBZ comics in your browser',
   description:
-    'Open CBZ comic archives in your browser. Files are unpacked on your device, never uploaded. Right-to-left manga, double-page spreads, zoom, and local reading progress.',
+    'Open CBZ comic archives and convert CBZ to PDF in your browser. Files are unpacked on your device, never uploaded. Right-to-left manga and local reading progress.',
 } as const
 
 export const NAV = [

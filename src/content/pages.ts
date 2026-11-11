@@ -1,3 +1,10 @@
+export interface PageToolLink {
+  href: string
+  label: string
+  note: string
+  kind: 'tool' | 'guide'
+}
+
 export interface PageSection {
   heading: string
   paragraphs?: string[]
@@ -26,6 +33,8 @@ export interface PageContent {
   tool?: boolean
   converter?: boolean
   trust?: string[]
+  tools?: PageToolLink[]
+  bridge?: { text: string; href: string; label: string }
   schemaFeatures?: string[]
   schema: 'app' | 'article'
   updated: string
@@ -37,14 +46,22 @@ export interface PageContent {
 export const PAGES: PageContent[] = [
   {
     path: '/',
-    title: 'CBZ Reader - Open CBZ Comic Files in Your Browser',
+    title: 'CBZ Reader - Read and Convert CBZ Files in Your Browser',
     description:
-      'Read CBZ comics in your browser. No uploads, no account: files stay on your device. Manga RTL, double-page spreads, zoom, and resume where you left off.',
+      'Read CBZ comics and convert CBZ to PDF in your browser. Files stay on your device: no upload, no account. Manga right-to-left, spreads, zoom, and resume.',
     h1: 'Read CBZ comics in your browser',
-    eyebrow: 'Local-first comic reader',
-    lead: 'Drop a .cbz file and start reading in seconds. Pages are unpacked on your device, never uploaded. No account, no library to maintain, no waiting for a conversion job.',
+    eyebrow: 'CBZ reader and converter',
+    lead: 'Drop a .cbz file and start reading in seconds, or turn the same archive into a PDF. Both run on your device, so the file is never uploaded. No account, no library to maintain.',
     tool: true,
     schema: 'app',
+    schemaFeatures: [
+      'Open CBZ and ZIP comic archives locally',
+      'Convert CBZ to PDF in the browser without uploading',
+      'Right-to-left manga reading mode',
+      'Single-page and double-page layouts',
+      'Zoom and pan',
+      'Local reading progress',
+    ],
     updated: '2026-11-11',
     sections: [
       {
@@ -120,7 +137,75 @@ export const PAGES: PageContent[] = [
         answer: 'Yes. The reader runs entirely in your browser and does not require an account.',
       },
     ],
-    related: ['/cbz-to-pdf/', '/what-is-a-cbz-file/', '/how-to-open-cbz/', '/manga-reader/'],
+    tools: [
+      {
+        href: '/cbz-to-pdf/',
+        label: 'CBZ to PDF converter',
+        note: 'Rebuild the archive as a PDF, keeping original page sizes or fitting A4.',
+        kind: 'tool',
+      },
+      {
+        href: '/read-cbz-online/',
+        label: 'Read CBZ online',
+        note: 'What changes when the reader never uploads the archive.',
+        kind: 'guide',
+      },
+      {
+        href: '/manga-reader/',
+        label: 'Manga mode',
+        note: 'Right-to-left spreads for Japanese comics, and how to flip the direction.',
+        kind: 'guide',
+      },
+      {
+        href: '/how-to-open-cbz/',
+        label: 'How to open a CBZ',
+        note: 'Desktop, Android, and iPhone, step by step.',
+        kind: 'guide',
+      },
+      {
+        href: '/what-is-a-cbz-file/',
+        label: 'What is a CBZ file?',
+        note: 'The ZIP container, the page images, and the metadata inside.',
+        kind: 'guide',
+      },
+      {
+        href: '/cbz-file-format/',
+        label: 'Inside the CBZ format',
+        note: 'ComicInfo.xml, page order, and how the archive is laid out.',
+        kind: 'guide',
+      },
+      {
+        href: '/how-to-make-a-cbz-file/',
+        label: 'Make a CBZ',
+        note: 'Zip a folder of scans into an archive readers accept.',
+        kind: 'guide',
+      },
+      {
+        href: '/cbz-file-wont-open/',
+        label: 'A CBZ that will not open',
+        note: 'Renamed RAR files, encrypted entries, and broken page names.',
+        kind: 'guide',
+      },
+      {
+        href: '/cbz-vs-cbr/',
+        label: 'CBZ vs CBR vs CB7',
+        note: 'Which containers a browser can open, and why CBR needs extra code.',
+        kind: 'guide',
+      },
+      {
+        href: '/read-cbz-on-iphone/',
+        label: 'Read CBZ on iPhone',
+        note: 'Working within the Files app and Safari limits.',
+        kind: 'guide',
+      },
+      {
+        href: '/read-cbz-on-android/',
+        label: 'Read CBZ on Android',
+        note: 'Picking a file from Downloads or Drive without a reader app.',
+        kind: 'guide',
+      },
+    ],
+    related: [],
   },
   {
     path: '/read-cbz-online/',
@@ -172,7 +257,7 @@ export const PAGES: PageContent[] = [
           'The browser has to read the archive directory and decode the first image. After that, nearby pages are preloaded in the background. On phones, very large pages are downsampled to stay inside the tab memory limit.',
       },
     ],
-    related: ['/', '/how-to-open-cbz/', '/what-is-a-cbz-file/', '/privacy/'],
+    related: ['/', '/how-to-open-cbz/', '/what-is-a-cbz-file/', '/privacy/', '/cbz-to-pdf/'],
   },
   {
     path: '/manga-reader/',
@@ -222,10 +307,10 @@ export const PAGES: PageContent[] = [
       {
         question: 'Can I read vertical webtoon strips?',
         answer:
-          'Single-page mode displays tall images and lets you zoom, but a continuous vertical scroll mode is not included in this version. It is the first feature on the cut list from the original plan, so it will come before more formats.',
+          'Yes. Switch the layout to Scroll in the toolbar and the pages line up in one continuous vertical column. Only a window of pages is kept in memory, so a long archive scrolls without loading every image, and pinch or Ctrl + wheel widens the column.',
       },
     ],
-    related: ['/', '/how-to-open-cbz/', '/cbz-vs-cbr/'],
+    related: ['/', '/how-to-open-cbz/', '/cbz-vs-cbr/', '/cbz-to-pdf/'],
   },
   {
     path: '/how-to-open-cbz/',
@@ -295,10 +380,10 @@ export const PAGES: PageContent[] = [
       {
         question: 'Can I convert CBZ to PDF?',
         answer:
-          'Yes, with a separate conversion tool. This site does not convert files; it reads the archive in place and never uploads it.',
+          'Yes. The converter on this site builds the PDF in the same tab, so the archive still stays on your device. This page covers reading; the conversion options are described on the converter page.',
       },
     ],
-    related: ['/', '/cbz-vs-cbr/', '/read-cbz-on-iphone/', '/read-cbz-on-android/'],
+    related: ['/', '/cbz-vs-cbr/', '/read-cbz-on-iphone/', '/read-cbz-on-android/', '/cbz-to-pdf/'],
   },
   {
     path: '/cbz-vs-cbr/',
@@ -357,7 +442,7 @@ export const PAGES: PageContent[] = [
           'Not in this version. CBZ and ZIP are supported. CBR and CB7 are planned, with solid-archive progress and a graceful fallback for unsupported encryption.',
       },
     ],
-    related: ['/', '/cbz-file-format/', '/cbz-file-wont-open/', '/manga-reader/'],
+    related: ['/', '/cbz-file-format/', '/cbz-file-wont-open/', '/manga-reader/', '/cbz-to-pdf/'],
   },
   {
     path: '/what-is-a-cbz-file/',
@@ -438,7 +523,7 @@ export const PAGES: PageContent[] = [
           'No reader treats a PDF as a page image. Some archives include PDF extras, but this reader lists only JPG, PNG, WebP, GIF, AVIF, and BMP.',
       },
     ],
-    related: ['/cbz-file-format/', '/how-to-open-cbz/', '/how-to-make-a-cbz-file/', '/cbz-vs-cbr/'],
+    related: ['/cbz-file-format/', '/how-to-open-cbz/', '/how-to-make-a-cbz-file/', '/cbz-vs-cbr/', '/cbz-to-pdf/'],
   },
   {
     path: '/cbz-file-format/',
@@ -528,7 +613,7 @@ export const PAGES: PageContent[] = [
           'CBZ wraps ZIP, CB7 wraps 7z. CB7 compresses better and is less common; browsers have no built-in 7z decoder, so CB7 stays a desktop-app format for now.',
       },
     ],
-    related: ['/what-is-a-cbz-file/', '/cbz-vs-cbr/', '/cbz-file-wont-open/', '/how-to-make-a-cbz-file/'],
+    related: ['/what-is-a-cbz-file/', '/cbz-vs-cbr/', '/cbz-file-wont-open/', '/how-to-make-a-cbz-file/', '/cbz-to-pdf/'],
   },
   {
     path: '/read-cbz-on-iphone/',
@@ -615,7 +700,7 @@ export const PAGES: PageContent[] = [
           'Those browsers use the same WebKit engine and file picker as Safari, so the steps are identical, but Safari is the best-tested path.',
       },
     ],
-    related: ['/read-cbz-on-android/', '/how-to-open-cbz/', '/what-is-a-cbz-file/', '/cbz-file-wont-open/'],
+    related: ['/read-cbz-on-android/', '/how-to-open-cbz/', '/what-is-a-cbz-file/', '/cbz-file-wont-open/', '/cbz-to-pdf/'],
   },
   {
     path: '/read-cbz-on-android/',
@@ -702,7 +787,7 @@ export const PAGES: PageContent[] = [
           'Android reclaims memory from background tabs. Progress is saved, but you have to pick the file again because a page cannot reopen a local file by itself.',
       },
     ],
-    related: ['/read-cbz-on-iphone/', '/how-to-open-cbz/', '/what-is-a-cbz-file/', '/cbz-file-wont-open/'],
+    related: ['/read-cbz-on-iphone/', '/how-to-open-cbz/', '/what-is-a-cbz-file/', '/cbz-file-wont-open/', '/cbz-to-pdf/'],
   },
   {
     path: '/how-to-make-a-cbz-file/',
@@ -792,7 +877,7 @@ export const PAGES: PageContent[] = [
           'No. It only reads archives; repacking happens in your file manager or archive tool.',
       },
     ],
-    related: ['/what-is-a-cbz-file/', '/cbz-file-format/', '/cbz-file-wont-open/', '/how-to-open-cbz/'],
+    related: ['/what-is-a-cbz-file/', '/cbz-file-format/', '/cbz-file-wont-open/', '/how-to-open-cbz/', '/cbz-to-pdf/'],
   },
   {
     path: '/cbz-file-wont-open/',
@@ -886,7 +971,7 @@ export const PAGES: PageContent[] = [
           'Not in a browser. Multi-volume ZIP needs every part joined, and this reader expects a single archive.',
       },
     ],
-    related: ['/how-to-open-cbz/', '/cbz-vs-cbr/', '/cbz-file-format/', '/read-cbz-on-android/'],
+    related: ['/how-to-open-cbz/', '/cbz-vs-cbr/', '/cbz-file-format/', '/read-cbz-on-android/', '/cbz-to-pdf/'],
   },
   {
     path: '/privacy/',
@@ -1057,6 +1142,11 @@ export const PAGES: PageContent[] = [
       },
     ],
     related: ['/', '/what-is-a-cbz-file/', '/cbz-file-format/', '/cbz-file-wont-open/'],
+    bridge: {
+      text: 'Only want to look through the archive, not convert it?',
+      href: '/',
+      label: 'Open this CBZ in the browser reader',
+    },
   },
 ]
 

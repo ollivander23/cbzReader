@@ -1,6 +1,6 @@
 # CBZ Reader
 
-一个面向海外用户的极简 CBZ 在线阅读器：打开网页、选中或拖入 `.cbz` 文件即可开始阅读，文件不上传、不需要账号。本仓库是「冷门格式阅读器工具站」的第一个站点，DJVU 站不在本期范围。
+一个面向海外用户的 CBZ 工具箱：打开网页即可读取 `.cbz`（选中或拖入文件），也可以把同一个归档转成 PDF。两条路径都在浏览器里完成，文件不上传、不需要账号。站点名仍是 `CBZ Reader`。本仓库是「冷门格式阅读器工具站」的第一个站点，DJVU 站不在本期范围。
 
 当前状态：**MVP 已上线**，线上地址 <https://cbzreader.mavi.help/>。已完成文件选择、ZIP 按需解压、单页/双页/纵向连续三种阅读模式、沉浸式阅读层与浮动工具栏、缩放平移、RTL、内存控制、续读指纹、书签、深浅色主题、PWA 离线外壳、本地 CBZ → PDF 转换，以及构建时预渲染的英文落地页。尚未实现 CBR/CB7 与多语言。
 
@@ -10,7 +10,7 @@
 
 ### 1.1 产品定位
 
-- 面向海内外用户、**以海外英文用户为主**的极简 CBZ 在线阅读器。
+- 面向海内外用户、**以海外英文用户为主**的 CBZ 工具箱：读取与转换是并列的两个入口，站点名保持 `CBZ Reader` 不变。
 - 纯前端、纯静态：没有服务端、没有上传、没有账号体系。CBZ → PDF 转换同样在浏览器标签页里完成，没有服务端任务、没有上传队列。
 - 一个页面解决一件事：选中本地 CBZ → 立即阅读 → 关闭页面即结束，不留副本。
 
@@ -34,6 +34,7 @@
 - PWA 与离线：`manifest.webmanifest` + 生产环境 Service Worker；首次访问后应用外壳可离线打开，本地的 CBZ 断网也能正常翻页；可添加到主屏。
 - CBZ → PDF 转换：`/cbz-to-pdf/` 页内解压 CBZ，把图片页合成为 PDF 后直接下载。页面尺寸可选「原图尺寸」（默认，1 像素 = 1pt，不缩放）与「A4 适配」（等比不裁剪）；JPEG 页直接嵌入原始数据不重编码，PNG 无损嵌入，WebP/GIF/AVIF/BMP 转一次 JPEG(q=0.92)。转换显示逐页进度、可取消，失败按原因给出具体提示。
 - 英文落地页与 SEO 元信息，构建时输出真实 HTML。
+- 工具站叙事：首页 H1 之后是「读取 / 转换」并列双入口（同一套卡片样式，无主次），正文后是 *More CBZ tools* 分发区（转换页 + 10 篇指南）；顶栏 `Reader` 与 `CBZ to PDF` 同级且移动端同时可见；转换页底部有回到阅读器的引导，各指南页的 *Keep reading* 都包含转换页链接。
 
 ### 1.4 明确不做
 
@@ -120,7 +121,8 @@
 | 转换页可自行验证 | ✅ | `/cbz-to-pdf/` 的 *How the conversion works in this tab* 一节内嵌一块 *Verify it yourself*（桌面 DevTools → Network、手机飞行模式两条可执行步骤），FAQ 增加对应问答。文案严格限定在转换功能上（`this converter` / `the conversion runs entirely in this tab`），不写成全站承诺，也不使用「没有任何网络请求」这类与统计脚本矛盾的表述。**这段话与实现绑定：若转换功能的实现方式变化（例如引入服务端转换），必须同步修改这一块与对应 FAQ。** |
 | 转换测试 | ✅ | `npm run test:convert` 覆盖：30 页 PNG 包的原图尺寸与页数、A4 页盒、JPEG 包的直通（PDF ≥ 原 JPEG 字节 95%）、CBR 文案、20 页 3000×4500 压力包，以及全程零上传 |
 | 预渲染落地页 | ✅ | 13 条静态路由：首页、`/cbz-to-pdf/`、`/read-cbz-online/`、`/manga-reader/`、`/how-to-open-cbz/`、`/cbz-vs-cbr/`、`/what-is-a-cbz-file/`、`/cbz-file-format/`、`/read-cbz-on-iphone/`、`/read-cbz-on-android/`、`/how-to-make-a-cbz-file/`、`/cbz-file-wont-open/`、`/privacy/` |
-| SEO 元信息 | ✅ | 每页独立 title/description、canonical、hreflang、OG/Twitter、JSON-LD（WebSite / WebApplication / Article / FAQPage / BreadcrumbList） |
+| 工具站信息架构 | ✅ | 首页双入口与 *More CBZ tools* 全部是预渲染的静态 HTML，无 JS 也可见；首页不再渲染 *Keep reading*（由工具分发区取代），避免同页重复链接。首页 title 55 字符、description 153 字符，仍以 `Read CBZ comics in your browser` 为主关键词意图；JSON-LD 的 `featureList` 增加转换能力，`WebSite.description` 同步为「读取 + 转换」 |
+| SEO 元信息 | ✅ | 每页独立 title/description、canonical、hreflang、OG/Twitter、JSON-LD（WebSite / WebApplication / Article / FAQPage / BreadcrumbList）；站内链接全部指向已预渲染的 13 条路由，构建后检查无断链 |
 | 社交分享图 | ✅ | `public/og-image.png` 1200×630；`og:image` 含 width/height/alt，`twitter:image`，卡片类型为 `summary_large_image` |
 | 404 与静态资源 | ✅ | `public/404.html`；未知路径与缺失的 `/assets/*` 由 Cloudflare Pages 返回 404，而不是回退首页 200 |
 | sitemap / robots | ✅ | 构建时按 `SITE_URL` 生成 `sitemap.xml` 与 `robots.txt` |

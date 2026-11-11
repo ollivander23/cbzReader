@@ -69,6 +69,20 @@ const trustItems = computed(() => props.page.trust ?? DEFAULT_TRUST)
       <p class="eyebrow">{{ page.eyebrow }}</p>
       <h1>{{ page.h1 }}</h1>
       <p class="lead">{{ page.lead }}</p>
+      <div v-if="page.tool" class="doors">
+        <a class="door" href="#reader">
+          <span class="door__kicker">CBZ / ZIP</span>
+          <strong>Read in the browser</strong>
+          <span class="door__note">Open the archive and turn pages right away. Nothing is uploaded.</span>
+          <span class="door__cta">Pick a file</span>
+        </a>
+        <a class="door" href="/cbz-to-pdf/">
+          <span class="door__kicker">CBZ → PDF</span>
+          <strong>Convert to PDF</strong>
+          <span class="door__note">Rebuild the same archive as a PDF, with original sizes or A4 pages.</span>
+          <span class="door__cta">Open the converter</span>
+        </a>
+      </div>
       <ul class="trust">
         <li v-for="item in trustItems" :key="item">{{ item }}</li>
       </ul>
@@ -165,6 +179,23 @@ const trustItems = computed(() => props.page.trust ?? DEFAULT_TRUST)
       </section>
     </div>
 
+    <section v-if="page.tools" class="tools" aria-labelledby="tools-heading">
+      <h2 id="tools-heading">More CBZ tools</h2>
+      <p class="tools__intro">Convert an archive, look up a format detail, or fix a file that will not open.</p>
+      <div class="tools__grid">
+        <a v-for="tool in page.tools" :key="tool.href" class="tool-card" :href="tool.href">
+          <span class="tool-card__kind">{{ tool.kind === 'tool' ? 'Tool' : 'Guide' }}</span>
+          <span class="tool-card__label">{{ tool.label }}</span>
+          <span class="tool-card__note">{{ tool.note }}</span>
+        </a>
+      </div>
+    </section>
+
+    <p v-if="page.bridge" class="bridge">
+      <span>{{ page.bridge.text }}</span>
+      <a :href="page.bridge.href">{{ page.bridge.label }}</a>
+    </p>
+
     <section class="faq" aria-labelledby="faq-heading">
       <h2 id="faq-heading">Questions</h2>
       <details v-for="item in page.faq" :key="item.question">
@@ -181,7 +212,7 @@ const trustItems = computed(() => props.page.trust ?? DEFAULT_TRUST)
       <a class="btn-primary" href="/">Open the CBZ reader</a>
     </section>
 
-    <section class="related" aria-labelledby="related-heading">
+    <section v-if="related.length" class="related" aria-labelledby="related-heading">
       <h2 id="related-heading">Keep reading</h2>
       <div class="related__grid">
         <a v-for="item in related" :key="item.path" :href="item.path">
