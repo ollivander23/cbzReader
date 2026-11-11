@@ -167,6 +167,9 @@ const trustItems = computed(() => props.page.trust ?? DEFAULT_TRUST)
       <section v-for="section in page.sections" :key="section.heading">
         <h2>{{ section.heading }}</h2>
         <p v-for="paragraph in section.paragraphs" :key="paragraph">{{ paragraph }}</p>
+        <p v-if="section.contact && page.contact" class="contact">
+          <a :href="`mailto:${page.contact}`">{{ page.contact }}</a>
+        </p>
         <ul v-if="section.bullets">
           <li v-for="bullet in section.bullets" :key="bullet">{{ bullet }}</li>
         </ul>

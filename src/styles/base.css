@@ -924,6 +924,27 @@ h1 {
   margin-bottom: 10px;
 }
 
+.contact {
+  margin-top: 4px;
+}
+
+.contact a {
+  display: inline-block;
+  padding: 4px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--accent);
+  font-weight: 650;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+}
+
+.contact a:hover {
+  border-color: var(--accent);
+}
+
 .faq {
   margin-top: 24px;
   padding-top: 30px;

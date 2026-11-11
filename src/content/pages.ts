@@ -10,6 +10,8 @@ export interface PageSection {
   paragraphs?: string[]
   bullets?: string[]
   note?: PageSectionNote
+  /** Renders the page-level contact address as a visible mailto link. */
+  contact?: boolean
 }
 
 export interface PageSectionNote {
@@ -35,6 +37,7 @@ export interface PageContent {
   trust?: string[]
   tools?: PageToolLink[]
   bridge?: { text: string; href: string; label: string }
+  contact?: string
   schemaFeatures?: string[]
   schema: 'app' | 'article'
   updated: string
@@ -981,6 +984,7 @@ export const PAGES: PageContent[] = [
     h1: 'Privacy',
     eyebrow: 'Plain language',
     lead: 'The short version: your comic never leaves your device, this site does not ask for an account, and the visit statistics it keeps are cookie-free and aggregate.',
+    contact: 'jiamin.wu23@mavi.help',
     schema: 'article',
     updated: '2026-11-11',
     sections: [
@@ -1006,8 +1010,10 @@ export const PAGES: PageContent[] = [
       },
       {
         heading: 'Contact',
+        contact: true,
         paragraphs: [
-          'For privacy questions, use the contact address published on the domain that hosts this site. This page is a technical description of the current build, not legal advice.',
+          'For privacy questions, corrections, or removal requests, write to the address below.',
+          'This page is a technical description of the current build, not legal advice.',
         ],
       },
     ],

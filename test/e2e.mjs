@@ -647,6 +647,18 @@ try {
   }
   if (demo.askedForFile) throw new Error('Demo page still shows the file dropzone')
 
+  // The privacy page publishes a plain, clickable contact address.
+  await page.goto(`${base}privacy/`, { waitUntil: 'networkidle2' })
+  const contact = await page.evaluate(() => {
+    const link = document.querySelector('.contact a')
+    return link
+      ? { href: link.getAttribute('href'), text: link.textContent?.trim() ?? '' }
+      : null
+  })
+  if (!contact || contact.href !== 'mailto:jiamin.wu23@mavi.help' || contact.text !== 'jiamin.wu23@mavi.help') {
+    throw new Error(`Privacy contact link is missing or wrong: ${JSON.stringify(contact)}`)
+  }
+
   if (errors.length > 0) throw new Error(`Page errors: ${errors.join(' | ')}`)
 
   console.log(
