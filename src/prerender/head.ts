@@ -116,6 +116,9 @@ function buildSchema(page: PageContent, url: string, siteUrl: string): unknown {
 const ANALYTICS =
   '<script defer src="https://cloud.umami.is/script.js" data-website-id="3f17a819-f15d-4d7f-8143-ed16f426b12e"></script>'
 
+const BAIDU_VERIFY =
+  '<meta name="baidu-site-verification" content="codeva-onRzaCKsaC" />'
+
 export function renderHead(page: PageContent, siteUrl: string): string {
   const url = absolute(siteUrl, page.path)
   const title = escapeHtml(page.title)
@@ -130,6 +133,7 @@ export function renderHead(page: PageContent, siteUrl: string): string {
 <link rel="alternate" hreflang="en" href="${url}" />
 <link rel="alternate" hreflang="x-default" href="${url}" />
 <meta name="robots" content="index,follow,max-image-preview:large" />
+${page.path === '/' ? BAIDU_VERIFY + '\n' : ''}
 <meta name="theme-color" content="${THEME_COLORS.light}" />
 ${themeScript()}
 <link rel="manifest" href="/manifest.webmanifest" />
