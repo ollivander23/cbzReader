@@ -646,18 +646,23 @@ try {
       credit: document.querySelector('.demo__credit a')?.getAttribute('href') ?? '',
     }
   })
-  if (demo.path !== '/demo/' || demo.width !== 1224 || demo.height !== 1584) {
+  if (
+    demo.path !== '/demo/' ||
+    demo.width !== 780 ||
+    demo.height < 950 ||
+    demo.height > 1100
+  ) {
     throw new Error(`Demo did not auto-open the bundled sample: ${JSON.stringify(demo)}`)
   }
   if (demo.askedForFile) throw new Error('Demo page still shows the file dropzone')
-  if (!demo.credit.includes('commons.wikimedia.org/wiki/File:Silent_Ruin')) {
+  if (!demo.credit.includes('commons.wikimedia.org/wiki/Category:Little_Nemo')) {
     throw new Error(`Demo sample credit is missing: ${JSON.stringify(demo.credit)}`)
   }
 
   // Page thumbnails: opened from the control bar, decoded lazily, current page
   // marked, a tap jumps, Escape closes and returns focus to the button.
   await page.waitForFunction(
-    () => document.querySelector('.counter')?.textContent?.trim() === 'Page 1 / 10',
+    () => document.querySelector('.counter')?.textContent?.trim() === 'Page 1 / 12',
     { timeout: 5_000 },
   )
   await showToolbar(page)
@@ -693,7 +698,7 @@ try {
     panelState.currentAria !== 'page' ||
     panelState.expanded !== 'true' ||
     panelState.toolbarHidden ||
-    panelState.tiles !== 10 ||
+    panelState.tiles !== 12 ||
     Math.abs(panelState.panelBottom - panelState.barTop) > 2
   ) {
     throw new Error(`Thumbnail panel did not open correctly: ${JSON.stringify(panelState)}`)
@@ -709,7 +714,7 @@ try {
   await page.click('[data-thumb="4"]')
   await page.waitForFunction(() => !document.querySelector('.thumb-panel'), { timeout: 3_000 })
   await page.waitForFunction(
-    () => document.querySelector('.counter')?.textContent?.trim() === 'Page 5 / 10',
+    () => document.querySelector('.counter')?.textContent?.trim() === 'Page 5 / 12',
     { timeout: 5_000 },
   )
 

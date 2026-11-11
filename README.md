@@ -123,7 +123,7 @@
 | 转换测试 | ✅ | `npm run test:convert` 覆盖：30 页 PNG 包的原图尺寸与页数、A4 页盒、JPEG 包的直通（PDF ≥ 原 JPEG 字节 95%）、CBR 文案、20 页 3000×4500 压力包，以及全程零上传 |
 | 预渲染落地页 | ✅ | 16 条静态路由：首页、`/cbz-to-pdf/`、`/read-cbz-online/`、`/manga-reader/`、`/how-to-open-cbz/`、`/cbz-vs-cbr/`、`/what-is-a-cbz-file/`、`/cbz-file-format/`、`/read-cbz-on-iphone/`、`/read-cbz-on-android/`、`/how-to-make-a-cbz-file/`、`/cbz-file-wont-open/`、`/privacy/`、`/terms/`、`/disclaimer/`、`/demo/`（其中 `/demo/` 为 `noindex` 且不进 sitemap，sitemap 为 15 条） |
 | 条款与免责页 | ✅ | `/terms/` 与 `/disclaimer/` 复用落地页版式：Terms 覆盖 as-is 提供、不存储文件、合法使用权、禁止侵权/违法用途、责任限制、条款变更与联系方式；Disclaimer 声明与出版商/发行商/平台无关联、商标归权利人、不托管或分发漫画内容（唯一例外是内置的公有领域样例，页面已标注作品、作者、许可与来源）、仅本地处理、第三方链接免责。适用法律写「运营者营业地适用法律」，不写死国家，也不编造主体名称/地址/VAT。页脚与隐私页互链，JSON-LD 只保留 BreadcrumbList |
-| 样例漫画入口 | ✅ | `/demo/` 打开后自动加载 10 页公有领域漫画《Silent Ruin (2018)》（U.S. Army Cyber Institute at West Point，Commons 许可模板 `{{PD-USGov-Military-Army}}`），无需选择文件；页面标注作品、作者、许可与来源链接。`/demo/?size=large` 仍加载 20 页 3000×4500 大图包，仅供内部测试，界面不暴露。页面不出现落地页导航与页脚，`noindex,nofollow`、不进 sitemap；首页在阅读/转换两张卡片下方提供次级入口「Try with a sample comic」。样例包位于 `public/samples/`，不进入 Service Worker 预缓存 |
+| 样例漫画入口 | ✅ | `/demo/` 打开后自动加载 12 页公有领域漫画《Little Nemo in Slumberland》（Winsor McCay，1908 年《New York Herald》周日版，Commons 许可模板 `{{PD-US}}`），无需选择文件；页面标注作品、作者、许可与来源链接。`/demo/?size=large` 仍加载 20 页 3000×4500 大图包，仅供内部测试，界面不暴露。页面不出现落地页导航与页脚，`noindex,nofollow`、不进 sitemap；首页在阅读/转换两张卡片下方提供次级入口「Try with a sample comic」。样例包位于 `public/samples/`，不进入 Service Worker 预缓存 |
 | 工具站信息架构 | ✅ | 首页双入口与 *More CBZ tools* 全部是预渲染的静态 HTML，无 JS 也可见；首页不再渲染 *Keep reading*（由工具分发区取代），避免同页重复链接。首页 title 55 字符、description 153 字符，仍以 `Read CBZ comics in your browser` 为主关键词意图；JSON-LD 的 `featureList` 增加转换能力，`WebSite.description` 同步为「读取 + 转换」 |
 | SEO 元信息 | ✅ | 每页独立 title/description、canonical、hreflang、OG/Twitter、JSON-LD（WebSite / WebApplication / Article / FAQPage / BreadcrumbList；法律页只有 BreadcrumbList）；站内链接全部指向已预渲染的 16 条路由（`/demo/` 为 noindex，不参与收录），构建后检查无断链 |
 | 社交分享图 | ✅ | `public/og-image.png` 1200×630；`og:image` 含 width/height/alt，`twitter:image`，卡片类型为 `summary_large_image` |
@@ -136,7 +136,7 @@
 | 端到端自测 | ✅ | `npm run test:e2e` 用本机 Edge/Chrome 打开 CBZ，验证解码、翻页、纵向窗口滑动与模式切换保位，断言阅读层覆盖视口、工具栏隐藏/恢复、关闭回原滚动位置、`popstate` 关闭阅读器、`F` 全屏与 `fullscreenEnabled` 为假时的降级，并断言 dev 环境不注册 Service Worker；缩略图面板断言打开、当前页高亮、点击跳页、Esc 关闭并回焦，以及 375px 下底栏不溢出、网格为 3 列 |
 | 离线验收测试 | ✅ | `npm run test:offline` 针对生产构建断言：外壳预缓存不含内容页、断网刷新首页完整显示、断网打开本地 CBZ 并成功翻页、改动后的文档在下一次导航可见 |
 | 格式错误文案 | ✅ | CBR/RAR 与 CB7/7z 会明确提示容器不支持，并给出「解包后重新打包成 .cbz」的建议，而不是笼统的 `not a valid CBZ or ZIP` |
-| 测试样例脚本 | ✅ | `npm run samples` 用无头浏览器渲染图片并打包 CBZ，一次生成 6 个样例到 `D:\edgeDown\testData\archive`（页数/尺寸/文件名可按参数改，输出不进仓库）；`npm run samples:demo` 只生成 `/demo/?size=large` 用的 20 页大图包；`npm run demo:comic` 从 `public/` 下的源 CBZ 重新生成公有领域样例（参数与来源见 5.9） |
+| 测试样例脚本 | ✅ | `npm run samples` 用无头浏览器渲染图片并打包 CBZ，一次生成 6 个样例到 `D:\edgeDown\testData\archive`（页数/尺寸/文件名可按参数改，输出不进仓库）；`npm run samples:demo` 只生成 `/demo/?size=large` 用的 20 页大图包；`npm run demo:comic` 从 Wikimedia Commons 拉取连续的公有领域周日版页面，逐页核验许可后生成 `/demo/` 样例（来源与参数见 5.9） |
 
 ### 3.2 真机验证记录
 
@@ -393,10 +393,10 @@ npm run samples:demo                # 只生成 /demo/ 用的两个包，写入 
 
 | 文件 | URL | 页数 | 单页尺寸 | 体积 | 用途 |
 | --- | --- | --- | --- | --- | --- |
-| `silent-ruin-2018.cbz` | `/demo/` | 10 | 1224×1584 | 约 1.5 MB | 面向用户的公版漫画样例：打开、翻页、缩略图、纵向 |
+| `little-nemo-1908.cbz` | `/demo/` | 12 | 780×约 1010（逐页 999–1027） | 约 1.83 MB | 面向用户的公版漫画样例：打开、翻页、缩略图、纵向 |
 | `sample-large-20-pages.cbz` | `/demo/?size=large` | 20 | 3000×4500 | 约 6.5 MB | 内存、降采样与画布钳制（仅内部） |
 
-`silent-ruin-2018.cbz` 是真实公版漫画，来源、许可与处理参数见 5.9；`sample-large-20-pages.cbz` 仍是合成图，只用于内存测试。`/demo/` 是样例入口而不是设备测试页：打开即自动加载，不需要选择文件；页面 `noindex,nofollow`、不进 `sitemap.xml`、不进顶栏导航，样例也不在 Service Worker 预缓存里（只有外壳与 `/assets/*` 预缓存）。首页在阅读/转换两张卡片下方提供一条次级入口「Try with a sample comic」；`?size=large` 只保留给内部测试，界面不出现。
+`little-nemo-1908.cbz` 是真实公版漫画，来源、许可与处理参数见 5.9；`sample-large-20-pages.cbz` 仍是合成图，只用于内存测试。`/demo/` 是样例入口而不是设备测试页：打开即自动加载，不需要选择文件；页面 `noindex,nofollow`、不进 `sitemap.xml`、不进顶栏导航，样例也不在 Service Worker 预缓存里（只有外壳与 `/assets/*` 预缓存）。首页在阅读/转换两张卡片下方提供一条次级入口「Try with a sample comic」；`?size=large` 只保留给内部测试，界面不出现。
 
 ### 5.8 事件字典（Umami）
 
@@ -422,15 +422,32 @@ npm run samples:demo                # 只生成 /demo/ 用的两个包，写入 
 
 ### 5.9 样例漫画：来源、许可与处理
 
-- 作品：*Silent Ruin* (2018)，由 U.S. Army Cyber Institute at West Point 出品。
-- Commons 文件页：<https://commons.wikimedia.org/wiki/File:Silent_Ruin_(2018),_by_Brian_David_Johnson.pdf>
-- Licensing 段实际挂载的模板原文只有 `{{PD-USGov-Military-Army}}`；`{{Information}}` 的 `permission=` 为空，没有 `license=` 字段。API 同时返回 `LicenseShortName=Public domain`、`AttributionRequired=false`、`Copyrighted=False`。
-- 作者字段原文：Written by Brian David Johnson. Creative Direction: Sandy Winkelman. Illustration: Don Hudson & Kinsun Lo. Brought to you by the U.S. Army Cyber Institute at West Point.
-- 判定：这是美国政府作品，属于公有领域。**它不是 CC0，也不是 CC BY**，页面与文档都不使用这两个标记。署名不是许可要求，站内仍按礼节标注作品名、作者与 Commons 来源链接。
-- 页序与质量：源包 10 页，顺序为封面 → 前言 → 标题页 → 5 页漫画 → 后记 → 封底；没有乱序、缺页、混入空白页、页脚水印或旋转错误。页面本身是干净整页，没有扫描黄边/白边，因此不裁剪、不做色偏校正。
-- 处理：按原宽 1224px 重绘并输出 JPEG(q=0.7)，再以 STORE 方式打包为 CBZ。最终 `public/samples/silent-ruin-2018.cbz` 为 10 页、1224×1584、约 1.53 MB。
-- 复现：把源 CBZ 放回 `public/Silent_Ruin_(2018),_by_Brian_David_Johnson.cbz`，运行 `npm run demo:comic`（可选 `--width` / `--quality` / `--in` / `--out`）。源包不提交，最终包提交。
-- 页数说明：Commons 原件的 `pagecount` 就是 10，低于 12–20 页的目标；没有补页，也没有混入其他作品。
+- 作品：*Little Nemo in Slumberland*，Winsor McCay 为《New York Herald》绘制的周日版（1905–1914）。选用 1908-03-01 至 1908-05-17 连续 12 个周日。
+- 来源分类页：<https://commons.wikimedia.org/wiki/Category:Little_Nemo_in_Slumberland,_1908>
+- 逐个文件页（每个都以 `?action=raw` 读取原文核对许可）：
+  - <https://commons.wikimedia.org/wiki/File:Little_Nemo_1908-03-01.jpg>
+  - <https://commons.wikimedia.org/wiki/File:Little_Nemo_1908-03-08.jpg>
+  - <https://commons.wikimedia.org/wiki/File:Little_Nemo_1908-03-15.jpg>
+  - <https://commons.wikimedia.org/wiki/File:Little_Nemo_1908-03-22.jpg>
+  - <https://commons.wikimedia.org/wiki/File:Little_Nemo_1908-03-29.jpg>
+  - <https://commons.wikimedia.org/wiki/File:Little_Nemo_1908-04-05.jpg>
+  - <https://commons.wikimedia.org/wiki/File:Little_Nemo_1908-04-12.jpg>
+  - <https://commons.wikimedia.org/wiki/File:Little_Nemo_1908-04-19.jpg>
+  - <https://commons.wikimedia.org/wiki/File:Little_Nemo_1908-04-26.jpg>
+  - <https://commons.wikimedia.org/wiki/File:Little_Nemo_1908-05-03.jpg>
+  - <https://commons.wikimedia.org/wiki/File:Little_Nemo_1908-05-10.jpg>
+  - <https://commons.wikimedia.org/wiki/File:Little_Nemo_1908-05-17.jpg>
+- 许可：12 个文件页的 `{{Information}}` 里 `|Author=[[Winsor McCay]]`、`|Source=archive.org`、`|Permission={{PD-US}}`；页面没有单独的 Licensing 段，模板就挂在 `Permission` 字段上。**只有 `{{PD-US}}`，不是 CC0，也不是 CC BY**，站内与文档都不使用这两个标记。
+- 页数与内容：12 页，均为完整周日版整页（报头、分格、对白、页脚版权行齐全），日期连续、风格统一；源扫描为 ~1740–1820×2300，单页 635–900 KB。
+- 图像处理（`scripts/make-demo-comic.mjs`，无 sharp/ImageMagick，全部在无头浏览器 canvas 内完成）：
+  1. 白平衡：按各通道 98.5 分位估计纸色并拉到 252，增益上限 1.5，修正老扫描的偏黄；
+  2. 去页边：以亮度 < 224 的墨迹包围盒裁掉外围空白，留 8px 边距；任一侧裁掉超过 8% 或结果小于 70% 时判定为可疑，整页不裁，避免切到画面；
+  3. 降采样：等比缩到 780px 宽，`imageSmoothingQuality = 'high'`；
+  4. 统一编码 JPEG(q=0.58)；
+  5. 以 STORE（不压缩）方式打包 CBZ，文件名 `page-001.jpg` … `page-012.jpg`。
+- 结果：`public/samples/little-nemo-1908.cbz`，12 页，780×999–1027（首页 780×1018），约 1.83 MB。
+- 复现：`npm run demo:comic`（可选 `--width` / `--quality` / `--out`）。脚本先用 `?action=raw` 逐页核验许可，缺 PD 模板会直接失败；源图缓存到 `scripts/.cache/little-nemo/`（已 gitignore），再次运行不重复下载。
+
 
 ---
 

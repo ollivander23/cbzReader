@@ -11,9 +11,9 @@
         <a href="/">Read your own file instead</a>
       </p>
       <p class="demo__credit">
-        “Silent Ruin” (2018) — story by Brian David Johnson, art by Don Hudson and Kinsun Lo,
-        published by the U.S. Army Cyber Institute at West Point. Public domain (U.S. Government
-        work). <a href="https://commons.wikimedia.org/wiki/File:Silent_Ruin_(2018),_by_Brian_David_Johnson.pdf" rel="noopener">Source on Wikimedia Commons</a>.
+        “Little Nemo in Slumberland” — Sunday pages from 1908 by Winsor McCay, published in the
+        New York Herald. Public domain in the United States (Wikimedia Commons template
+        &#123;&#123;PD-US&#125;&#125;). <a href="https://commons.wikimedia.org/wiki/Category:Little_Nemo_in_Slumberland,_1908" rel="noopener">Source on Wikimedia Commons</a>.
       </p>
     </div>
   </main>

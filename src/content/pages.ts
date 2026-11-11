@@ -1120,7 +1120,7 @@ export const PAGES: PageContent[] = [
         heading: 'No comic content is hosted',
         paragraphs: [
           'This site does not distribute, host, index, or provide links to comic books or any other copyrighted works. There is no library, no catalogue, and no search for titles. The only files it handles are the ones you open from your own device.',
-          'The single exception is the sample comic on the sample page: a public-domain work by the U.S. Army Cyber Institute at West Point, included with its title, author, and source credited. It is there so the reader can be tried without a file; it is not a catalogue or a library.',
+          'The single exception is the built-in public-domain sample on the sample page: a classic comic whose copyright has expired, included with its title, author, licence, and source credited. It is there so the reader can be tried without a file; it is not a catalogue or a library.',
         ],
       },
       {
