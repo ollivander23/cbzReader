@@ -39,6 +39,8 @@ export interface PageContent {
   bridge?: { text: string; href: string; label: string }
   contact?: string
   schemaFeatures?: string[]
+  /** Legal pages keep structured data to the breadcrumb only. */
+  legal?: boolean
   schema: 'app' | 'article'
   updated: string
   sections: PageSection[]
@@ -1032,7 +1034,109 @@ export const PAGES: PageContent[] = [
         answer: 'No. The reader uses IndexedDB for local progress, which is not a cookie and is not sent to a server. Both analytics tools are cookie-free as well.',
       },
     ],
-    related: ['/', '/read-cbz-online/', '/how-to-open-cbz/'],
+    related: ['/', '/read-cbz-online/', '/how-to-open-cbz/', '/terms/', '/disclaimer/'],
+  },
+  {
+    path: '/terms/',
+    title: 'Terms of Use - CBZ Reader',
+    description:
+      'The terms that apply to this browser-based CBZ reader and converter: as-is service, local file processing, acceptable use, and liability limits.',
+    h1: 'Terms of Use',
+    eyebrow: 'Legal',
+    lead: 'These terms cover your use of this site and its CBZ reader and converter. By using the site, you accept them.',
+    contact: 'jiamin.wu23@mavi.help',
+    legal: true,
+    schema: 'article',
+    updated: '2026-11-11',
+    sections: [
+      {
+        heading: 'The service',
+        paragraphs: [
+          'This site is a browser-based tool for reading CBZ archives and converting them to PDF. It is provided on an "as is" and "as available" basis. The operator does not promise that it will always be available, uninterrupted, or free of errors, and may change or discontinue it at any time.',
+          'No account is required to use the features described on this site.',
+        ],
+      },
+      {
+        heading: 'Your files',
+        paragraphs: [
+          'Files you open or convert are read by your browser and processed inside the page. They are not uploaded to, stored on, or backed up by this site.',
+          'You are responsible for making sure you have the right to open, convert, and use every file you load. Do not use this site for copyright infringement, for material you are not allowed to hold, or for any other unlawful purpose.',
+        ],
+      },
+      {
+        heading: 'No warranty',
+        paragraphs: [
+          'The site and its output are provided without warranties of any kind, express or implied, including fitness for a particular purpose and non-infringement. A conversion may fail, re-encode some image formats, or produce a file that another application reads differently; check the result before relying on it.',
+        ],
+      },
+      {
+        heading: 'Limitation of liability',
+        paragraphs: [
+          'To the extent permitted by law, the operator is not liable for data loss, corrupted output, lost profits, or any indirect or consequential loss arising from the use of, or inability to use, this site. Keep your own copies of important files.',
+          'Nothing in these terms excludes liability that cannot be excluded under applicable law, or limits rights that mandatory consumer law gives you.',
+        ],
+      },
+      {
+        heading: 'Changes and governing law',
+        paragraphs: [
+          'These terms may be updated as the site changes. The revision date at the top of this page reflects the current version, and continued use after an update means you accept the revised terms.',
+          'These terms are governed by the laws applicable at the operator\'s place of business, without regard to conflict-of-law rules. Disputes are subject to the competent courts there, unless mandatory law provides otherwise.',
+        ],
+      },
+      {
+        heading: 'Contact',
+        contact: true,
+        paragraphs: ['Questions about these terms can be sent to the address below.'],
+      },
+    ],
+    faq: [],
+    related: ['/privacy/', '/disclaimer/', '/'],
+  },
+  {
+    path: '/disclaimer/',
+    title: 'Disclaimer - CBZ Reader',
+    description:
+      'CBZ Reader is an independent local tool. It is not affiliated with any comic publisher or platform, and it does not host or distribute comic content.',
+    h1: 'Disclaimer',
+    eyebrow: 'Legal',
+    lead: 'This site is an independent tool for files you already have. It is not a comic platform and has no relationship with the companies that publish or sell comics.',
+    legal: true,
+    schema: 'article',
+    updated: '2026-11-11',
+    sections: [
+      {
+        heading: 'No affiliation or endorsement',
+        paragraphs: [
+          'This site is not affiliated with, authorized by, sponsored by, or endorsed by any comic publisher, distributor, storefront, scanlation group, or reading platform. Any similarity in naming is descriptive only.',
+        ],
+      },
+      {
+        heading: 'Trademarks and format names',
+        paragraphs: [
+          'Names such as CBZ, CBR, and PDF, along with any product or company names mentioned on this site, are the property of their respective owners and are used only to describe file formats and compatibility.',
+        ],
+      },
+      {
+        heading: 'No comic content is hosted',
+        paragraphs: [
+          'This site does not distribute, host, index, or provide links to comic books or any other copyrighted works. There is no library, no catalogue, and no search for titles. The only files it handles are the ones you open from your own device.',
+        ],
+      },
+      {
+        heading: 'Local processing only',
+        paragraphs: [
+          'Reading and conversion run inside your browser tab. The site has no server-side copy of your files and no way to recover a file you closed or deleted.',
+        ],
+      },
+      {
+        heading: 'Third-party links',
+        paragraphs: [
+          'Some pages link to third-party sites for reference. Those sites are outside its control, their content may change, and a link is not an endorsement. Their own terms and privacy practices apply when you visit them.',
+        ],
+      },
+    ],
+    faq: [],
+    related: ['/terms/', '/privacy/', '/'],
   },
   {
     path: '/cbz-to-pdf/',

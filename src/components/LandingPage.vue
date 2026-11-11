@@ -236,6 +236,8 @@ const trustItems = computed(() => props.page.trust ?? DEFAULT_TRUST)
         <a href="/manga-reader/">Manga mode</a>
         <a href="/cbz-vs-cbr/">CBZ vs CBR</a>
         <a href="/privacy/">Privacy</a>
+        <a href="/terms/">Terms</a>
+        <a href="/disclaimer/">Disclaimer</a>
       </nav>
     </div>
   </footer>

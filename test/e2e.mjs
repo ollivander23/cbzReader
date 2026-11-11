@@ -659,6 +659,30 @@ try {
     throw new Error(`Privacy contact link is missing or wrong: ${JSON.stringify(contact)}`)
   }
 
+  // Legal pages exist, render body copy, link to each other and stay in the footer.
+  for (const [path, heading] of [
+    ['/terms/', 'Terms of Use'],
+    ['/disclaimer/', 'Disclaimer'],
+  ]) {
+    const response = await page.goto(`${base}${path.slice(1)}`, { waitUntil: 'networkidle2' })
+    const legal = await page.evaluate(() => ({
+      h1: document.querySelector('h1')?.textContent?.trim() ?? '',
+      paragraphs: document.querySelectorAll('.content p').length,
+      footer: [...document.querySelectorAll('footer a')].map((link) => link.getAttribute('href')),
+      contact: document.querySelector('.contact a')?.getAttribute('href') ?? null,
+    }))
+    if (!response || response.status() !== 200 || !legal.h1 || legal.paragraphs === 0) {
+      throw new Error(`Legal page ${path} did not render: ${JSON.stringify(legal)}`)
+    }
+    if (legal.h1 !== heading) throw new Error(`Legal page ${path} has the wrong heading: ${legal.h1}`)
+    if (!legal.footer.includes('/terms/') || !legal.footer.includes('/disclaimer/')) {
+      throw new Error(`Footer is missing legal links on ${path}: ${JSON.stringify(legal.footer)}`)
+    }
+    if (path === '/terms/' && legal.contact !== 'mailto:jiamin.wu23@mavi.help') {
+      throw new Error(`Terms contact link is missing or wrong: ${JSON.stringify(legal.contact)}`)
+    }
+  }
+
   if (errors.length > 0) throw new Error(`Page errors: ${errors.join(' | ')}`)
 
   console.log(

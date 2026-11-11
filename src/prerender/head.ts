@@ -71,7 +71,7 @@ function buildSchema(page: PageContent, url: string, siteUrl: string): unknown {
       ],
       publisher: { '@id': organizationId },
     })
-  } else {
+  } else if (!page.legal) {
     graph.push({
       '@type': 'Article',
       '@id': `${url}#article`,
