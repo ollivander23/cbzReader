@@ -557,6 +557,7 @@ function onScroll(): void {
     // Scrolling fades the floating chrome out; tapping brings it back.
     if (Math.abs(scroller.scrollTop - lastScrollTop) > 4) {
       toolbarVisible.value = false
+      dismissIosHint()
     }
     lastScrollTop = scroller.scrollTop
   }
@@ -771,6 +772,7 @@ function stagePoint(clientX: number, clientY: number): { x: number; y: number } 
 function goToPage(page: number): void {
   if (!pageCount.value) return
   const clampedPage = clamp(Math.round(page), 0, pageCount.value - 1)
+  dismissIosHint()
   window.clearTimeout(tapTimer)
   lastTap = null
   showResume.value = false
@@ -819,6 +821,7 @@ function toggleMode(): void {
   const current = index.value
   const order: ReadingMode[] = ['single', 'double', 'scroll']
   const nextMode = order[(order.indexOf(mode.value) + 1) % order.length]
+  dismissIosHint()
   window.clearTimeout(tapTimer)
   lastTap = null
   menuOpen.value = false
@@ -981,6 +984,10 @@ function enterImmersive(): void {
 function leaveImmersive(restoreScroll: boolean): void {
   iosHintVisible.value = false
   if (restoreScroll) window.scrollTo({ top: savedScrollY, behavior: 'auto' })
+}
+
+function dismissIosHint(): void {
+  iosHintVisible.value = false
 }
 
 async function closeReader(): Promise<void> {
@@ -1476,6 +1483,7 @@ function onFullscreenChange(): void {
 }
 
 async function toggleMenu(): Promise<void> {
+  dismissIosHint()
   menuOpen.value = !menuOpen.value
   if (!menuOpen.value) return
   await nextTick()
@@ -1807,6 +1815,21 @@ onBeforeUnmount(() => {
             </svg>
           </button>
         </div>
+        <div
+          v-if="iosHintVisible"
+          class="ios-hint"
+          role="status"
+          @click="dismissIosHint"
+        >
+          <span>Add to Home Screen to read without Safari's bars.</span>
+          <button
+            type="button"
+            aria-label="Dismiss hint"
+            @click.stop="dismissIosHint"
+          >
+            ×
+          </button>
+        </div>
         <input ref="fileInput" type="file" hidden :accept="accept" @change="onFileChange" />
       </header>
 
@@ -1899,11 +1922,6 @@ onBeforeUnmount(() => {
             ×
           </button>
         </div>
-      </div>
-
-      <div v-if="iosHintVisible" class="ios-hint" role="status">
-        <span>Add to Home Screen to read without Safari's bars.</span>
-        <button type="button" aria-label="Dismiss hint" @click="iosHintVisible = false">×</button>
       </div>
 
       <footer class="bottombar" :class="{ 'bottombar--hidden': !toolbarVisible }">
@@ -2523,26 +2541,46 @@ onBeforeUnmount(() => {
   pointer-events: none;
 }
 
+/*
+ * The hint hangs off the bottom edge of the floating toolbar, so it can never
+ * cover the mode/zoom/open/menu buttons no matter how many rows the toolbar
+ * wraps into. It is click-through everywhere except its own pill: the area
+ * around it still reaches the page-turn hot zones underneath.
+ */
 .ios-hint {
   position: absolute;
-  top: calc(64px + env(safe-area-inset-top));
-  left: 50%;
-  z-index: 7;
+  top: calc(100% + 8px);
+  right: 0;
+  left: 0;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 10px;
-  max-width: calc(100% - 32px);
+  width: fit-content;
+  max-width: calc(100% - 32px - env(safe-area-inset-left) - env(safe-area-inset-right));
+  margin: 0 auto;
   padding: 8px 8px 8px 14px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 999px;
   background: rgba(28, 28, 34, 0.96);
   color: rgba(255, 255, 255, 0.86);
   font-size: 12px;
+  line-height: 1.35;
   box-shadow: 0 12px 30px -14px rgba(0, 0, 0, 0.9);
-  transform: translateX(-50%);
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.toolbar--hidden .ios-hint {
+  pointer-events: none;
+}
+
+.ios-hint span {
+  min-width: 0;
 }
 
 .ios-hint button {
+  flex: 0 0 auto;
   padding: 0 6px;
   border: 0;
   border-radius: 999px;
@@ -2550,6 +2588,7 @@ onBeforeUnmount(() => {
   color: rgba(255, 255, 255, 0.62);
   font-size: 17px;
   line-height: 1;
+  cursor: pointer;
 }
 
 .nav {
