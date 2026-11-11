@@ -37,7 +37,8 @@ template = template.replace('<title>CBZ Reader</title>', '')
 
 for (const route of routes) {
   const { html, head } = await renderPage(route.path)
-  const output = template.replace('<!--head-->', head).replace('<!--app-html-->', html)
+  const pageTemplate = template.replace('<html lang="en">', `<html lang="${route.lang || 'en'}">`)
+  const output = pageTemplate.replace('<!--head-->', head).replace('<!--app-html-->', html)
   const target =
     route.path === '/'
       ? path.join(distDir, 'index.html')
@@ -52,13 +53,20 @@ const urlset = routes
   .filter((route) => !route.noindex)
   .map((route) => {
     const priority = route.path === '/' ? '1.0' : '0.7'
-    return `  <url>\n    <loc>${siteUrl}${route.path}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>${priority}</priority>\n  </url>`
+    const alternates = (route.alternates ?? [])
+      .map(
+        (alternate) =>
+          `    <xhtml:link rel="alternate" hreflang="${alternate.hreflang}" href="${siteUrl}${alternate.path}" />`,
+      )
+      .join('\n')
+    const alternateBlock = alternates ? `${alternates}\n` : ''
+    return `  <url>\n    <loc>${siteUrl}${route.path}</loc>\n${alternateBlock}    <lastmod>${lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>${priority}</priority>\n  </url>`
   })
   .join('\n')
 
 await writeFile(
   path.join(distDir, 'sitemap.xml'),
-  `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urlset}\n</urlset>\n`,
+  `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${urlset}\n</urlset>\n`,
   'utf8',
 )
 
@@ -94,6 +102,8 @@ const assetUrls = (await listFiles(assetsDir))
 
 const shellCandidates = [
   '/',
+  '/zh/',
+  '/ja/',
   '/manifest.webmanifest',
   '/manifest-dark.webmanifest',
   '/favicon.svg',

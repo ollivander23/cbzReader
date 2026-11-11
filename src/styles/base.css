@@ -222,6 +222,30 @@ img {
   flex: none;
 }
 
+.lang-switch {
+  position: relative;
+  flex: none;
+}
+
+.lang-switch__select {
+  height: 36px;
+  padding: 0 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.lang-switch__select:hover {
+  border-color: var(--line-strong);
+  background: var(--card-bg-hover);
+}
+
 .theme-switch__trigger {
   display: grid;
   place-items: center;
@@ -1169,6 +1193,11 @@ h1 {
   .theme-switch__trigger {
     width: 34px;
     height: 34px;
+  }
+
+  .lang-switch__select {
+    height: 34px;
+    font-size: 12px;
   }
 
   .site-nav a {

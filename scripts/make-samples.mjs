@@ -2,12 +2,13 @@
  * Generate CBZ test archives with large, unmistakable page numbers.
  *
  * Pages are rendered in headless Edge/Chrome and screenshotted, so every page
- * has crisp text at any zoom level. Output goes outside the repo by default.
- * The two demo archives are the exception: they ship with the site, so they go
- * to public/samples/ and are committed.
+ * has crisp text at any zoom level. Output goes to test/.cache/samples by
+ * default (git-ignored). The two demo archives are the exception: they ship
+ * with the site, so they go to public/samples/ and are committed.
  *
  *   node scripts/make-samples.mjs
- *   node scripts/make-samples.mjs --out D:\somewhere\archive
+ *   SAMPLE_OUT=../cbz-samples node scripts/make-samples.mjs
+ *   node scripts/make-samples.mjs --out ../cbz-samples
  *   node scripts/make-samples.mjs --demo
  */
 import { mkdir, writeFile } from 'node:fs/promises'
@@ -16,7 +17,7 @@ import puppeteer from 'puppeteer-core'
 import { findBrowser } from './lib/browser.mjs'
 import { buildZip } from './lib/cbz.mjs'
 
-const OUT_DIR = process.env.SAMPLE_OUT || 'D:\\edgeDown\\testData\\archive'
+const OUT_DIR = process.env.SAMPLE_OUT || path.join('test', '.cache', 'samples')
 const SCALE = 2 // deviceScaleFactor: CSS size * 2 = pixel size
 
 const SAMPLES = [

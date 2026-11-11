@@ -1,4 +1,5 @@
 import { watch } from 'vue'
+import { translate } from '../i18n'
 import { resolvedTheme, toggleTheme } from './theme'
 
 // Progressive enhancement for the prerendered header button: the markup ships
@@ -12,7 +13,7 @@ export function mountThemeSwitch(): void {
 
   const sync = (): void => {
     const dark = resolvedTheme.value === 'dark'
-    const label = dark ? 'Switch to light theme' : 'Switch to dark theme'
+    const label = dark ? translate('header.themeLight') : translate('header.themeDark')
     trigger.setAttribute('aria-pressed', dark ? 'true' : 'false')
     trigger.setAttribute('aria-label', label)
     trigger.title = label

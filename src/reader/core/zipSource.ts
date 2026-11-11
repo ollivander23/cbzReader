@@ -1,4 +1,5 @@
 import { BlobReader, BlobWriter, TextWriter, ZipReader } from '@zip.js/zip.js'
+import { translate } from '../../i18n'
 import { baseName, naturalCompare } from './naturalSort'
 import { ReaderError } from './types'
 
@@ -22,19 +23,16 @@ function fileExtension(fileName: string): string {
 function unsupportedMessage(fileName: string): string | null {
   const ext = fileExtension(fileName)
   if (ext === 'cbr' || ext === 'rar') {
-    return 'CBR (RAR) archives are not supported yet. Convert the file to CBZ first: extract the page images, then re-zip them as a .cbz file. Renaming a .cbr to .cbz is not enough, because the container inside is still RAR.'
+    return translate('errors.unsupportedCbr')
   }
   if (ext === 'cb7' || ext === '7z') {
-    return 'CB7 (7z) archives are not supported yet. Convert the file to CBZ first: extract the page images and re-pack them as a .cbz file, then open that archive instead.'
+    return translate('errors.unsupportedCb7')
   }
   return null
 }
 
 function notZipMessage(fileName: string): string {
-  return (
-    unsupportedMessage(fileName) ??
-    'This file could not be read as a CBZ or ZIP archive. If it came from a CBR (RAR) or CB7 (7z) file, convert it to CBZ first and try again.'
-  )
+  return unsupportedMessage(fileName) ?? translate('errors.notZip')
 }
 
 function mimeFor(name: string): string {
@@ -120,7 +118,7 @@ function folderToc(images: ZipEntry[]): TocEntry[] {
   images.forEach((entry, page) => {
     const folder = dirName(entry.filename)
     if (folders.has(folder)) return
-    folders.set(folder, { title: folder || 'Top level', page })
+    folders.set(folder, { title: folder || translate('errors.topLevel'), page })
   })
   return folders.size >= 2 ? [...folders.values()] : []
 }
@@ -181,10 +179,10 @@ export class ZipPageSource {
       if (encryptedImages.length > 0) {
         throw new ReaderError(
           'encrypted',
-          'This archive is password-protected. Remove the password and try again.',
+          translate('errors.encrypted'),
         )
       }
-      throw new ReaderError('no-images', 'No readable images were found in this archive.')
+      throw new ReaderError('no-images', translate('errors.noImages'))
     }
 
     let rtl = false
@@ -235,14 +233,14 @@ export class ZipPageSource {
   async getPage(index: number): Promise<Blob> {
     const entry = this.entries[index]
     if (!entry) {
-      throw new ReaderError('unknown', 'That page is not in this archive.')
+      throw new ReaderError('unknown', translate('errors.missingPage'))
     }
     try {
       const blob = await entry.getData<Blob>(new BlobWriter(mimeFor(entry.filename)))
       if (!blob || blob.size === 0) throw new Error('Empty page')
       return blob
     } catch {
-      throw new ReaderError('image', 'This page could not be decoded.')
+      throw new ReaderError('image', translate('errors.decode'))
     }
   }
 

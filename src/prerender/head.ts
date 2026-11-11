@@ -1,5 +1,6 @@
 import type { PageContent } from '../content/pages'
 import { SITE } from '../content/site'
+import { htmlLang, isLocalizedHomePath, type SiteLocale } from '../i18n'
 import { THEME_COLORS, THEME_KEY } from '../lib/theme'
 
 // Runs inline before the stylesheet so the first paint already has the right
@@ -25,7 +26,14 @@ function absolute(siteUrl: string, path: string): string {
   return `${siteUrl.replace(/\/$/, '')}${path}`
 }
 
-function buildSchema(page: PageContent, url: string, siteUrl: string): unknown {
+function buildSchema(
+  page: PageContent,
+  url: string,
+  siteUrl: string,
+  locale: SiteLocale,
+  isHome: boolean,
+): unknown {
+  const language = htmlLang(locale)
   const organizationId = `${siteUrl}/#organization`
   const graph: unknown[] = [
     {
@@ -40,7 +48,7 @@ function buildSchema(page: PageContent, url: string, siteUrl: string): unknown {
       url: `${siteUrl}/`,
       name: SITE.name,
       description: SITE.description,
-      inLanguage: 'en',
+      inLanguage: language,
       publisher: { '@id': organizationId },
     },
   ]
@@ -55,7 +63,7 @@ function buildSchema(page: PageContent, url: string, siteUrl: string): unknown {
       applicationCategory: 'MultimediaApplication',
       operatingSystem: 'Any (web browser)',
       browserRequirements: 'Requires JavaScript',
-      inLanguage: 'en',
+      inLanguage: language,
       isAccessibleForFree: true,
       offers: {
         '@type': 'Offer',
@@ -81,7 +89,7 @@ function buildSchema(page: PageContent, url: string, siteUrl: string): unknown {
       mainEntityOfPage: url,
       datePublished: page.updated,
       dateModified: page.updated,
-      inLanguage: 'en',
+      inLanguage: language,
       author: { '@id': organizationId },
       publisher: { '@id': organizationId },
     })
@@ -99,7 +107,7 @@ function buildSchema(page: PageContent, url: string, siteUrl: string): unknown {
     })
   }
 
-  if (page.path !== '/') {
+  if (!isHome) {
     graph.push({
       '@type': 'BreadcrumbList',
       '@id': `${url}#breadcrumb`,
@@ -119,19 +127,41 @@ const ANALYTICS =
 const BAIDU_VERIFY =
   '<meta name="baidu-site-verification" content="codeva-onRzaCKsaC" />'
 
-export function renderHead(page: PageContent, siteUrl: string): string {
+export interface HeadOptions {
+  locale?: SiteLocale
+  alternates?: readonly { hreflang: string; path: string }[]
+}
+
+const OG_LOCALES: Record<SiteLocale, string> = {
+  en: 'en_US',
+  zh: 'zh_CN',
+  ja: 'ja_JP',
+}
+
+export function renderHead(page: PageContent, siteUrl: string, options: HeadOptions = {}): string {
+  const locale = options.locale ?? 'en'
+  const isHome = page.path === '/' || isLocalizedHomePath(page.path)
+  const alternates = options.alternates ?? [
+    { hreflang: 'en', path: page.path },
+    { hreflang: 'x-default', path: page.path },
+  ]
   const url = absolute(siteUrl, page.path)
   const title = escapeHtml(page.title)
   const description = escapeHtml(page.description)
   const ogType = page.schema === 'app' ? 'website' : 'article'
   const ogImage = `${siteUrl.replace(/\/$/, '')}/og-image.png`
-  const schema = scriptJson(buildSchema(page, url, siteUrl))
+  const schema = scriptJson(buildSchema(page, url, siteUrl, locale, isHome))
+  const alternateLinks = alternates
+    .map(
+      (alternate) =>
+        `<link rel="alternate" hreflang="${alternate.hreflang}" href="${absolute(siteUrl, alternate.path)}" />`,
+    )
+    .join('\n')
 
   return `<title>${title}</title>
 <meta name="description" content="${description}" />
 <link rel="canonical" href="${url}" />
-<link rel="alternate" hreflang="en" href="${url}" />
-<link rel="alternate" hreflang="x-default" href="${url}" />
+${alternateLinks}
 <meta name="robots" content="index,follow,max-image-preview:large" />
 ${page.path === '/' ? BAIDU_VERIFY + '\n' : ''}
 <meta name="theme-color" content="${THEME_COLORS.light}" />
@@ -144,7 +174,7 @@ ${themeScript()}
 <meta property="og:title" content="${title}" />
 <meta property="og:description" content="${description}" />
 <meta property="og:url" content="${url}" />
-<meta property="og:locale" content="en_US" />
+<meta property="og:locale" content="${OG_LOCALES[locale]}" />
 <meta property="og:image" content="${ogImage}" />
 <meta property="og:image:type" content="image/png" />
 <meta property="og:image:width" content="1200" />

@@ -6,11 +6,11 @@ export const SITE = {
 } as const
 
 export const NAV = [
-  { label: 'Reader', href: '/' },
-  { label: 'CBZ to PDF', href: '/cbz-to-pdf/' },
-  { label: 'How to open CBZ', href: '/how-to-open-cbz/' },
-  { label: 'Manga mode', href: '/manga-reader/' },
-  { label: 'CBZ vs CBR', href: '/cbz-vs-cbr/' },
+  { labelKey: 'nav.reader', href: '/' },
+  { labelKey: 'nav.cbzToPdf', href: '/cbz-to-pdf/' },
+  { labelKey: 'nav.howToOpen', href: '/how-to-open-cbz/' },
+  { labelKey: 'nav.mangaMode', href: '/manga-reader/' },
+  { labelKey: 'nav.compare', href: '/cbz-vs-cbr/' },
 ] as const
 
 export function normalizePath(pathname: string): string {

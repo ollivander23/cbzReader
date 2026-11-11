@@ -5,6 +5,7 @@ import {
   removeEntry,
   type ShelfEntry,
 } from '../reader/core/library'
+import { translate } from '../i18n'
 import { track } from '../lib/track'
 
 const isIOS =
@@ -12,10 +13,10 @@ const isIOS =
   (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
 
-const MODE_LABELS: Record<string, string> = {
-  single: 'Single page',
-  double: 'Two pages',
-  scroll: 'Continuous',
+function modeLabel(mode: string): string {
+  if (mode === 'double') return translate('shelf.modeDouble')
+  if (mode === 'scroll') return translate('shelf.modeScroll')
+  return translate('shelf.modeSingle')
 }
 
 function formatTime(timestamp: number): string {
@@ -23,10 +24,10 @@ function formatTime(timestamp: number): string {
   const minute = 60_000
   const hour = 60 * minute
   const day = 24 * hour
-  if (diff < minute) return 'just now'
-  if (diff < hour) return `${Math.max(1, Math.round(diff / minute))} min ago`
-  if (diff < day) return `${Math.round(diff / hour)} h ago`
-  if (diff < 7 * day) return `${Math.round(diff / day)} d ago`
+  if (diff < minute) return translate('shelf.justNow')
+  if (diff < hour) return translate('shelf.minutesAgo', { count: Math.max(1, Math.round(diff / minute)) })
+  if (diff < day) return translate('shelf.hoursAgo', { count: Math.round(diff / hour) })
+  if (diff < 7 * day) return translate('shelf.daysAgo', { count: Math.round(diff / day) })
   return new Date(timestamp).toLocaleDateString()
 }
 
@@ -62,7 +63,11 @@ export function mountRecentShelf(startReader: (file: File) => void): void {
     if (!file) return
     if (pending && file.name !== pending.name) {
       showHint(
-        `That was “${file.name}”. Pick “${pending.name}” again to return to page ${pending.index + 1}.`,
+        translate('shelf.wrongFile', {
+          picked: file.name,
+          expected: pending.name,
+          page: pending.index + 1,
+        }),
       )
     }
     pending = null
@@ -93,7 +98,10 @@ export function mountRecentShelf(startReader: (file: File) => void): void {
     pending = entry
     track('resume_decline')
     showHint(
-      `This file is too large to keep a copy (or its copy was cleared). Pick “${entry.name}” again and reading resumes at page ${entry.index + 1}.`,
+      translate('shelf.tooLarge', {
+        name: entry.name,
+        page: entry.index + 1,
+      }),
     )
     picker.click()
   }
@@ -131,9 +139,11 @@ export function mountRecentShelf(startReader: (file: File) => void): void {
 
     const meta = document.createElement('span')
     meta.className = 'shelf__meta'
-    meta.textContent = `${entry.pageCount} pages · ${
-      MODE_LABELS[entry.mode] ?? MODE_LABELS.single
-    } · page ${entry.index + 1}`
+    meta.textContent = translate('shelf.meta', {
+      pages: entry.pageCount,
+      mode: modeLabel(entry.mode),
+      page: entry.index + 1,
+    })
 
     const time = document.createElement('span')
     time.className = 'shelf__time'
@@ -145,7 +155,7 @@ export function mountRecentShelf(startReader: (file: File) => void): void {
     const remove = document.createElement('button')
     remove.type = 'button'
     remove.className = 'shelf__delete'
-    remove.setAttribute('aria-label', `Remove ${entry.name} from recently opened`)
+    remove.setAttribute('aria-label', translate('shelf.remove', { name: entry.name }))
     remove.textContent = '×'
     remove.addEventListener('click', (event) => {
       event.stopPropagation()
@@ -166,7 +176,7 @@ export function mountRecentShelf(startReader: (file: File) => void): void {
   }
 
   clearAll.addEventListener('click', () => {
-    if (!window.confirm('Remove every recent file, stored copy and bookmark?')) return
+    if (!window.confirm(translate('shelf.clearConfirm'))) return
     void clearShelf().then(render)
   })
 

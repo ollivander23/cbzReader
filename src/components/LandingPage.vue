@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { NAV, SITE } from '../content/site'
 import { findPage, type PageContent } from '../content/pages'
 
 const props = defineProps<{ page: PageContent }>()
+const { t, tm, locale } = useI18n()
 
 const related = computed(() =>
   props.page.related.map((path) => {
@@ -13,21 +15,37 @@ const related = computed(() =>
 )
 
 const year = 2026
-const DEFAULT_TRUST = ['No upload', 'No account', 'Right-to-left ready', 'Remembers your page']
-const trustItems = computed(() => props.page.trust ?? DEFAULT_TRUST)
+const isLocalized = computed(() => locale.value !== 'en')
+const homeHref = computed(() => (isLocalized.value ? `/${locale.value}/` : '/'))
+const isHome = computed(() => ['/', '/zh/', '/ja/'].includes(props.page.path))
+const navItems = computed(() =>
+  NAV.map((item) => ({
+    ...item,
+    label: t(item.labelKey),
+    href: item.href === '/' ? homeHref.value : item.href,
+  })),
+)
+const DEFAULT_TRUST = computed(() => tm('home.defaultTrust') as string[])
+const trustItems = computed(() => props.page.trust ?? DEFAULT_TRUST.value)
+
+function toolKindLabel(kind: 'sample' | 'tool' | 'guide'): string {
+  if (kind === 'sample') return t('home.kindSample')
+  if (kind === 'tool') return t('home.kindTool')
+  return t('home.kindGuide')
+}
 </script>
 
 <template>
   <header class="site-header">
     <div class="site-header__inner">
-      <a class="brand" href="/">
+      <a class="brand" :href="homeHref">
         <span class="brand__mark" aria-hidden="true">CBZ</span>
         <span>{{ SITE.name }}</span>
       </a>
       <div class="site-header__actions">
-        <nav class="site-nav" aria-label="Primary">
+        <nav class="site-nav" :aria-label="t('nav.primary')">
           <a
-            v-for="item in NAV"
+            v-for="item in navItems"
             :key="item.href"
             :href="item.href"
             :aria-current="page.path === item.href ? 'page' : undefined"
@@ -35,13 +53,25 @@ const trustItems = computed(() => props.page.trust ?? DEFAULT_TRUST)
             {{ item.label }}
           </a>
         </nav>
+        <div class="lang-switch">
+          <select
+            class="lang-switch__select"
+            :aria-label="t('header.language')"
+            :data-en-href="isLocalized ? '/' : page.path"
+            data-lang-switch
+          >
+            <option value="en" :selected="locale === 'en'">EN</option>
+            <option value="zh" :selected="locale === 'zh'">中文</option>
+            <option value="ja" :selected="locale === 'ja'">日本語</option>
+          </select>
+        </div>
         <div class="theme-switch">
           <button
             type="button"
             class="theme-switch__trigger"
-            aria-label="Switch to dark theme"
+            :aria-label="t('header.themeDark')"
             aria-pressed="false"
-            title="Switch to dark theme"
+            :title="t('header.themeDark')"
           >
             <svg class="theme-switch__icon theme-switch__icon--sun" viewBox="0 0 16 16" aria-hidden="true">
               <circle cx="8" cy="8" r="3" />
@@ -59,33 +89,33 @@ const trustItems = computed(() => props.page.trust ?? DEFAULT_TRUST)
   </header>
 
   <main class="wrap">
-    <nav v-if="page.path !== '/'" class="crumbs" aria-label="Breadcrumb">
-      <a href="/">Reader</a>
+    <nav v-if="!isHome" class="crumbs" :aria-label="t('breadcrumb.label')">
+      <a :href="homeHref">{{ t('breadcrumb.reader') }}</a>
       <span aria-hidden="true">/</span>
       <span>{{ page.eyebrow }}</span>
     </nav>
 
     <section class="hero">
-      <p v-if="page.path !== '/'" class="eyebrow">{{ page.eyebrow }}</p>
+      <p v-if="!isHome" class="eyebrow">{{ page.eyebrow }}</p>
       <h1>{{ page.h1 }}</h1>
       <p class="lead">{{ page.lead }}</p>
       <div v-if="page.tool" class="doors">
         <a class="door" href="#reader">
           <span class="door__kicker">CBZ / ZIP</span>
-          <strong>Read in the browser</strong>
-          <span class="door__note">Open the archive and turn pages right away. Nothing is uploaded.</span>
-          <span class="door__cta">Pick a file</span>
+          <strong>{{ t('home.readInBrowser') }}</strong>
+          <span class="door__note">{{ t('home.readNote') }}</span>
+          <span class="door__cta">{{ t('home.pickFile') }}</span>
         </a>
         <a class="door" href="/cbz-to-pdf/">
           <span class="door__kicker">CBZ → PDF</span>
-          <strong>Convert to PDF</strong>
-          <span class="door__note">Rebuild the same archive as a PDF, with original sizes or A4 pages.</span>
-          <span class="door__cta">Open the converter</span>
+          <strong>{{ t('home.convertTitle') }}</strong>
+          <span class="door__note">{{ t('home.convertNote') }}</span>
+          <span class="door__cta">{{ t('home.openConverter') }}</span>
         </a>
       </div>
       <a v-if="page.tool" class="sample-link" href="/demo/">
-        <span class="sample-link__title">Try with a sample comic</span>
-        <span class="sample-link__note">Open a short public-domain comic — no file needed.</span>
+        <span class="sample-link__title">{{ t('home.sampleTitle') }}</span>
+        <span class="sample-link__note">{{ t('home.sampleNote') }}</span>
       </a>
       <ul class="trust">
         <li v-for="item in trustItems" :key="item">{{ item }}</li>
@@ -94,44 +124,38 @@ const trustItems = computed(() => props.page.trust ?? DEFAULT_TRUST)
 
     <section v-if="page.tool" id="recent-shelf" class="shelf" hidden aria-labelledby="recent-title">
       <div class="shelf__head">
-        <h2 id="recent-title">Recently opened</h2>
-        <button type="button" class="shelf__clear" data-recent-clear>Clear all</button>
+        <h2 id="recent-title">{{ t('home.recentTitle') }}</h2>
+        <button type="button" class="shelf__clear" data-recent-clear>{{ t('home.clearAll') }}</button>
       </div>
       <ul class="shelf__list" data-recent-list></ul>
       <p class="shelf__hint" data-recent-hint hidden></p>
     </section>
 
-    <section v-if="page.tool" id="reader" class="reader-section" aria-label="CBZ reader">
+    <section v-if="page.tool" id="reader" class="reader-section" :aria-label="t('home.readerLabel')">
       <div class="reader-frame">
         <div id="reader-app">
           <div class="reader-fallback">
             <div class="dropzone">
               <p class="dropzone__kicker">CBZ / ZIP</p>
-              <h2>Open a CBZ file</h2>
-              <p>Drop a .cbz file here, or choose one from your device. The archive is read locally.</p>
+              <h2>{{ t('home.openTitle') }}</h2>
+              <p>{{ t('home.openLead') }}</p>
               <button class="btn-primary" type="button" data-open-reader>
-                Choose a CBZ file
+                {{ t('home.choose') }}
               </button>
               <input
                 type="file"
                 hidden
                 accept=".cbz,.zip,application/vnd.comicbook+zip,application/zip"
-                aria-label="Choose a CBZ file"
+                :aria-label="t('home.choose')"
               />
-              <p class="dropzone__fine">Nothing is uploaded. Works with CBZ and ZIP archives.</p>
+              <p class="dropzone__fine">{{ t('home.fine') }}</p>
             </div>
           </div>
         </div>
       </div>
-      <p class="reader-note">
-        Tip: on iPhone or iPad, open this page first, then pick the file from the Files app. iOS does
-        not let websites register as file handlers.
-      </p>
+      <p class="reader-note">{{ t('home.tip') }}</p>
       <noscript>
-        <p class="noscript">
-          JavaScript is required to unpack and display CBZ pages. The parsing runs entirely in your
-          browser; nothing is sent to a server.
-        </p>
+        <p class="noscript">{{ t('home.noscript') }}</p>
       </noscript>
     </section>
 
@@ -187,11 +211,11 @@ const trustItems = computed(() => props.page.trust ?? DEFAULT_TRUST)
     </div>
 
     <section v-if="page.tools" class="tools" aria-labelledby="tools-heading">
-      <h2 id="tools-heading">More CBZ tools</h2>
-      <p class="tools__intro">Convert an archive, look up a format detail, or fix a file that will not open.</p>
+      <h2 id="tools-heading">{{ t('home.toolsHeading') }}</h2>
+      <p class="tools__intro">{{ t('home.toolsIntro') }}</p>
       <div class="tools__grid">
         <a v-for="tool in page.tools" :key="tool.href" class="tool-card" :href="tool.href">
-          <span class="tool-card__kind">{{ tool.kind === 'sample' ? 'Sample' : tool.kind === 'tool' ? 'Tool' : 'Guide' }}</span>
+          <span class="tool-card__kind">{{ toolKindLabel(tool.kind) }}</span>
           <span class="tool-card__label">{{ tool.label }}</span>
           <span class="tool-card__note">{{ tool.note }}</span>
         </a>
@@ -204,7 +228,7 @@ const trustItems = computed(() => props.page.trust ?? DEFAULT_TRUST)
     </p>
 
     <section class="faq" aria-labelledby="faq-heading">
-      <h2 id="faq-heading">Questions</h2>
+      <h2 id="faq-heading">{{ t('home.questions') }}</h2>
       <details v-for="item in page.faq" :key="item.question">
         <summary>{{ item.question }}</summary>
         <p>{{ item.answer }}</p>
@@ -213,14 +237,14 @@ const trustItems = computed(() => props.page.trust ?? DEFAULT_TRUST)
 
     <section v-if="!page.tool" class="cta">
       <div>
-        <h2>Read a CBZ right now</h2>
-        <p>Drop a file into the reader. It stays on your device.</p>
+        <h2>{{ t('home.ctaTitle') }}</h2>
+        <p>{{ t('home.ctaLead') }}</p>
       </div>
-      <a class="btn-primary" href="/">Open the CBZ reader</a>
+      <a class="btn-primary" :href="homeHref">{{ t('home.ctaButton') }}</a>
     </section>
 
     <section v-if="related.length" class="related" aria-labelledby="related-heading">
-      <h2 id="related-heading">Keep reading</h2>
+      <h2 id="related-heading">{{ t('home.related') }}</h2>
       <div class="related__grid">
         <a v-for="item in related" :key="item.path" :href="item.path">
           <span>{{ item.label }}</span>
@@ -231,16 +255,16 @@ const trustItems = computed(() => props.page.trust ?? DEFAULT_TRUST)
 
   <footer class="site-footer">
     <div class="site-footer__inner">
-      <span>&copy; {{ year }} {{ SITE.name }}. Files stay on your device.</span>
-      <nav aria-label="Footer">
-        <a href="/">Reader</a>
-        <a href="/cbz-to-pdf/">CBZ to PDF</a>
-        <a href="/how-to-open-cbz/">How to open CBZ</a>
-        <a href="/manga-reader/">Manga mode</a>
-        <a href="/cbz-vs-cbr/">CBZ vs CBR</a>
-        <a href="/privacy/">Privacy</a>
-        <a href="/terms/">Terms</a>
-        <a href="/disclaimer/">Disclaimer</a>
+      <span>&copy; {{ year }} {{ SITE.name }}. {{ t('footer.tagline') }}</span>
+      <nav :aria-label="t('footer.label')">
+        <a :href="homeHref">{{ t('nav.reader') }}</a>
+        <a href="/cbz-to-pdf/">{{ t('nav.cbzToPdf') }}</a>
+        <a href="/how-to-open-cbz/">{{ t('nav.howToOpen') }}</a>
+        <a href="/manga-reader/">{{ t('nav.mangaMode') }}</a>
+        <a href="/cbz-vs-cbr/">{{ t('nav.compare') }}</a>
+        <a href="/privacy/">{{ t('footer.privacy') }}</a>
+        <a href="/terms/">{{ t('footer.terms') }}</a>
+        <a href="/disclaimer/">{{ t('footer.disclaimer') }}</a>
       </nav>
     </div>
   </footer>

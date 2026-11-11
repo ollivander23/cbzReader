@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { fingerprint } from './core/fingerprint'
 import {
   loadPageAsset,
@@ -29,6 +30,7 @@ import {
 } from '../lib/theme'
 
 const props = defineProps<{ initialFile?: File | null }>()
+const { t } = useI18n()
 
 const MAX_TOTAL_PIXELS = 32_000_000
 const CONCURRENCY = 2
@@ -214,7 +216,11 @@ const scrollPages = computed(() =>
 )
 
 const modeLabel = computed(() =>
-  mode.value === 'single' ? 'Single' : mode.value === 'double' ? 'Double' : 'Scroll',
+  mode.value === 'single'
+    ? t('reader.modeSingle')
+    : mode.value === 'double'
+      ? t('reader.modeDouble')
+      : t('reader.modeScroll'),
 )
 
 const zoomPercent = computed(() =>
@@ -277,13 +283,14 @@ const visiblePages = computed(() =>
 )
 
 const currentLabel = computed(() => {
+  const total = pageCount.value
   if (mode.value === 'single' || mode.value === 'scroll')
-    return `Page ${index.value + 1} / ${pageCount.value}`
+    return t('reader.singlePage', { page: index.value + 1, total })
   const start = spreadStart(index.value)
-  const end = Math.min(start + (start === 0 ? 1 : 2), pageCount.value)
+  const end = Math.min(start + (start === 0 ? 1 : 2), total)
   return start + 1 === end
-    ? `Page ${start + 1} / ${pageCount.value}`
-    : `Pages ${start + 1}-${end} / ${pageCount.value}`
+    ? t('reader.singlePage', { page: start + 1, total })
+    : t('reader.doublePages', { start: start + 1, end, total })
 })
 
 const layerStyle = computed(() => ({
@@ -293,7 +300,7 @@ const layerStyle = computed(() => ({
 function messageOf(value: unknown): string {
   if (value instanceof ReaderError) return value.message
   if (value instanceof Error && value.message) return value.message
-  return 'Something went wrong while opening this file.'
+  return t('reader.genericError')
 }
 
 function acquire(): Promise<void> {
@@ -1950,19 +1957,19 @@ onBeforeUnmount(() => {
     <section v-if="!ready" class="empty">
       <div class="dropzone">
         <p class="kicker">CBZ / ZIP</p>
-        <h2>{{ busy ? 'Reading archive...' : 'Open a CBZ file' }}</h2>
+        <h2>{{ busy ? t('reader.readingArchive') : t('reader.openTitle') }}</h2>
         <p>
           {{
             busy
-              ? 'Building the page list and decoding the first page.'
-              : 'Drop a .cbz file here, or choose one from your device. Pages are unpacked locally.'
+              ? t('reader.buildingList')
+              : t('reader.openLead')
           }}
         </p>
         <button class="open-button" type="button" :disabled="busy" @click="pickFile">
-          {{ busy ? 'Opening...' : 'Choose a CBZ file' }}
+          {{ busy ? t('reader.opening') : t('reader.chooseFile') }}
         </button>
         <input ref="fileInput" type="file" hidden :accept="accept" @change="onFileChange" />
-        <p class="fine">Nothing is uploaded. Works with CBZ and ZIP archives.</p>
+        <p class="fine">{{ t('reader.fine') }}</p>
       </div>
       <p v-if="error" class="error" role="alert">{{ error }}</p>
     </section>
@@ -1980,8 +1987,8 @@ onBeforeUnmount(() => {
           <button
             type="button"
             class="tool tool--icon"
-            :title="`Reading mode: ${modeLabel} — tap to switch`"
-            :aria-label="`Reading mode: ${modeLabel}. Switch to the next mode.`"
+            :title="t('reader.modeTitle', { mode: modeLabel })"
+            :aria-label="t('reader.modeAria', { mode: modeLabel })"
             @click="toggleMode"
           >
             <svg v-if="mode === 'single'" viewBox="0 0 16 16" aria-hidden="true">
@@ -2001,8 +2008,8 @@ onBeforeUnmount(() => {
           <button
             type="button"
             class="tool tool--zoom"
-            :title="`Zoom ${zoomPercent}% — click to fit width`"
-            :aria-label="`Zoom ${zoomPercent}%, reset to fit width`"
+            :title="t('reader.zoomTitle', { level: zoomPercent })"
+            :aria-label="t('reader.zoomAria', { level: zoomPercent })"
             @click="resetZoom"
           >
             {{ zoomPercent }}%
@@ -2011,8 +2018,8 @@ onBeforeUnmount(() => {
             type="button"
             class="tool tool--icon tool--bookmark tool--compact-only"
             :class="{ active: bookmarked }"
-            :title="bookmarked ? 'Remove bookmark from this page' : 'Bookmark this page'"
-            :aria-label="bookmarked ? 'Remove bookmark from this page' : 'Bookmark this page'"
+            :title="bookmarked ? t('reader.bookmarkRemove') : t('reader.bookmarkAdd')"
+            :aria-label="bookmarked ? t('reader.bookmarkRemove') : t('reader.bookmarkAdd')"
             :aria-pressed="bookmarked ? 'true' : 'false'"
             @click="toggleBookmark"
           >
@@ -2025,16 +2032,8 @@ onBeforeUnmount(() => {
             type="button"
             class="tool tool--icon tool--compact-only"
             :class="{ active: rtl }"
-            :title="
-              rtl
-                ? 'Reading direction: right to left — switch to left to right'
-                : 'Reading direction: left to right — switch to right to left'
-            "
-            :aria-label="
-              rtl
-                ? 'Reading direction: right to left. Switch to left to right.'
-                : 'Reading direction: left to right. Switch to right to left.'
-            "
+            :title="rtl ? t('reader.rtlTitle') : t('reader.ltrTitle')"
+            :aria-label="rtl ? t('reader.rtlAria') : t('reader.ltrAria')"
             :aria-pressed="rtl ? 'true' : 'false'"
             @click="toggleRtl"
           >
@@ -2050,8 +2049,8 @@ onBeforeUnmount(() => {
           <button
             type="button"
             class="tool tool--icon tool--accent"
-            title="Open another CBZ file"
-            aria-label="Open another CBZ file"
+            :title="t('reader.openAnother')"
+            :aria-label="t('reader.openAnother')"
             @click="pickFile"
           >
             <svg viewBox="0 0 16 16" aria-hidden="true">
@@ -2067,8 +2066,8 @@ onBeforeUnmount(() => {
               :class="{ active: menuOpen }"
               aria-haspopup="menu"
               :aria-expanded="menuOpen ? 'true' : 'false'"
-              aria-label="More reading options"
-              title="More options"
+              :aria-label="t('reader.moreOptionsAria')"
+              :title="t('reader.moreOptions')"
               @click="toggleMenu"
             >
               <svg viewBox="0 0 16 16" aria-hidden="true" class="dots">
@@ -2077,7 +2076,7 @@ onBeforeUnmount(() => {
                 <circle cx="8" cy="12.4" r="1.25" />
               </svg>
             </button>
-            <div v-if="menuOpen" ref="menuPanelEl" class="menu__panel" role="menu" aria-label="Reading options">
+            <div v-if="menuOpen" ref="menuPanelEl" class="menu__panel" role="menu" :aria-label="t('reader.optionsLabel')">
               <button
                 v-if="mode !== 'scroll'"
                 type="button"
@@ -2089,8 +2088,8 @@ onBeforeUnmount(() => {
                 <svg viewBox="0 0 16 16" aria-hidden="true">
                   <path d="M13 8H3M6.5 4.5 3 8l3.5 3.5" />
                 </svg>
-                <span>Right-to-left reading</span>
-                <span class="menu__state">{{ rtl ? 'On' : 'Off' }}</span>
+                <span>{{ t('reader.rtlOption') }}</span>
+                <span class="menu__state">{{ rtl ? t('reader.on') : t('reader.off') }}</span>
               </button>
               <button
                 v-if="hasFullscreen"
@@ -2102,7 +2101,7 @@ onBeforeUnmount(() => {
                 <svg viewBox="0 0 16 16" aria-hidden="true">
                   <path d="M6 2.5H2.5V6M10 2.5h3.5V6M6 13.5H2.5V10M10 13.5h3.5V10" />
                 </svg>
-                <span>{{ fullscreenActive ? 'Show browser interface (F)' : 'Hide browser interface (F)' }}</span>
+                <span>{{ fullscreenActive ? t('reader.showBrowser') : t('reader.hideBrowser') }}</span>
               </button>
               <button
                 type="button"
@@ -2114,11 +2113,11 @@ onBeforeUnmount(() => {
                 <svg viewBox="0 0 16 16" aria-hidden="true">
                   <path d="M4.5 2.5h7v11l-3.5-2.7-3.5 2.7z" />
                 </svg>
-                <span>{{ bookmarked ? 'Remove bookmark' : 'Bookmark this page' }}</span>
+                <span>{{ bookmarked ? t('reader.bookmarkRemoveShort') : t('reader.bookmarkAdd') }}</span>
                 <span class="menu__state">{{ bookmarks.length || '' }}</span>
               </button>
               <div class="menu__group" role="group" aria-labelledby="menu-theme-label">
-                <p class="menu__label" id="menu-theme-label">Theme</p>
+                <p class="menu__label" id="menu-theme-label">{{ t('reader.theme') }}</p>
                 <button
                   type="button"
                   class="menu__item"
@@ -2129,12 +2128,12 @@ onBeforeUnmount(() => {
                   <svg viewBox="0 0 16 16" aria-hidden="true">
                     <path d="M12.5 9.6A5.5 5.5 0 0 1 6.4 3.5a5.5 5.5 0 1 0 6.1 6.1z" />
                   </svg>
-                  <span>Dark mode</span>
-                  <span class="menu__state">{{ resolvedTheme === 'dark' ? 'On' : 'Off' }}</span>
+                  <span>{{ t('reader.darkMode') }}</span>
+                  <span class="menu__state">{{ resolvedTheme === 'dark' ? t('reader.on') : t('reader.off') }}</span>
                 </button>
               </div>
               <div v-if="bookmarks.length" class="menu__group">
-                <p class="menu__label">Bookmarks</p>
+                <p class="menu__label">{{ t('reader.bookmarks') }}</p>
                 <div v-for="mark in bookmarks" :key="mark.page" class="menu__row">
                   <button
                     type="button"
@@ -2142,13 +2141,13 @@ onBeforeUnmount(() => {
                     role="menuitem"
                     @click="jumpToBookmark(mark.page)"
                   >
-                    <span>Page {{ mark.page + 1 }}</span>
-                    <span v-if="mark.page === index" class="menu__state">Here</span>
+                    <span>{{ t('reader.pageNumber', { page: mark.page + 1 }) }}</span>
+                    <span v-if="mark.page === index" class="menu__state">{{ t('reader.here') }}</span>
                   </button>
                   <button
                     type="button"
                     class="menu__delete"
-                    :aria-label="`Remove bookmark on page ${mark.page + 1}`"
+                    :aria-label="t('reader.removeBookmarkPage', { page: mark.page + 1 })"
                     @click="removeBookmark(mark.page)"
                   >
                     ×
@@ -2156,7 +2155,7 @@ onBeforeUnmount(() => {
                 </div>
               </div>
               <div v-if="seriesLabel || summaryText" class="menu__group">
-                <p class="menu__label">Comic info</p>
+                <p class="menu__label">{{ t('reader.comicInfo') }}</p>
                 <p v-if="seriesLabel" class="menu__series">{{ seriesLabel }}</p>
                 <p v-if="summaryText" class="menu__summary">{{ summaryText }}</p>
               </div>
@@ -2166,8 +2165,8 @@ onBeforeUnmount(() => {
             type="button"
             class="tool tool--icon"
             data-reader-close
-            aria-label="Close reader"
-            title="Close reader"
+            :aria-label="t('reader.close')"
+            :title="t('reader.close')"
             @click="closeReader"
           >
             <svg viewBox="0 0 16 16" aria-hidden="true">
@@ -2181,10 +2180,10 @@ onBeforeUnmount(() => {
           role="status"
           @click="dismissIosHint"
         >
-          <span>Add to Home Screen to read without Safari's bars.</span>
+          <span>{{ t('reader.iosHint') }}</span>
           <button
             type="button"
-            aria-label="Dismiss hint"
+            :aria-label="t('reader.dismissHint')"
             @click.stop="dismissIosHint"
           >
             ×
@@ -2198,7 +2197,7 @@ onBeforeUnmount(() => {
         class="stage"
         :class="{ 'stage--scroll': mode === 'scroll' }"
         role="region"
-        aria-label="Comic pages"
+        :aria-label="t('reader.comicPages')"
         @pointerdown="onPointerDown"
         @pointermove="onPointerMove"
         @pointerup="onPointerUp"
@@ -2232,7 +2231,7 @@ onBeforeUnmount(() => {
             />
             <div v-else-if="item.error" class="page-error">
               <span>{{ item.error }}</span>
-              <button type="button" @click.stop="retryPage(item.index)">Retry</button>
+              <button type="button" @click.stop="retryPage(item.index)">{{ t('reader.retry') }}</button>
             </div>
             <div v-else class="scroll-placeholder">{{ item.index + 1 }}</div>
           </div>
@@ -2263,7 +2262,7 @@ onBeforeUnmount(() => {
                 />
                 <div v-else-if="item.error" class="page-error">
                   <span>{{ item.error }}</span>
-                  <button type="button" @click.stop="retryPage(item.index)">Retry</button>
+                  <button type="button" @click.stop="retryPage(item.index)">{{ t('reader.retry') }}</button>
                 </div>
                 <div v-else class="page-loading">
                   <span>{{ item.index + 1 }}</span>
@@ -2273,26 +2272,26 @@ onBeforeUnmount(() => {
           </div>
         </div>
 
-        <div v-if="dragging" class="drop-overlay">Drop to open</div>
+        <div v-if="dragging" class="drop-overlay">{{ t('reader.dropToOpen') }}</div>
 
         <div v-if="showResume" class="resume" role="status">
-          <span>Resumed at page {{ resumePage }}</span>
-          <button type="button" @click="startOver">Start over</button>
-          <button type="button" class="resume__close" aria-label="Dismiss" @click="showResume = false">
+          <span>{{ t('reader.resumed', { page: resumePage }) }}</span>
+          <button type="button" @click="startOver">{{ t('reader.startOver') }}</button>
+          <button type="button" class="resume__close" :aria-label="t('reader.dismiss')" @click="showResume = false">
             ×
           </button>
         </div>
       </div>
 
       <footer ref="bottombarEl" class="bottombar" :class="{ 'bottombar--hidden': !toolbarVisible }">
-        <button type="button" class="nav" :disabled="index === 0" @click="prev">Prev</button>
+        <button type="button" class="nav" :disabled="index === 0" @click="prev">{{ t('reader.prev') }}</button>
         <input
           class="slider"
           type="range"
           min="0"
           :max="Math.max(0, pageCount - 1)"
           :value="index"
-          aria-label="Page"
+          :aria-label="t('reader.page')"
           @input="onSlider"
         />
         <span class="counter">{{ currentLabel }}</span>
@@ -2301,10 +2300,10 @@ onBeforeUnmount(() => {
           type="button"
           class="nav nav--icon"
           :class="{ 'nav--active': thumbPanelOpen }"
-          aria-label="Page thumbnails"
+          :aria-label="t('reader.thumbnails')"
           aria-haspopup="dialog"
           :aria-expanded="thumbPanelOpen ? 'true' : 'false'"
-          title="Page thumbnails"
+          :title="t('reader.thumbnails')"
           @click="toggleThumbPanel"
         >
           <svg viewBox="0 0 16 16" aria-hidden="true">
@@ -2320,19 +2319,19 @@ onBeforeUnmount(() => {
           :disabled="index >= pageCount - 1"
           @click="next"
         >
-          Next
+          {{ t('reader.next') }}
         </button>
       </footer>
 
       <div v-if="thumbPanelOpen" class="thumb-layer" :style="{ bottom: `${bottombarHeight}px` }">
         <div class="thumb-scrim" @click="closeThumbPanel(true)"></div>
-        <section class="thumb-panel" role="dialog" aria-modal="true" aria-label="Page thumbnails">
+        <section class="thumb-panel" role="dialog" aria-modal="true" :aria-label="t('reader.thumbnails')">
           <header class="thumb-head">
-            <strong>Pages</strong>
-            <span>{{ pageCount }} pages</span>
+            <strong>{{ t('reader.pages') }}</strong>
+            <span>{{ t('reader.pageCount', { count: pageCount }) }}</span>
           </header>
-          <nav v-if="tocEntries.length" class="toc" aria-label="Contents">
-            <p class="toc__label">Contents</p>
+          <nav v-if="tocEntries.length" class="toc" :aria-label="t('reader.contents')">
+            <p class="toc__label">{{ t('reader.contents') }}</p>
             <div class="toc__list">
               <button
                 v-for="(entry, position) in tocEntries"
@@ -2342,7 +2341,7 @@ onBeforeUnmount(() => {
                 @click="jumpFromThumb(entry.page)"
               >
                 <span class="toc__title">{{ entry.title }}</span>
-                <span class="toc__page">Page {{ entry.page + 1 }}</span>
+                <span class="toc__page">{{ t('reader.pageNumber', { page: entry.page + 1 }) }}</span>
               </button>
             </div>
           </nav>
@@ -2357,7 +2356,7 @@ onBeforeUnmount(() => {
                 'thumb--marked': bookmarkedPages.has(page),
               }"
               :data-thumb="page"
-              :aria-label="`Go to page ${page + 1}`"
+              :aria-label="t('reader.goToPage', { page: page + 1 })"
               :aria-current="page === index ? 'page' : undefined"
               @click="jumpFromThumb(page)"
             >
