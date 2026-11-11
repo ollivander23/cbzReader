@@ -1796,7 +1796,7 @@ function menuToggleDark(): void {
   closeMenu()
 }
 
-function menuToggleBookmark(): void {
+function toggleBookmark(): void {
   const page = index.value
   const exists = bookmarks.value.some((item) => item.page === page)
   const next = exists
@@ -1805,6 +1805,11 @@ function menuToggleBookmark(): void {
   if (!exists) track('bookmark_add')
   bookmarks.value = next
   void writeBookmarks(fileFingerprint.value, next)
+}
+
+function menuToggleBookmark(): void {
+  toggleBookmark()
+  closeMenu()
 }
 
 function jumpToBookmark(page: number): void {
@@ -1965,8 +1970,11 @@ onBeforeUnmount(() => {
     <section v-else ref="viewerEl" class="viewer">
       <header class="toolbar" :class="{ 'toolbar--hidden': !toolbarVisible }">
         <div ref="metaEl" class="meta">
-          <strong :title="title || fileName">{{ displayName }}</strong>
-          <span>{{ currentLabel }}</span>
+          <strong :title="title || fileName">
+            <span class="meta__name meta__name--wide">{{ displayName }}</span>
+            <span class="meta__name meta__name--narrow">{{ title || fileName }}</span>
+          </strong>
+          <span class="meta__page">{{ currentLabel }}</span>
         </div>
         <div class="tools">
           <button
@@ -1998,6 +2006,46 @@ onBeforeUnmount(() => {
             @click="resetZoom"
           >
             {{ zoomPercent }}%
+          </button>
+          <button
+            type="button"
+            class="tool tool--icon tool--bookmark tool--compact-only"
+            :class="{ active: bookmarked }"
+            :title="bookmarked ? 'Remove bookmark from this page' : 'Bookmark this page'"
+            :aria-label="bookmarked ? 'Remove bookmark from this page' : 'Bookmark this page'"
+            :aria-pressed="bookmarked ? 'true' : 'false'"
+            @click="toggleBookmark"
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M4.5 2.5h7v11l-3.5-2.7-3.5 2.7z" />
+            </svg>
+          </button>
+          <button
+            v-if="mode !== 'scroll'"
+            type="button"
+            class="tool tool--icon tool--compact-only"
+            :class="{ active: rtl }"
+            :title="
+              rtl
+                ? 'Reading direction: right to left — switch to left to right'
+                : 'Reading direction: left to right — switch to right to left'
+            "
+            :aria-label="
+              rtl
+                ? 'Reading direction: right to left. Switch to left to right.'
+                : 'Reading direction: left to right. Switch to right to left.'
+            "
+            :aria-pressed="rtl ? 'true' : 'false'"
+            @click="toggleRtl"
+          >
+            <svg v-if="rtl" viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M13 4.5H3M5.5 2 3 4.5 5.5 7" />
+              <path d="M13 11.5H3M5.5 9 3 11.5 5.5 14" />
+            </svg>
+            <svg v-else viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M3 4.5h10M10.5 2 13 4.5 10.5 7" />
+              <path d="M3 11.5h10M10.5 9 13 11.5 10.5 14" />
+            </svg>
           </button>
           <button
             type="button"
@@ -2033,7 +2081,7 @@ onBeforeUnmount(() => {
               <button
                 v-if="mode !== 'scroll'"
                 type="button"
-                class="menu__item"
+                class="menu__item menu__item--compact-hide"
                 role="menuitemcheckbox"
                 :aria-checked="rtl ? 'true' : 'false'"
                 @click="menuToggleRtl"
@@ -2058,7 +2106,7 @@ onBeforeUnmount(() => {
               </button>
               <button
                 type="button"
-                class="menu__item"
+                class="menu__item menu__item--compact-hide"
                 role="menuitemcheckbox"
                 :aria-checked="bookmarked ? 'true' : 'false'"
                 @click="menuToggleBookmark"
@@ -2508,7 +2556,19 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
-.meta span {
+.meta__name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Only one of these is shown; the wide one keeps the established ellipsis. */
+.meta__name--narrow {
+  display: none;
+}
+
+.meta__page {
   display: block;
   overflow: hidden;
   color: rgba(255, 255, 255, 0.56);
@@ -2562,6 +2622,18 @@ onBeforeUnmount(() => {
 .tool--icon svg.dots {
   fill: currentColor;
   stroke: none;
+}
+
+/*
+ * Bookmark and reading-direction controls only join the bar when it folds into
+ * two rows; on wide screens they stay in the options menu.
+ */
+.tool--compact-only {
+  display: none;
+}
+
+.tool--bookmark.active svg {
+  fill: currentColor;
 }
 
 .tool--zoom {
@@ -3339,17 +3411,63 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 720px) {
+  /*
+   * Narrow screens fold the toolbar into two rows: the full title gets its own
+   * row (up to two lines), and the controls get the second row to spread out.
+   * This uses the same narrow breakpoint as the rest of the reader.
+   */
   .toolbar {
+    flex-wrap: wrap;
     gap: 6px;
     padding: calc(8px + env(safe-area-inset-top)) calc(10px + env(safe-area-inset-right)) 8px
       calc(10px + env(safe-area-inset-left));
   }
 
   .meta {
-    max-width: 42%;
+    flex: 1 1 100%;
+    min-width: 0;
+    max-width: 100%;
   }
 
-  .meta span {
+  .meta__name--wide {
+    display: none;
+  }
+
+  .meta__name--narrow {
+    display: -webkit-box;
+    max-height: 2.7em;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow-wrap: anywhere;
+    line-height: 1.35;
+    white-space: normal;
+  }
+
+  .meta__page {
+    display: none;
+  }
+
+  /*
+   * Reset the landing page's global `.tools` section styles in the folded bar:
+   * its top margin/padding/border would otherwise become the stray line and
+   * the empty band under the title. Scoped to narrow screens so the wide bar
+   * keeps its current look.
+   */
+  .toolbar .tools {
+    flex: 1 1 100%;
+    margin: 0;
+    padding: 0;
+    border-top: 0;
+    justify-content: flex-start;
+  }
+
+  .tool--compact-only {
+    display: inline-flex;
+  }
+
+  /* These moved out of the menu and into the second row. */
+  .menu__item--compact-hide {
     display: none;
   }
 
