@@ -623,7 +623,10 @@ try {
     throw new Error('F entered fullscreen although document.fullscreenEnabled is false')
   }
 
-  // /demo/ loads a bundled sample without touching the file picker.
+  // /demo/ loads a bundled sample without touching the file picker. A narrow
+  // viewport opens it directly in single-page mode, keeping this section independent
+  // of the mode-switch shortcuts used above.
+  await page.setViewport({ width: 900, height: 900 })
   await page.goto(`${base}demo/`, { waitUntil: 'networkidle2' })
   await page.waitForSelector('.reader--open', { timeout: 20_000 })
   await page.waitForFunction(
@@ -646,6 +649,123 @@ try {
     throw new Error(`Demo did not auto-open the bundled sample: ${JSON.stringify(demo)}`)
   }
   if (demo.askedForFile) throw new Error('Demo page still shows the file dropzone')
+
+  // Page thumbnails: opened from the control bar, decoded lazily, current page
+  // marked, a tap jumps, Escape closes and returns focus to the button.
+  await page.waitForFunction(
+    () => document.querySelector('.counter')?.textContent?.trim() === 'Page 1 / 12',
+    { timeout: 5_000 },
+  )
+  await showToolbar(page)
+  await page.click('[aria-label="Page thumbnails"]')
+  await page.waitForSelector('.thumb-panel', { timeout: 5_000 })
+  await page.waitForSelector('.thumb--current', { timeout: 5_000 })
+  // Let the rise-in animation finish before measuring the sheet edges.
+  await page.waitForFunction(
+    () => {
+      const panel = document.querySelector('.thumb-panel')
+      const bar = document.querySelector('.bottombar')
+      if (!panel || !bar) return false
+      return Math.abs(panel.getBoundingClientRect().bottom - bar.getBoundingClientRect().top) <= 2
+    },
+    { timeout: 3_000 },
+  )
+  const panelState = await page.evaluate(() => {
+    const panel = document.querySelector('.thumb-panel')
+    const bar = document.querySelector('.bottombar')
+    const current = document.querySelector('.thumb--current')
+    return {
+      currentPage: current?.getAttribute('data-thumb'),
+      currentAria: current?.getAttribute('aria-current'),
+      expanded: document.querySelector('[aria-label="Page thumbnails"]')?.getAttribute('aria-expanded'),
+      toolbarHidden: Boolean(document.querySelector('.toolbar--hidden')),
+      panelBottom: panel ? panel.getBoundingClientRect().bottom : 0,
+      barTop: bar ? bar.getBoundingClientRect().top : 0,
+      tiles: document.querySelectorAll('.thumb').length,
+    }
+  })
+  if (
+    panelState.currentPage !== '0' ||
+    panelState.currentAria !== 'page' ||
+    panelState.expanded !== 'true' ||
+    panelState.toolbarHidden ||
+    panelState.tiles !== 12 ||
+    Math.abs(panelState.panelBottom - panelState.barTop) > 2
+  ) {
+    throw new Error(`Thumbnail panel did not open correctly: ${JSON.stringify(panelState)}`)
+  }
+  await page.waitForFunction(
+    () => {
+      const image = document.querySelector('.thumb img')
+      return Boolean(image && image.complete && image.naturalWidth > 0)
+    },
+    { timeout: 15_000 },
+  )
+
+  await page.click('[data-thumb="4"]')
+  await page.waitForFunction(() => !document.querySelector('.thumb-panel'), { timeout: 3_000 })
+  await page.waitForFunction(
+    () => document.querySelector('.counter')?.textContent?.trim() === 'Page 5 / 12',
+    { timeout: 5_000 },
+  )
+
+  await showToolbar(page)
+  await page.click('[aria-label="Page thumbnails"]')
+  await page.waitForSelector('.thumb-panel', { timeout: 5_000 })
+  await page.keyboard.press('Escape')
+  await page.waitForFunction(() => !document.querySelector('.thumb-panel'), { timeout: 3_000 })
+  const focusAfterEsc = await page.evaluate(() => ({
+    label: document.activeElement?.getAttribute('aria-label'),
+    expanded: document.querySelector('[aria-label="Page thumbnails"]')?.getAttribute('aria-expanded'),
+  }))
+  if (focusAfterEsc.label !== 'Page thumbnails' || focusAfterEsc.expanded !== 'false') {
+    throw new Error(`Escape did not close and refocus the thumbnail button: ${JSON.stringify(focusAfterEsc)}`)
+  }
+
+  // 375px: the bar must stay on one row with every control inside it.
+  await page.setViewport({ width: 375, height: 667 })
+  await new Promise((resolve) => setTimeout(resolve, 200))
+  await showToolbar(page)
+  await page.click('[aria-label="Page thumbnails"]')
+  await page.waitForSelector('.thumb-panel', { timeout: 5_000 })
+  const narrow = await page.evaluate(() => {
+    const bar = document.querySelector('.bottombar')
+    const box = bar.getBoundingClientRect()
+    const controls = []
+    for (const child of bar.children) {
+      const rect = child.getBoundingClientRect()
+      controls.push({ top: rect.top, bottom: rect.bottom, right: rect.right })
+    }
+    const columns = getComputedStyle(document.querySelector('.thumb-grid')).gridTemplateColumns.split(' ')
+    return {
+      scrollWidth: bar.scrollWidth,
+      clientWidth: bar.clientWidth,
+      height: box.height,
+      controls,
+      barRight: box.right,
+      barTop: box.top,
+      columns: columns.length,
+    }
+  })
+  if (narrow.scrollWidth > narrow.clientWidth + 1) {
+    throw new Error(`Bottombar overflows at 375px: ${JSON.stringify(narrow)}`)
+  }
+  for (const control of narrow.controls) {
+    if (
+      control.right > narrow.barRight + 1 ||
+      control.top < narrow.barTop - 1 ||
+      control.bottom > narrow.barTop + narrow.height + 1
+    ) {
+      throw new Error(`Bottombar wrapped or escaped its row at 375px: ${JSON.stringify(narrow)}`)
+    }
+  }
+  if (narrow.columns !== 3) {
+    throw new Error(`Portrait grid should use 3 columns at 375px, got ${narrow.columns}`)
+  }
+  await page.screenshot({ path: path.join(root, 'test/.cache/e2e-thumbnails-375.png') })
+  await page.keyboard.press('Escape')
+  await page.waitForFunction(() => !document.querySelector('.thumb-panel'), { timeout: 3_000 })
+  await page.setViewport({ width: 1280, height: 900 })
 
   // The privacy page publishes a plain, clickable contact address.
   await page.goto(`${base}privacy/`, { waitUntil: 'networkidle2' })

@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { fingerprint } from './core/fingerprint'
-import { loadPageAsset } from './core/imageLoader'
+import {
+  loadPageAsset,
+  loadThumbnail,
+  loadThumbnailFromUrl,
+  type ThumbAsset,
+} from './core/imageLoader'
 import { readProgress, writeProgress, type ReadingMode } from './core/progress'
 import {
   readBookmarks,
@@ -37,6 +42,10 @@ const SCROLL_WINDOW = 12
 const MAX_SCROLL_SCALE = 4
 const SCROLL_DECODE_WIDTH = 3200
 const IOS_HINT_KEY = 'cbz-ios-fullscreen-hint'
+// Thumbnails have their own tiny budget. Kept well below the page budget so a
+// full grid can never evict the pages the reader is actually showing.
+const THUMB_CACHE_LIMIT = 60
+const THUMB_FALLBACK_TILE = 128
 
 interface ScrollAnchor {
   page: number
@@ -56,6 +65,8 @@ interface ScrollPinch {
   scale: number
   anchor: ScrollAnchor | null
 }
+
+interface ThumbEntry extends ThumbAsset {}
 
 const isIOS =
   typeof navigator !== 'undefined' &&
@@ -87,9 +98,13 @@ const hasFullscreen = ref(false)
 const iosHintVisible = ref(false)
 const fileFingerprint = ref('')
 const bookmarks = ref<Bookmark[]>([])
+const thumbPanelOpen = ref(false)
+const bottombarHeight = ref(0)
 
 const assets = reactive(new Map<number, PageAsset>())
 const pageErrors = reactive(new Map<number, string>())
+// A second, much smaller cache that is deliberately not part of `assets`.
+const thumbs = reactive(new Map<number, ThumbEntry>())
 
 const scrollWindowStart = ref(0)
 const scrollScale = ref(1)
@@ -102,6 +117,9 @@ const metaEl = ref<HTMLElement | null>(null)
 const menuRef = ref<HTMLElement | null>(null)
 const menuButtonEl = ref<HTMLButtonElement | null>(null)
 const menuPanelEl = ref<HTMLElement | null>(null)
+const thumbButtonEl = ref<HTMLButtonElement | null>(null)
+const thumbGridEl = ref<HTMLElement | null>(null)
+const bottombarEl = ref<HTMLElement | null>(null)
 
 const stageW = ref(0)
 const stageH = ref(0)
@@ -126,6 +144,17 @@ let shelfReady: Promise<void> | null = null
 let openStartedAt = 0
 let renderTracked = false
 let zoomTracked = false
+
+// Thumbnail bookkeeping stays outside Vue reactivity: the queue changes on
+// every scroll frame, and only `thumbs` needs to drive rendering.
+let thumbQueue: number[] = []
+const thumbQueued = new Set<number>()
+const thumbVisible = new Set<number>()
+const thumbOrder: number[] = []
+let thumbObserver: IntersectionObserver | null = null
+let thumbWorker: Promise<void> | null = null
+let thumbToken = 0
+let thumbTileWidth = 0
 
 const pointers = new Map<number, { x: number; y: number }>()
 let panStart: { x: number; y: number; tx: number; ty: number } | null = null
@@ -199,6 +228,12 @@ watch(zoomPercent, (value) => {
 })
 
 const bookmarked = computed(() => bookmarks.value.some((item) => item.page === index.value))
+
+const pageIndices = computed<number[]>(() =>
+  Array.from({ length: pageCount.value }, (_, position) => position),
+)
+
+const bookmarkedPages = computed(() => new Set(bookmarks.value.map((item) => item.page)))
 
 /**
  * Keep the head and the extension of a long name, so the middle ellipsis never
@@ -281,6 +316,7 @@ async function resetReader(): Promise<void> {
   source.value = null
   inflight.clear()
   releaseAssets()
+  releaseThumbs()
   const waiting = loadWaiters.splice(0)
   waiting.forEach((resolve) => resolve())
   activeLoads = 0
@@ -554,9 +590,10 @@ function onScroll(): void {
   if (mode.value !== 'scroll') return
   const scroller = stageEl.value
   if (scroller) {
-    // Scrolling fades the floating chrome out; tapping brings it back.
+    // Scrolling fades the floating chrome out; tapping brings it back. The
+    // thumbnail sheet owns the screen, so it must not fade underneath it.
     if (Math.abs(scroller.scrollTop - lastScrollTop) > 4) {
-      toolbarVisible.value = false
+      if (!thumbPanelOpen.value) toolbarVisible.value = false
       dismissIosHint()
     }
     lastScrollTop = scroller.scrollTop
@@ -881,6 +918,11 @@ function scheduleSave(): void {
 
 watch([index, mode, rtl], scheduleSave)
 
+watch(index, () => {
+  if (!thumbPanelOpen.value) return
+  void nextTick().then(scrollActiveThumbIntoView)
+})
+
 async function openFile(file: File): Promise<void> {
   if (busy.value) return
   busy.value = true
@@ -988,6 +1030,224 @@ function leaveImmersive(restoreScroll: boolean): void {
 
 function dismissIosHint(): void {
   iosHintVisible.value = false
+}
+
+/**
+ * Tiles are decoded at their displayed size times the device pixel ratio, then
+ * clamped to 240x320. Anything larger is wasted pixels for a 100px tile.
+ */
+function thumbTargetWidth(): number {
+  const dpr = typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1
+  const cssWidth = thumbTileWidth || THUMB_FALLBACK_TILE
+  return Math.min(240, Math.max(64, Math.round(cssWidth * dpr)))
+}
+
+function touchThumb(page: number): void {
+  const at = thumbOrder.indexOf(page)
+  if (at >= 0) thumbOrder.splice(at, 1)
+  thumbOrder.push(page)
+}
+
+function trimThumbs(keep: number): void {
+  while (thumbOrder.length > THUMB_CACHE_LIMIT) {
+    const page = thumbOrder[0]
+    // Never drop the entry that was just produced; rotate it to the back.
+    if (page === keep) {
+      thumbOrder.push(thumbOrder.shift() as number)
+      continue
+    }
+    thumbOrder.shift()
+    const entry = thumbs.get(page)
+    if (entry) {
+      URL.revokeObjectURL(entry.url)
+      thumbs.delete(page)
+    }
+  }
+}
+
+function rememberThumb(page: number, entry: ThumbEntry): void {
+  const previous = thumbs.get(page)
+  if (previous) URL.revokeObjectURL(previous.url)
+  thumbs.set(page, entry)
+  touchThumb(page)
+  trimThumbs(page)
+  // A tile that is still on screen must not stay blank after an eviction.
+  for (const visiblePage of thumbVisible) {
+    if (!thumbs.has(visiblePage)) enqueueThumb(visiblePage)
+  }
+}
+
+function enqueueThumb(page: number): void {
+  if (!thumbPanelOpen.value || thumbs.has(page) || thumbQueued.has(page)) return
+  thumbQueued.add(page)
+  thumbQueue.push(page)
+  pumpThumbs()
+}
+
+function cancelThumb(page: number): void {
+  if (!thumbQueued.has(page)) return
+  thumbQueued.delete(page)
+  const at = thumbQueue.indexOf(page)
+  if (at >= 0) thumbQueue.splice(at, 1)
+}
+
+async function buildThumb(page: number, token: number): Promise<void> {
+  const archive = source.value
+  if (!archive) return
+  const gen = generation
+  try {
+    const target = thumbTargetWidth()
+    // Reuse the page the reader already decoded; otherwise unzip through the
+    // same archive source instead of opening a second reader for thumbnails.
+    const decoded = assets.get(page)
+    const entry = decoded
+      ? await loadThumbnailFromUrl(decoded.url, target)
+      : await loadThumbnail(await archive.getPage(page), target)
+    if (gen !== generation || token !== thumbToken || !thumbPanelOpen.value) {
+      URL.revokeObjectURL(entry.url)
+      return
+    }
+    rememberThumb(page, entry)
+  } catch {
+    // Leave the numbered placeholder in place; scrolling back retries.
+  }
+}
+
+/** One thumbnail at a time: the grid should never compete with page decoding. */
+function pumpThumbs(): void {
+  if (thumbWorker || !thumbPanelOpen.value) return
+  const token = thumbToken
+  thumbWorker = (async () => {
+    while (thumbQueue.length > 0 && thumbPanelOpen.value && token === thumbToken) {
+      const page = thumbQueue.shift() as number
+      thumbQueued.delete(page)
+      if (!thumbVisible.has(page) || thumbs.has(page)) continue
+      await buildThumb(page, token)
+    }
+  })().finally(() => {
+    thumbWorker = null
+    if (thumbQueue.length > 0 && thumbPanelOpen.value) pumpThumbs()
+  })
+}
+
+function scrollActiveThumbIntoView(): void {
+  const grid = thumbGridEl.value
+  if (!grid) return
+  const tile = grid.querySelector<HTMLElement>(`[data-thumb="${index.value}"]`)
+  if (!tile) return
+  const target = tile.offsetTop - grid.clientHeight / 2 + tile.offsetHeight / 2
+  grid.scrollTop = Math.max(0, Math.min(target, grid.scrollHeight - grid.clientHeight))
+}
+
+function setupThumbObserver(): void {
+  teardownThumbObserver()
+  const grid = thumbGridEl.value
+  if (!grid) return
+  syncThumbMetrics()
+
+  if (typeof IntersectionObserver === 'undefined') {
+    for (const page of pageIndices.value.slice(0, 24)) {
+      thumbVisible.add(page)
+      enqueueThumb(page)
+    }
+    return
+  }
+
+  // Only tiles that are actually on screen get queued. Scrolling away cancels
+  // the queued work, so a fast flick never leaves a long tail of decodes.
+  thumbObserver = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        const page = Number((entry.target as HTMLElement).dataset.thumb)
+        if (!Number.isFinite(page)) continue
+        if (entry.isIntersecting) {
+          thumbVisible.add(page)
+          enqueueThumb(page)
+        } else {
+          thumbVisible.delete(page)
+          cancelThumb(page)
+        }
+      }
+    },
+    { root: grid },
+  )
+  for (const tile of grid.querySelectorAll<HTMLElement>('[data-thumb]')) {
+    thumbObserver.observe(tile)
+  }
+}
+
+function teardownThumbObserver(): void {
+  thumbObserver?.disconnect()
+  thumbObserver = null
+}
+
+/**
+ * Percentage padding does not count towards a grid row's intrinsic minimum, so
+ * with 120 tiles the rows collapse and the tiles stack. Pin the row height to
+ * the measured tile width instead.
+ */
+function syncThumbMetrics(): void {
+  const grid = thumbGridEl.value
+  if (!grid) return
+  const width = grid.querySelector<HTMLElement>('[data-thumb]')?.offsetWidth ?? 0
+  if (!width) return
+  thumbTileWidth = width
+  grid.style.setProperty('--thumb-row', `${Math.round(width * 1.5)}px`)
+}
+
+function openThumbPanel(): void {
+  if (!source.value || thumbPanelOpen.value) return
+  menuOpen.value = false
+  dismissIosHint()
+  // The control bar is the way back out, so it must stay on screen.
+  toolbarVisible.value = true
+  // Re-measure at open time: the bar can have been laid out differently while
+  // the chrome was hidden, and the sheet must sit exactly on top of it.
+  measureBottombar()
+  thumbPanelOpen.value = true
+  track('thumb_open')
+  void nextTick().then(() => {
+    setupThumbObserver()
+    scrollActiveThumbIntoView()
+    thumbGridEl.value
+      ?.querySelector<HTMLElement>('.thumb--current')
+      ?.focus({ preventScroll: true })
+  })
+}
+
+function closeThumbPanel(focusButton: boolean): void {
+  if (!thumbPanelOpen.value) return
+  thumbPanelOpen.value = false
+  thumbToken += 1
+  thumbQueue = []
+  thumbQueued.clear()
+  thumbVisible.clear()
+  teardownThumbObserver()
+  if (focusButton) thumbButtonEl.value?.focus()
+}
+
+function toggleThumbPanel(): void {
+  if (thumbPanelOpen.value) closeThumbPanel(true)
+  else openThumbPanel()
+}
+
+function jumpFromThumb(page: number): void {
+  const from = index.value
+  closeThumbPanel(true)
+  if (page !== from) track('thumb_jump', { from: from + 1, to: page + 1 })
+  goToPage(page)
+}
+
+function releaseThumbs(): void {
+  closeThumbPanel(false)
+  thumbToken += 1
+  for (const entry of thumbs.values()) URL.revokeObjectURL(entry.url)
+  thumbs.clear()
+  thumbOrder.length = 0
+  thumbQueue = []
+  thumbQueued.clear()
+  thumbVisible.clear()
+  thumbTileWidth = 0
 }
 
 async function closeReader(): Promise<void> {
@@ -1185,7 +1445,7 @@ function onPointerUp(event: PointerEvent): void {
 
   // Swipe down hides the floating chrome; a tap in the middle brings it back.
   if (moved > 56 && Math.abs(dy) > Math.abs(dx) * 1.2 && dy > 0) {
-    toolbarVisible.value = false
+    if (!thumbPanelOpen.value) toolbarVisible.value = false
     return
   }
 
@@ -1193,6 +1453,7 @@ function onPointerUp(event: PointerEvent): void {
 }
 
 function scheduleToolbarToggle(): void {
+  if (thumbPanelOpen.value) return
   window.clearTimeout(scrollTapTimer)
   scrollTapTimer = window.setTimeout(() => {
     toolbarVisible.value = !toolbarVisible.value
@@ -1359,6 +1620,16 @@ function onKey(event: KeyboardEvent): void {
     target &&
     (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
   ) {
+    return
+  }
+
+  // The thumbnail sheet is modal: Escape closes it and returns focus, and page
+  // turn keys must not fire behind it.
+  if (thumbPanelOpen.value) {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      closeThumbPanel(true)
+    }
     return
   }
 
@@ -1547,12 +1818,23 @@ function preventBrowserDrop(event: DragEvent): void {
 let resizeObserver: ResizeObserver | null = null
 let observedStage: HTMLElement | null = null
 let observedMeta: HTMLElement | null = null
+let observedBottombar: HTMLElement | null = null
 
 function measureNameBudget(): void {
   const width = metaEl.value?.clientWidth ?? 0
   if (!width) return
   // 13px semibold averages roughly 7.2px per character; 8.2 leaves room for wide glyphs.
   nameBudget.value = Math.max(10, Math.floor(width / 8.2))
+}
+
+/**
+ * The sheet sits on top of the control bar, so its offset comes from the bar's
+ * measured height. A hard-coded offset breaks as soon as the bar is taller on a
+ * narrow screen or with a larger safe area.
+ */
+function measureBottombar(): void {
+  const height = bottombarEl.value?.offsetHeight ?? 0
+  if (height > 0 && height !== bottombarHeight.value) bottombarHeight.value = height
 }
 
 function attachObserver(): void {
@@ -1569,7 +1851,14 @@ function attachObserver(): void {
     observedMeta = meta
     resizeObserver.observe(meta)
   }
+  const bottombar = bottombarEl.value
+  if (bottombar && bottombar !== observedBottombar) {
+    if (observedBottombar) resizeObserver.unobserve(observedBottombar)
+    observedBottombar = bottombar
+    resizeObserver.observe(bottombar)
+  }
   measureNameBudget()
+  measureBottombar()
 }
 
 watch(stageEl, () => {
@@ -1591,6 +1880,10 @@ onMounted(async () => {
   resizeObserver = new ResizeObserver(() => {
     measureStage()
     measureNameBudget()
+    measureBottombar()
+    if (thumbPanelOpen.value) {
+      syncThumbMetrics()
+    }
     clampPan()
   })
 
@@ -1924,7 +2217,7 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <footer class="bottombar" :class="{ 'bottombar--hidden': !toolbarVisible }">
+      <footer ref="bottombarEl" class="bottombar" :class="{ 'bottombar--hidden': !toolbarVisible }">
         <button type="button" class="nav" :disabled="index === 0" @click="prev">Prev</button>
         <input
           class="slider"
@@ -1937,6 +2230,24 @@ onBeforeUnmount(() => {
         />
         <span class="counter">{{ currentLabel }}</span>
         <button
+          ref="thumbButtonEl"
+          type="button"
+          class="nav nav--icon"
+          :class="{ 'nav--active': thumbPanelOpen }"
+          aria-label="Page thumbnails"
+          aria-haspopup="dialog"
+          :aria-expanded="thumbPanelOpen ? 'true' : 'false'"
+          title="Page thumbnails"
+          @click="toggleThumbPanel"
+        >
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <rect x="2.5" y="2.5" width="4.2" height="4.2" rx="0.9" />
+            <rect x="9.3" y="2.5" width="4.2" height="4.2" rx="0.9" />
+            <rect x="2.5" y="9.3" width="4.2" height="4.2" rx="0.9" />
+            <rect x="9.3" y="9.3" width="4.2" height="4.2" rx="0.9" />
+          </svg>
+        </button>
+        <button
           type="button"
           class="nav"
           :disabled="index >= pageCount - 1"
@@ -1945,6 +2256,43 @@ onBeforeUnmount(() => {
           Next
         </button>
       </footer>
+
+      <div v-if="thumbPanelOpen" class="thumb-layer" :style="{ bottom: `${bottombarHeight}px` }">
+        <div class="thumb-scrim" @click="closeThumbPanel(true)"></div>
+        <section class="thumb-panel" role="dialog" aria-modal="true" aria-label="Page thumbnails">
+          <header class="thumb-head">
+            <strong>Pages</strong>
+            <span>{{ pageCount }} pages</span>
+          </header>
+          <div ref="thumbGridEl" class="thumb-grid">
+            <button
+              v-for="page in pageIndices"
+              :key="page"
+              type="button"
+              class="thumb"
+              :class="{
+                'thumb--current': page === index,
+                'thumb--marked': bookmarkedPages.has(page),
+              }"
+              :data-thumb="page"
+              :aria-label="`Go to page ${page + 1}`"
+              :aria-current="page === index ? 'page' : undefined"
+              @click="jumpFromThumb(page)"
+            >
+              <img
+                v-if="thumbs.get(page)"
+                :src="thumbs.get(page)?.url"
+                alt=""
+                draggable="false"
+                decoding="async"
+              />
+              <span v-else class="thumb__num">{{ page + 1 }}</span>
+              <span class="thumb__label">{{ page + 1 }}</span>
+              <span v-if="bookmarkedPages.has(page)" class="thumb__mark" aria-hidden="true"></span>
+            </button>
+          </div>
+        </section>
+      </div>
     </section>
   </div>
 </template>
@@ -2611,6 +2959,248 @@ onBeforeUnmount(() => {
   opacity: 0.35;
 }
 
+.nav--icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  min-height: 34px;
+  padding: 0;
+}
+
+.nav--icon svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nav--active {
+  border-color: rgba(251, 146, 60, 0.6);
+  background: rgba(194, 65, 12, 0.3);
+  color: #ffedd5;
+}
+
+/*
+ * The sheet starts above the control bar, so the bar stays visible and its
+ * grid button can close the panel again. Its offset is measured, never fixed.
+ */
+.thumb-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+.thumb-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 4, 8, 0.56);
+  pointer-events: auto;
+  animation: thumb-fade 0.16s ease-out;
+}
+
+.thumb-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: min(66%, calc(100% - 56px));
+  overflow: hidden;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px 14px 0 0;
+  background: #101014;
+  box-shadow: 0 -18px 48px rgba(0, 0, 0, 0.6);
+  pointer-events: auto;
+  animation: thumb-rise 0.2s ease-out;
+}
+
+.thumb-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px 8px;
+}
+
+.thumb-head strong {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.thumb-head span {
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 11px;
+}
+
+.thumb-grid {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-auto-rows: var(--thumb-row, auto);
+  align-content: start;
+  gap: 10px;
+  padding: 2px 16px calc(14px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+
+.thumb {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  background: #17171d;
+  cursor: pointer;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+/*
+ * A padding box drives the 2:3 tile height. `aspect-ratio` on the button meets
+ * a global min-height and lets grid rows collapse, which stacks the tiles.
+ */
+.thumb::before {
+  display: block;
+  padding-top: 150%;
+  content: '';
+}
+
+.thumb img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #0d0d11;
+  object-fit: contain;
+}
+
+.thumb__num {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.32);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.thumb__label {
+  position: absolute;
+  bottom: 3px;
+  left: 4px;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.62);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 9px;
+  line-height: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.thumb__mark {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-top: 12px solid #fb923c;
+  border-left: 12px solid transparent;
+}
+
+.thumb--current {
+  border-color: #f97316;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.85);
+}
+
+.thumb--current .thumb__label {
+  background: #c2410c;
+  color: #fff;
+}
+
+.thumb:focus-visible {
+  outline: 2px solid #fb923c;
+  outline-offset: 2px;
+}
+
+@keyframes thumb-rise {
+  from {
+    transform: translateY(28px);
+    opacity: 0.5;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes thumb-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thumb-panel,
+  .thumb-scrim {
+    animation: none;
+  }
+}
+
+@media (max-width: 1100px) {
+  .thumb-grid {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .thumb-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+@media (orientation: landscape) and (max-height: 560px) {
+  .thumb-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px;
+    padding-left: calc(12px + env(safe-area-inset-left));
+    padding-right: calc(12px + env(safe-area-inset-right));
+  }
+}
+
+@media (orientation: portrait) and (max-width: 720px) {
+  .thumb-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    padding-left: calc(12px + env(safe-area-inset-left));
+    padding-right: calc(12px + env(safe-area-inset-right));
+  }
+}
+
 .slider {
   flex: 1;
   min-width: 60px;
@@ -2619,9 +3209,11 @@ onBeforeUnmount(() => {
 
 .counter {
   min-width: 96px;
+  overflow: hidden;
   color: rgba(255, 255, 255, 0.66);
   font-size: 11px;
   text-align: center;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -2657,12 +3249,32 @@ onBeforeUnmount(() => {
   }
 
   .counter {
-    min-width: 72px;
+    min-width: 64px;
     font-size: 10px;
   }
 
+  /* Prev, slider, counter, thumbnails and Next must fit on one 375px row. */
+  .bottombar {
+    gap: 6px;
+    padding: 6px calc(8px + env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom))
+      calc(8px + env(safe-area-inset-left));
+  }
+
   .nav {
-    padding: 0 9px;
+    padding: 0 8px;
+  }
+
+  .nav--icon {
+    width: 32px;
+    padding: 0;
+  }
+
+  .slider {
+    min-width: 48px;
+  }
+
+  .thumb-grid {
+    gap: 8px;
   }
 }
 </style>

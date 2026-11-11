@@ -109,6 +109,7 @@
 | 最近阅读 | ✅ | 首页「Recently opened」列出文件名、总页数、当前页、模式、更新时间与 168px JPEG 封面（约 7–15KB/条）；点条目续读，支持删除单条与 Clear all |
 | 续读策略 | ✅ | ≤32MB 的包在 IndexedDB 存副本（最多保留最近 3 个），点条目直接续读；超限或副本已被淘汰时只留指纹，点条目打开文件选择器并提示重新选同一文件 |
 | 书签 | ✅ | `⋮` 菜单可给当前页加/取消书签，菜单内按页序列出、点击跳转、× 删除；按文件指纹存 IndexedDB，与续读进度互不覆盖 |
+| 页面缩略图 | ✅ | 底栏网格按钮（`aria-label="Page thumbnails"`）打开下半屏面板；列数自适应（桌面 6–8、手机竖屏 3、横屏 5–6），当前页高亮、书签页带角标。打开文件时不预生成；面板打开后只对视口内的瓦片排队，滚出视口即取消，且一次只解码一张。瓦片按显示宽度 × DPR 生成并限制在 240×320；优先复用阅读器已解码的页面，未缓存的页走同一个 `ZipPageSource` 按需解压。缩略图使用独立的 60 张 LRU 与独立的 objectURL，不占用阅读器的位图预算（32MP），被淘汰的滚回去再重建。面板打开期间工具栏不自动淡出；Esc / 点遮罩 / 再点按钮关闭，关闭后焦点回到按钮。单页、双页、纵向三种模式均可用 |
 | 深色 / 浅色主题 | ✅ | 页头右上角的太阳/月亮按钮是二态直切（16 条路由与 404 都有）：点一次就在 light / dark 之间切换，图标随 `data-theme` 同步，按钮带 `aria-pressed` 与随状态变化的 `aria-label`（`Switch to dark theme` / `Switch to light theme`），鼠标悬停有同样的 `title`。阅读器 `⋮` 菜单的 `Theme` 分组是一个 `menuitemcheckbox` 的 `Dark mode` 开关（右侧显示 On / Off），与页头共用 `resolvedTheme`，任一处改动另一处立即同步。存储仍是 `localStorage['cbz-theme']`；`auto` 继续是合法值并随系统实时切换，但 UI 不再提供入口，首次点击时按当前屏幕外观取反（系统浅色→dark，系统深色→light），之后写入明确的 light/dark。`src/prerender/head.ts` 在样式表之前输出阻塞内联脚本，先给 `<html>` 打 `data-theme` 再绘制，因此不会先白后黑。页头按钮的静态标记随预渲染 HTML 一起输出，`src/lib/themeSwitch.ts` 只负责增强（用 `watch(resolvedTheme)` 同步 ARIA 与点击切换），JS 未执行时页面仍按 head 脚本的主题正常显示，只是按钮不可点。图标显隐由 `:root[data-theme='dark']` 控制，不依赖 JS。颜色统一收敛为 `base.css` 的 `--token`（`:root` 浅色 + `:root[data-theme='dark']` 覆盖），覆盖落地页正文/列表/CTA/相关内链/页脚、书架卡片、404、`color-scheme` 滚动条、选中色与焦点环。漫画页面本身不做反色或背景替换 |
 | PWA 清单与图标 | ✅ | `public/manifest.webmanifest` 声明 `display: standalone`、`start_url` / `scope`、`lang`、192/512 与 maskable 图标；深浅色各一份 manifest，用 `<link rel="manifest" media="(prefers-color-scheme: …)">` 区分 `theme_color` / `background_color`（不支持 `media` 的浏览器会回退到先出现的浅色那份）。`renderHead()` 同时输出 manifest 与 `apple-touch-icon` 链接，随预渲染 HTML 一起落地。图标由 `npm run icons` 从 `favicon.svg` 渲染 |
 | 离线可用 | ✅ | `scripts/sw-template.js` 由 `scripts/prerender.mjs` 注入版本号与预缓存清单后写成 `dist/sw.js`（版本取自带 hash 的资源名，旧缓存自动清理）。导航请求 network-first + 缓存兜底，`/assets/*` cache-first，同源其它资源 stale-while-revalidate；只预缓存首页外壳与静态资源，未访问过的内容页不进缓存。新版本 install 后停在 waiting，由下一次导航的页面发 `SKIP_WAITING` 接管，不在阅读中途刷新；dev 环境不注册 |
@@ -132,7 +133,7 @@
 | 访问统计 | ✅ | Cloudflare Web Analytics（无 cookie）+ Umami；事件只带粗粒度属性，口径见 5.8 |
 | 阅读器懒加载 | ✅ | 阅读器单独 chunk，首屏只加载落地页与样式 |
 | 部署头 | ✅ | `public/_headers` 配置安全头、HSTS 与静态资源长缓存 |
-| 端到端自测 | ✅ | `npm run test:e2e` 用本机 Edge/Chrome 打开 CBZ，验证解码、翻页、纵向窗口滑动与模式切换保位，断言阅读层覆盖视口、工具栏隐藏/恢复、关闭回原滚动位置、`popstate` 关闭阅读器、`F` 全屏与 `fullscreenEnabled` 为假时的降级，并断言 dev 环境不注册 Service Worker |
+| 端到端自测 | ✅ | `npm run test:e2e` 用本机 Edge/Chrome 打开 CBZ，验证解码、翻页、纵向窗口滑动与模式切换保位，断言阅读层覆盖视口、工具栏隐藏/恢复、关闭回原滚动位置、`popstate` 关闭阅读器、`F` 全屏与 `fullscreenEnabled` 为假时的降级，并断言 dev 环境不注册 Service Worker；缩略图面板断言打开、当前页高亮、点击跳页、Esc 关闭并回焦，以及 375px 下底栏不溢出、网格为 3 列 |
 | 离线验收测试 | ✅ | `npm run test:offline` 针对生产构建断言：外壳预缓存不含内容页、断网刷新首页完整显示、断网打开本地 CBZ 并成功翻页、改动后的文档在下一次导航可见 |
 | 格式错误文案 | ✅ | CBR/RAR 与 CB7/7z 会明确提示容器不支持，并给出「解包后重新打包成 .cbz」的建议，而不是笼统的 `not a valid CBZ or ZIP` |
 | 测试样例脚本 | ✅ | `npm run samples` 用无头浏览器渲染图片并打包 CBZ，一次生成 6 个样例到 `D:\edgeDown\testData\archive`（页数/尺寸/文件名可按参数改，输出不进仓库）；`npm run samples:demo` 只生成 `/demo/` 用的两个包并写入 `public/samples/` |
@@ -152,6 +153,7 @@
 | 添加到主屏 | 站点首页 | ✅ 安卓与 iPhone 真机确认可添加成功 |
 | 沉浸式阅读层与浮动工具栏 | `demo-30pages.cbz` | 🟡 桌面无头 Edge 通过：阅读层四角覆盖、关闭回原滚动位置、`popstate` 关闭、`F` 进入/退出全屏、`fullscreenEnabled` 为假时菜单无该项且 `F` 无效；安全区与下滑隐藏待真机 |
 | 离线转换（飞行模式） | 本地 CBZ | ✅ iOS 真机通过：先联网打开 `/cbz-to-pdf/`，开飞行模式，选择本地 CBZ，进度走完并成功下载 PDF。桌面侧另有生产构建 + 浏览器离线模式的记录（30 页包，16.6MB PDF），两端结果一致 |
+| 缩略图网格 | `long-120pages.cbz`（120 页，1200×1800） | 🟡 桌面无头 Edge（1280×900）：首屏 24 张约 0.19–0.24s，滚动 89 帧平均 16.7ms、最大 16.8ms（无 >50ms 帧），JS 堆 2.6→7.2MB，滚动回收后回到 5–6MB；缓存最多 60 张，淘汰后滚回可重建。真机滚动与触控待验证 |
 
 ### 3.3 仍需真机确认（含 iOS 盲区）
 
@@ -407,6 +409,8 @@ npm run samples:demo                # 只生成 /demo/ 用的两个包，写入 
 | `mode_switch` | `mode`: `single` / `double` / `scroll`（切换后的模式） | 布局偏好，验证纵向与双页的实际使用 |
 | `zoom` | `level`：首次进入放大时的百分比 | 判断高倍缩放需求，只报每本书的第一次 |
 | `bookmark_add` | 无 | 书签使用率；删除书签不上报 |
+| `thumb_open` | 无 | 页面缩略图面板的打开率 |
+| `thumb_jump` | `from` / `to`：1 起始的页码 | 用缩略图跳页的距离分布；不带文件名 |
 | `resume_accept` | 无 | 书架续读被接受（直接用本地副本打开） |
 | `resume_decline` | 无 | 书架续读被拒绝（无副本，走重新选文件分支） |
 | `cta_click` | `page`：所在页面路径；`target`：目标 href | 落地页 CTA 与相关内链的去向 |

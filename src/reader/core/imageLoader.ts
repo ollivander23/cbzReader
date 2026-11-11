@@ -176,6 +176,124 @@ async function downsample(blob: Blob, width: number, height: number): Promise<Bl
   }
 }
 
+export interface ThumbAsset {
+  url: string
+  width: number
+  height: number
+}
+
+/** The page-thumbnail grid never needs more than this, whatever the tile size. */
+export const THUMB_MAX_WIDTH = 240
+export const THUMB_MAX_HEIGHT = 320
+const THUMB_QUALITY = 0.72
+
+function fitThumb(width: number, height: number, targetWidth: number): Size {
+  const maxWidth = Math.min(Math.max(1, targetWidth), THUMB_MAX_WIDTH)
+  const ratio = Math.min(maxWidth / width, THUMB_MAX_HEIGHT / height, 1)
+  return {
+    width: Math.max(1, Math.round(width * ratio)),
+    height: Math.max(1, Math.round(height * ratio)),
+  }
+}
+
+async function encodeThumb(
+  source: Size,
+  targetWidth: number,
+  draw: (context: CanvasRenderingContext2D, size: Size) => void,
+): Promise<ThumbAsset> {
+  const size = fitThumb(source.width, source.height, targetWidth)
+  const canvas = document.createElement('canvas')
+  canvas.width = size.width
+  canvas.height = size.height
+  const context = canvas.getContext('2d')
+  if (!context) throw new Error('Canvas is not available')
+  context.imageSmoothingQuality = 'medium'
+  draw(context, size)
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (result) => (result ? resolve(result) : reject(new Error('Could not encode the thumbnail'))),
+      'image/jpeg',
+      THUMB_QUALITY,
+    )
+  })
+  // The tile is a few hundred pixels wide; the canvas is dropped right away so
+  // thumbnails never hold on to a full-size backing store.
+  canvas.width = 0
+  canvas.height = 0
+  return { url: URL.createObjectURL(blob), width: size.width, height: size.height }
+}
+
+/**
+ * Builds a small JPEG for one page of the thumbnail grid. This is a separate
+ * pipeline from `loadPageAsset`: it decodes straight to the tile size and is
+ * deliberately outside the reader's page budget, so a full grid can never push
+ * the reading pages out of memory.
+ */
+export async function loadThumbnail(blob: Blob, targetWidth: number): Promise<ThumbAsset> {
+  const header = await readImageSize(blob)
+
+  if (typeof createImageBitmap === 'function') {
+    const decodeWidth = Math.min(Math.max(1, targetWidth), THUMB_MAX_WIDTH)
+    let bitmap: ImageBitmap
+    try {
+      bitmap = await createImageBitmap(blob, {
+        resizeWidth: decodeWidth,
+        resizeQuality: 'medium',
+      })
+    } catch {
+      bitmap = await createImageBitmap(blob)
+    }
+    try {
+      return await encodeThumb(
+        header ?? { width: bitmap.width, height: bitmap.height },
+        targetWidth,
+        (context, size) => context.drawImage(bitmap, 0, 0, size.width, size.height),
+      )
+    } finally {
+      bitmap.close()
+    }
+  }
+
+  const url = URL.createObjectURL(blob)
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const element = new Image()
+      element.onload = () => resolve(element)
+      element.onerror = () => reject(new Error('Image could not be decoded'))
+      element.src = url
+    })
+    return await encodeThumb(
+      { width: image.naturalWidth, height: image.naturalHeight },
+      targetWidth,
+      (context, size) => context.drawImage(image, 0, 0, size.width, size.height),
+    )
+  } finally {
+    URL.revokeObjectURL(url)
+  }
+}
+
+/**
+ * Reuses a page that the reader already decoded instead of unzipping it again.
+ * The object URL is same-origin, so drawing it into the tile canvas is allowed.
+ */
+export async function loadThumbnailFromUrl(
+  url: string,
+  targetWidth: number,
+): Promise<ThumbAsset> {
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const element = new Image()
+    element.decoding = 'async'
+    element.onload = () => resolve(element)
+    element.onerror = () => reject(new Error('Image could not be decoded'))
+    element.src = url
+  })
+  return encodeThumb(
+    { width: image.naturalWidth, height: image.naturalHeight },
+    targetWidth,
+    (context, size) => context.drawImage(image, 0, 0, size.width, size.height),
+  )
+}
+
 export async function loadPageAsset(
   index: number,
   blob: Blob,
