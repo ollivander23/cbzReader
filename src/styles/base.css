@@ -412,6 +412,42 @@ h1 {
   color: var(--accent);
 }
 
+/* Secondary entry: present, but clearly lighter than the two cards above. */
+.sample-link {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  max-width: 760px;
+  margin: 14px 0 0;
+  padding: 12px 18px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  color: var(--ink);
+  text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.sample-link:hover {
+  border-color: var(--accent-line);
+  background: var(--card-bg-hover);
+}
+
+.sample-link__title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.sample-link__title::after {
+  content: " →";
+  color: var(--accent);
+}
+
+.sample-link__note {
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .tools {
   margin-top: 52px;
   padding-top: 30px;
@@ -525,6 +561,20 @@ h1 {
 
 .demo__hint a {
   color: var(--ink);
+}
+
+.demo__credit {
+  max-width: 48ch;
+  margin: 14px auto 0;
+  color: var(--faint);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.demo__credit a {
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .reader-section {
@@ -833,21 +883,6 @@ h1 {
   margin-top: 18px !important;
   color: rgba(245, 245, 247, 0.52) !important;
   font-size: 12px !important;
-}
-
-.dropzone__sample {
-  margin-top: 10px !important;
-  font-size: 12px !important;
-}
-
-.dropzone__sample a {
-  color: rgba(245, 245, 247, 0.72);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.dropzone__sample a:hover {
-  color: #f5f5f7;
 }
 
 .content {

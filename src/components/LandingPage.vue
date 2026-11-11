@@ -83,6 +83,10 @@ const trustItems = computed(() => props.page.trust ?? DEFAULT_TRUST)
           <span class="door__cta">Open the converter</span>
         </a>
       </div>
+      <a v-if="page.tool" class="sample-link" href="/demo/">
+        <span class="sample-link__title">Try with a sample comic</span>
+        <span class="sample-link__note">Open a short public-domain comic — no file needed.</span>
+      </a>
       <ul class="trust">
         <li v-for="item in trustItems" :key="item">{{ item }}</li>
       </ul>
@@ -115,7 +119,6 @@ const trustItems = computed(() => props.page.trust ?? DEFAULT_TRUST)
                 aria-label="Choose a CBZ file"
               />
               <p class="dropzone__fine">Nothing is uploaded. Works with CBZ and ZIP archives.</p>
-              <p class="dropzone__sample"><a href="/demo/">No file handy? Open the sample</a></p>
             </div>
           </div>
         </div>

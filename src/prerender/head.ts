@@ -156,13 +156,13 @@ ${schema}`
 }
 
 /**
- * The demo page is a device-checking aid, not a landing page: no social cards,
+ * The sample reader is a secondary entry, not a landing page: no social cards,
  * no structured data, and explicitly excluded from search.
  */
 export function renderDemoHead(siteUrl: string): string {
   const url = absolute(siteUrl, '/demo/')
-  return `<title>Sample CBZ - CBZ Reader</title>
-<meta name="description" content="A built-in sample archive opens automatically so a phone can be checked in one tap." />
+  return `<title>Try a sample comic - CBZ Reader</title>
+<meta name="description" content="Read a short public-domain comic in the browser. No file needed, nothing uploaded." />
 <link rel="canonical" href="${url}" />
 <meta name="robots" content="noindex,nofollow" />
 <meta name="theme-color" content="${THEME_COLORS.light}" />

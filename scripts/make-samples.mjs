@@ -10,10 +10,11 @@
  *   node scripts/make-samples.mjs --out D:\somewhere\archive
  *   node scripts/make-samples.mjs --demo
  */
-import { existsSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import puppeteer from 'puppeteer-core'
+import { findBrowser } from './lib/browser.mjs'
+import { buildZip } from './lib/cbz.mjs'
 
 const OUT_DIR = process.env.SAMPLE_OUT || 'D:\\edgeDown\\testData\\archive'
 const SCALE = 2 // deviceScaleFactor: CSS size * 2 = pixel size
@@ -65,18 +66,12 @@ const SAMPLES = [
   },
 ]
 
-/** Shipped with the site so /demo/ can auto-open something on a phone. */
+/**
+ * Shipped with the site so /demo/ can auto-open something on a phone.
+ * The user-facing comic lives in scripts/make-demo-comic.mjs; this archive is
+ * only the heavy variant behind /demo/?size=large.
+ */
 const DEMO_SAMPLES = [
-  {
-    file: 'sample-12-pages.cbz',
-    pages: 12,
-    width: 1200,
-    height: 1800,
-    format: 'jpeg',
-    quality: 72,
-    out: path.join('public', 'samples'),
-    note: '演示包，1–2MB，常态交互检查',
-  },
   {
     file: 'sample-large-20-pages.cbz',
     pages: 20,
@@ -100,86 +95,6 @@ function interleaveOrder(total) {
     if (rest[i] !== undefined) order.push(rest[i])
   }
   return order
-}
-
-const CRC_TABLE = (() => {
-  const table = new Uint32Array(256)
-  for (let i = 0; i < 256; i += 1) {
-    let c = i
-    for (let bit = 0; bit < 8; bit += 1) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1
-    table[i] = c >>> 0
-  }
-  return table
-})()
-
-function crc32(buffer) {
-  let crc = 0xffffffff
-  for (let i = 0; i < buffer.length; i += 1) {
-    crc = CRC_TABLE[(crc ^ buffer[i]) & 0xff] ^ (crc >>> 8)
-  }
-  return (crc ^ 0xffffffff) >>> 0
-}
-
-function dosStamp(date) {
-  const time =
-    (date.getHours() << 11) | (date.getMinutes() << 5) | Math.floor(date.getSeconds() / 2)
-  const day = ((date.getFullYear() - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate()
-  return { time, day }
-}
-
-/** Minimal STORE-only ZIP writer: images are already compressed. */
-function buildZip(entries) {
-  const { time, day } = dosStamp(new Date())
-  const local = []
-  const central = []
-  let offset = 0
-
-  for (const entry of entries) {
-    const name = Buffer.from(entry.name, 'utf8')
-    const data = entry.data
-    const crc = crc32(data)
-
-    const header = Buffer.alloc(30)
-    header.writeUInt32LE(0x04034b50, 0)
-    header.writeUInt16LE(20, 4)
-    header.writeUInt16LE(0x0800, 6) // UTF-8 names
-    header.writeUInt16LE(0, 8) // store
-    header.writeUInt16LE(time, 10)
-    header.writeUInt16LE(day, 12)
-    header.writeUInt32LE(crc, 14)
-    header.writeUInt32LE(data.length, 18)
-    header.writeUInt32LE(data.length, 22)
-    header.writeUInt16LE(name.length, 26)
-    header.writeUInt16LE(0, 28)
-    local.push(header, name, data)
-
-    const record = Buffer.alloc(46)
-    record.writeUInt32LE(0x02014b50, 0)
-    record.writeUInt16LE(20, 4)
-    record.writeUInt16LE(20, 6)
-    record.writeUInt16LE(0x0800, 8)
-    record.writeUInt16LE(0, 10)
-    record.writeUInt16LE(time, 12)
-    record.writeUInt16LE(day, 14)
-    record.writeUInt32LE(crc, 16)
-    record.writeUInt32LE(data.length, 20)
-    record.writeUInt32LE(data.length, 24)
-    record.writeUInt16LE(name.length, 28)
-    record.writeUInt32LE(offset, 42)
-    central.push(record, name)
-
-    offset += header.length + name.length + data.length
-  }
-
-  const directory = Buffer.concat(central)
-  const end = Buffer.alloc(22)
-  end.writeUInt32LE(0x06054b50, 0)
-  end.writeUInt16LE(entries.length, 8)
-  end.writeUInt16LE(entries.length, 10)
-  end.writeUInt32LE(directory.length, 12)
-  end.writeUInt32LE(offset, 16)
-
-  return Buffer.concat([...local, directory, end])
 }
 
 const PAGE_HTML = `<!doctype html>
@@ -234,19 +149,6 @@ const PAGE_HTML = `<!doctype html>
     <div class="row"><span class="file"></span><span id="dim"></span></div>
   </div>
 </body></html>`
-
-function findBrowser() {
-  const candidates = [
-    process.env.EDGE_PATH,
-    'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
-    'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
-    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-  ].filter(Boolean)
-  const found = candidates.find((candidate) => existsSync(candidate))
-  if (!found) throw new Error('No Edge or Chrome found. Set EDGE_PATH to a browser executable.')
-  return found
-}
 
 function parseArgs() {
   const args = process.argv.slice(2)

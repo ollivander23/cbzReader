@@ -122,8 +122,8 @@
 | 转换页可自行验证 | ✅ | `/cbz-to-pdf/` 的 *How the conversion works in this tab* 一节内嵌一块 *Verify it yourself*（桌面 DevTools → Network、手机飞行模式两条可执行步骤），FAQ 增加对应问答。文案严格限定在转换功能上（`this converter` / `the conversion runs entirely in this tab`），不写成全站承诺，也不使用「没有任何网络请求」这类与统计脚本矛盾的表述。**这段话与实现绑定：若转换功能的实现方式变化（例如引入服务端转换），必须同步修改这一块与对应 FAQ。** |
 | 转换测试 | ✅ | `npm run test:convert` 覆盖：30 页 PNG 包的原图尺寸与页数、A4 页盒、JPEG 包的直通（PDF ≥ 原 JPEG 字节 95%）、CBR 文案、20 页 3000×4500 压力包，以及全程零上传 |
 | 预渲染落地页 | ✅ | 16 条静态路由：首页、`/cbz-to-pdf/`、`/read-cbz-online/`、`/manga-reader/`、`/how-to-open-cbz/`、`/cbz-vs-cbr/`、`/what-is-a-cbz-file/`、`/cbz-file-format/`、`/read-cbz-on-iphone/`、`/read-cbz-on-android/`、`/how-to-make-a-cbz-file/`、`/cbz-file-wont-open/`、`/privacy/`、`/terms/`、`/disclaimer/`、`/demo/`（其中 `/demo/` 为 `noindex` 且不进 sitemap，sitemap 为 15 条） |
-| 条款与免责页 | ✅ | `/terms/` 与 `/disclaimer/` 复用落地页版式：Terms 覆盖 as-is 提供、不存储文件、合法使用权、禁止侵权/违法用途、责任限制、条款变更与联系方式；Disclaimer 声明与出版商/发行商/平台无关联、商标归权利人、不托管或分发漫画内容、仅本地处理、第三方链接免责。适用法律写「运营者营业地适用法律」，不写死国家，也不编造主体名称/地址/VAT。页脚与隐私页互链，JSON-LD 只保留 BreadcrumbList |
-| 真机测试入口 | ✅ | `/demo/` 打开后自动加载内置样例并进入阅读器，无需选择文件；`/demo/?size=large` 加载 20 页 3000×4500 大图包。页面不出现落地页导航与页脚，`noindex,nofollow`；首页只有一个低权重文本链接。样例包位于 `public/samples/`，不进入 Service Worker 预缓存 |
+| 条款与免责页 | ✅ | `/terms/` 与 `/disclaimer/` 复用落地页版式：Terms 覆盖 as-is 提供、不存储文件、合法使用权、禁止侵权/违法用途、责任限制、条款变更与联系方式；Disclaimer 声明与出版商/发行商/平台无关联、商标归权利人、不托管或分发漫画内容（唯一例外是内置的公有领域样例，页面已标注作品、作者、许可与来源）、仅本地处理、第三方链接免责。适用法律写「运营者营业地适用法律」，不写死国家，也不编造主体名称/地址/VAT。页脚与隐私页互链，JSON-LD 只保留 BreadcrumbList |
+| 样例漫画入口 | ✅ | `/demo/` 打开后自动加载 10 页公有领域漫画《Silent Ruin (2018)》（U.S. Army Cyber Institute at West Point，Commons 许可模板 `{{PD-USGov-Military-Army}}`），无需选择文件；页面标注作品、作者、许可与来源链接。`/demo/?size=large` 仍加载 20 页 3000×4500 大图包，仅供内部测试，界面不暴露。页面不出现落地页导航与页脚，`noindex,nofollow`、不进 sitemap；首页在阅读/转换两张卡片下方提供次级入口「Try with a sample comic」。样例包位于 `public/samples/`，不进入 Service Worker 预缓存 |
 | 工具站信息架构 | ✅ | 首页双入口与 *More CBZ tools* 全部是预渲染的静态 HTML，无 JS 也可见；首页不再渲染 *Keep reading*（由工具分发区取代），避免同页重复链接。首页 title 55 字符、description 153 字符，仍以 `Read CBZ comics in your browser` 为主关键词意图；JSON-LD 的 `featureList` 增加转换能力，`WebSite.description` 同步为「读取 + 转换」 |
 | SEO 元信息 | ✅ | 每页独立 title/description、canonical、hreflang、OG/Twitter、JSON-LD（WebSite / WebApplication / Article / FAQPage / BreadcrumbList；法律页只有 BreadcrumbList）；站内链接全部指向已预渲染的 16 条路由（`/demo/` 为 noindex，不参与收录），构建后检查无断链 |
 | 社交分享图 | ✅ | `public/og-image.png` 1200×630；`og:image` 含 width/height/alt，`twitter:image`，卡片类型为 `summary_large_image` |
@@ -136,7 +136,7 @@
 | 端到端自测 | ✅ | `npm run test:e2e` 用本机 Edge/Chrome 打开 CBZ，验证解码、翻页、纵向窗口滑动与模式切换保位，断言阅读层覆盖视口、工具栏隐藏/恢复、关闭回原滚动位置、`popstate` 关闭阅读器、`F` 全屏与 `fullscreenEnabled` 为假时的降级，并断言 dev 环境不注册 Service Worker；缩略图面板断言打开、当前页高亮、点击跳页、Esc 关闭并回焦，以及 375px 下底栏不溢出、网格为 3 列 |
 | 离线验收测试 | ✅ | `npm run test:offline` 针对生产构建断言：外壳预缓存不含内容页、断网刷新首页完整显示、断网打开本地 CBZ 并成功翻页、改动后的文档在下一次导航可见 |
 | 格式错误文案 | ✅ | CBR/RAR 与 CB7/7z 会明确提示容器不支持，并给出「解包后重新打包成 .cbz」的建议，而不是笼统的 `not a valid CBZ or ZIP` |
-| 测试样例脚本 | ✅ | `npm run samples` 用无头浏览器渲染图片并打包 CBZ，一次生成 6 个样例到 `D:\edgeDown\testData\archive`（页数/尺寸/文件名可按参数改，输出不进仓库）；`npm run samples:demo` 只生成 `/demo/` 用的两个包并写入 `public/samples/` |
+| 测试样例脚本 | ✅ | `npm run samples` 用无头浏览器渲染图片并打包 CBZ，一次生成 6 个样例到 `D:\edgeDown\testData\archive`（页数/尺寸/文件名可按参数改，输出不进仓库）；`npm run samples:demo` 只生成 `/demo/?size=large` 用的 20 页大图包；`npm run demo:comic` 从 `public/` 下的源 CBZ 重新生成公有领域样例（参数与来源见 5.9） |
 
 ### 3.2 真机验证记录
 
@@ -393,10 +393,10 @@ npm run samples:demo                # 只生成 /demo/ 用的两个包，写入 
 
 | 文件 | URL | 页数 | 单页尺寸 | 体积 | 用途 |
 | --- | --- | --- | --- | --- | --- |
-| `sample-12-pages.cbz` | `/demo/` | 12 | 1200×1800 | 约 1.0 MB | 常态交互检查：打开、翻页、切纵向 |
-| `sample-large-20-pages.cbz` | `/demo/?size=large` | 20 | 3000×4500 | 约 6.5 MB | 内存、降采样与画布钳制 |
+| `silent-ruin-2018.cbz` | `/demo/` | 10 | 1224×1584 | 约 1.5 MB | 面向用户的公版漫画样例：打开、翻页、缩略图、纵向 |
+| `sample-large-20-pages.cbz` | `/demo/?size=large` | 20 | 3000×4500 | 约 6.5 MB | 内存、降采样与画布钳制（仅内部） |
 
-两个包用 JPEG 页（`format: 'jpeg'`），页面仍然是合成图，不含任何真实漫画内容。`/demo/` 是**设备测试入口**：打开即自动加载样例，不需要选择文件；页面 `noindex,nofollow`、不进 `sitemap.xml`、不进顶栏导航，样例也不在 Service Worker 预缓存里（只有外壳与 `/assets/*` 预缓存）。首页只在阅读卡片底部留一个低权重文本链接「No file handy? Open the sample」。
+`silent-ruin-2018.cbz` 是真实公版漫画，来源、许可与处理参数见 5.9；`sample-large-20-pages.cbz` 仍是合成图，只用于内存测试。`/demo/` 是样例入口而不是设备测试页：打开即自动加载，不需要选择文件；页面 `noindex,nofollow`、不进 `sitemap.xml`、不进顶栏导航，样例也不在 Service Worker 预缓存里（只有外壳与 `/assets/*` 预缓存）。首页在阅读/转换两张卡片下方提供一条次级入口「Try with a sample comic」；`?size=large` 只保留给内部测试，界面不出现。
 
 ### 5.8 事件字典（Umami）
 
@@ -419,6 +419,18 @@ npm run samples:demo                # 只生成 /demo/ 用的两个包，写入 
 | `conv_fail` | `reason`: `not-zip` / `encrypted` / `no-images` / `memory` / `unknown`；`page_size` | 失败原因分类，`cancelled` 不上报 |
 
 隐私页文案与此保持一致：两项统计（Cloudflare Web Analytics、Umami）均为无 cookie、不跨站跟踪、不做设备指纹。
+
+### 5.9 样例漫画：来源、许可与处理
+
+- 作品：*Silent Ruin* (2018)，由 U.S. Army Cyber Institute at West Point 出品。
+- Commons 文件页：<https://commons.wikimedia.org/wiki/File:Silent_Ruin_(2018),_by_Brian_David_Johnson.pdf>
+- Licensing 段实际挂载的模板原文只有 `{{PD-USGov-Military-Army}}`；`{{Information}}` 的 `permission=` 为空，没有 `license=` 字段。API 同时返回 `LicenseShortName=Public domain`、`AttributionRequired=false`、`Copyrighted=False`。
+- 作者字段原文：Written by Brian David Johnson. Creative Direction: Sandy Winkelman. Illustration: Don Hudson & Kinsun Lo. Brought to you by the U.S. Army Cyber Institute at West Point.
+- 判定：这是美国政府作品，属于公有领域。**它不是 CC0，也不是 CC BY**，页面与文档都不使用这两个标记。署名不是许可要求，站内仍按礼节标注作品名、作者与 Commons 来源链接。
+- 页序与质量：源包 10 页，顺序为封面 → 前言 → 标题页 → 5 页漫画 → 后记 → 封底；没有乱序、缺页、混入空白页、页脚水印或旋转错误。页面本身是干净整页，没有扫描黄边/白边，因此不裁剪、不做色偏校正。
+- 处理：按原宽 1224px 重绘并输出 JPEG(q=0.7)，再以 STORE 方式打包为 CBZ。最终 `public/samples/silent-ruin-2018.cbz` 为 10 页、1224×1584、约 1.53 MB。
+- 复现：把源 CBZ 放回 `public/Silent_Ruin_(2018),_by_Brian_David_Johnson.cbz`，运行 `npm run demo:comic`（可选 `--width` / `--quality` / `--in` / `--out`）。源包不提交，最终包提交。
+- 页数说明：Commons 原件的 `pagecount` 就是 10，低于 12–20 页的目标；没有补页，也没有混入其他作品。
 
 ---
 
@@ -454,6 +466,7 @@ cbz-reader/
 ├─ scripts/sw-template.js      # Service Worker 模板（注入版本与预缓存清单）
 ├─ scripts/make-icons.mjs      # 从 favicon.svg 渲染 PWA 图标
 ├─ scripts/make-samples.mjs    # 生成真机测试用 CBZ（默认输出到仓库外，--demo 写入 public/samples）
+├─ scripts/make-demo-comic.mjs # 从公版源 CBZ 生成 /demo/ 样例（来源与参数见 5.9）
 ├─ public/                     # favicon、manifest、PWA 图标、_headers、IndexNow key 文件、samples/（/demo/ 样例包）
 ├─ src/
 │  ├─ main.ts                  # 静态首屏入口：文件选择 / 拖拽 / 懒加载阅读器

@@ -1096,7 +1096,7 @@ export const PAGES: PageContent[] = [
     path: '/disclaimer/',
     title: 'Disclaimer - CBZ Reader',
     description:
-      'CBZ Reader is an independent local tool. It is not affiliated with any comic publisher or platform, and it does not host or distribute comic content.',
+      'CBZ Reader is an independent local tool. It is not affiliated with any comic publisher or platform, and it does not host or distribute comic content apart from one credited public-domain sample.',
     h1: 'Disclaimer',
     eyebrow: 'Legal',
     lead: 'This site is an independent tool for files you already have. It is not a comic platform and has no relationship with the companies that publish or sell comics.',
@@ -1120,6 +1120,7 @@ export const PAGES: PageContent[] = [
         heading: 'No comic content is hosted',
         paragraphs: [
           'This site does not distribute, host, index, or provide links to comic books or any other copyrighted works. There is no library, no catalogue, and no search for titles. The only files it handles are the ones you open from your own device.',
+          'The single exception is the sample comic on the sample page: a public-domain work by the U.S. Army Cyber Institute at West Point, included with its title, author, and source credited. It is there so the reader can be tried without a file; it is not a catalogue or a library.',
         ],
       },
       {

@@ -10,7 +10,10 @@ const isIOS =
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
 
 // Samples shipped in public/samples for the /demo/ page.
-const DEMO_SAMPLE = { url: '/samples/sample-12-pages.cbz', name: 'sample-12-pages.cbz' }
+// "Silent Ruin (2018)" is a public-domain U.S. Army Cyber Institute comic;
+// see README 5.9 for the licence and source.
+const DEMO_SAMPLE = { url: '/samples/silent-ruin-2018.cbz', name: 'Silent Ruin.cbz' }
+// Memory-test variant behind /demo/?size=large; never linked in the interface.
 const DEMO_SAMPLE_LARGE = {
   url: '/samples/sample-large-20-pages.cbz',
   name: 'sample-large-20-pages.cbz',
