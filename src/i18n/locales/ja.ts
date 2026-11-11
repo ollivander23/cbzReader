@@ -135,6 +135,7 @@ export default {
     privacy: 'プライバシー',
     terms: '利用規約',
     disclaimer: '免責事項',
+    github: 'GitHub リポジトリ',
   },
   breadcrumb: {
     label: 'パンくずリスト',

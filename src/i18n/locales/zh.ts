@@ -135,6 +135,7 @@ export default {
     privacy: '隐私政策',
     terms: '使用条款',
     disclaimer: '免责声明',
+    github: 'GitHub 仓库',
   },
   breadcrumb: {
     label: '面包屑导航',
