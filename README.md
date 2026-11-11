@@ -34,7 +34,7 @@
 - PWA 与离线：`manifest.webmanifest` + 生产环境 Service Worker；首次访问后应用外壳可离线打开，本地的 CBZ 断网也能正常翻页；可添加到主屏。
 - CBZ → PDF 转换：`/cbz-to-pdf/` 页内解压 CBZ，把图片页合成为 PDF 后直接下载。页面尺寸可选「原图尺寸」（默认，1 像素 = 1pt，不缩放）与「A4 适配」（等比不裁剪）；JPEG 页直接嵌入原始数据不重编码，PNG 无损嵌入，WebP/GIF/AVIF/BMP 转一次 JPEG(q=0.92)。转换显示逐页进度、可取消，失败按原因给出具体提示。
 - 英文落地页与 SEO 元信息，构建时输出真实 HTML。
-- 工具站叙事：首页 H1 之后是「读取 / 转换」并列双入口（同一套卡片样式，无主次），正文后是 *More CBZ tools* 分发区（转换页 + 10 篇指南）；顶栏 `Reader` 与 `CBZ to PDF` 同级且移动端同时可见；转换页底部有回到阅读器的引导，各指南页的 *Keep reading* 都包含转换页链接。
+- 工具站叙事：首页首屏只保留 H1、一句短导语、「读取 / 转换」并列双入口（同一套卡片样式，无主次）、一条信任语与示例漫画入口，长正文不再放到首页；主体是 *More CBZ tools* 分发区（转换页 + 10 篇指南 + 示例入口，共 12 张，1280px 下三行各 4 张），FAQ 只留 3 条；顶栏 `Reader` 与 `CBZ to PDF` 同级且移动端同时可见；转换页底部有回到阅读器的引导，各指南页的 *Keep reading* 都包含转换页链接。
 
 ### 1.4 明确不做
 
@@ -124,7 +124,7 @@
 | 预渲染落地页 | ✅ | 16 条静态路由：首页、`/cbz-to-pdf/`、`/read-cbz-online/`、`/manga-reader/`、`/how-to-open-cbz/`、`/cbz-vs-cbr/`、`/what-is-a-cbz-file/`、`/cbz-file-format/`、`/read-cbz-on-iphone/`、`/read-cbz-on-android/`、`/how-to-make-a-cbz-file/`、`/cbz-file-wont-open/`、`/privacy/`、`/terms/`、`/disclaimer/`、`/demo/`（其中 `/demo/` 为 `noindex` 且不进 sitemap，sitemap 为 15 条） |
 | 条款与免责页 | ✅ | `/terms/` 与 `/disclaimer/` 复用落地页版式：Terms 覆盖 as-is 提供、不存储文件、合法使用权、禁止侵权/违法用途、责任限制、条款变更与联系方式；Disclaimer 声明与出版商/发行商/平台无关联、商标归权利人、不托管或分发漫画内容（唯一例外是内置的公有领域样例，页面已标注作品、作者、许可与来源）、仅本地处理、第三方链接免责。适用法律写「运营者营业地适用法律」，不写死国家，也不编造主体名称/地址/VAT。页脚与隐私页互链，JSON-LD 只保留 BreadcrumbList |
 | 样例漫画入口 | ✅ | `/demo/` 打开后自动加载 12 页公有领域漫画《Little Nemo in Slumberland》（Winsor McCay，1908 年《New York Herald》周日版，Commons 许可模板 `{{PD-US}}`），无需选择文件；页面标注作品、作者、许可与来源链接。`/demo/?size=large` 仍加载 20 页 3000×4500 大图包，仅供内部测试，界面不暴露。页面不出现落地页导航与页脚，`noindex,nofollow`、不进 sitemap；首页在阅读/转换两张卡片下方提供次级入口「Try with a sample comic」。样例包位于 `public/samples/`，不进入 Service Worker 预缓存 |
-| 工具站信息架构 | ✅ | 首页双入口与 *More CBZ tools* 全部是预渲染的静态 HTML，无 JS 也可见；首页不再渲染 *Keep reading*（由工具分发区取代），避免同页重复链接。首页 title 55 字符、description 153 字符，仍以 `Read CBZ comics in your browser` 为主关键词意图；JSON-LD 的 `featureList` 增加转换能力，`WebSite.description` 同步为「读取 + 转换」 |
+| 工具站信息架构 | ✅ | 首页收起长篇正文：首屏只有 H1、两行内导语、双入口卡片、一条信任语与示例漫画入口；*More CBZ tools* 共 12 张卡（4 列三行补满，含 `Sample` 类型的示例入口），每张描述在 1280px 与 375px 下都只占一行；FAQ 收敛为 3 条。双入口、12 张卡与示例入口全部是预渲染的静态 HTML，无 JS 也可见；首页不再渲染 *Keep reading*，避免同页重复链接。首页 title 55 字符、description 153 字符，仍以 `Read CBZ comics in your browser` 为主关键词意图；JSON-LD 的 `featureList` 增加转换能力，`WebSite.description` 同步为「读取 + 转换」 |
 | SEO 元信息 | ✅ | 每页独立 title/description、canonical、hreflang、OG/Twitter、JSON-LD（WebSite / WebApplication / Article / FAQPage / BreadcrumbList；法律页只有 BreadcrumbList）；站内链接全部指向已预渲染的 16 条路由（`/demo/` 为 noindex，不参与收录），构建后检查无断链 |
 | 社交分享图 | ✅ | `public/og-image.png` 1200×630；`og:image` 含 width/height/alt，`twitter:image`，卡片类型为 `summary_large_image` |
 | 404 与静态资源 | ✅ | `public/404.html`；未知路径与缺失的 `/assets/*` 由 Cloudflare Pages 返回 404，而不是回退首页 200 |

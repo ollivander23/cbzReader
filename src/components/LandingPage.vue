@@ -66,7 +66,7 @@ const trustItems = computed(() => props.page.trust ?? DEFAULT_TRUST)
     </nav>
 
     <section class="hero">
-      <p class="eyebrow">{{ page.eyebrow }}</p>
+      <p v-if="page.path !== '/'" class="eyebrow">{{ page.eyebrow }}</p>
       <h1>{{ page.h1 }}</h1>
       <p class="lead">{{ page.lead }}</p>
       <div v-if="page.tool" class="doors">
@@ -166,7 +166,7 @@ const trustItems = computed(() => props.page.trust ?? DEFAULT_TRUST)
       </noscript>
     </section>
 
-    <div class="content">
+    <div v-if="page.sections.length" class="content">
       <section v-for="section in page.sections" :key="section.heading">
         <h2>{{ section.heading }}</h2>
         <p v-for="paragraph in section.paragraphs" :key="paragraph">{{ paragraph }}</p>
@@ -191,7 +191,7 @@ const trustItems = computed(() => props.page.trust ?? DEFAULT_TRUST)
       <p class="tools__intro">Convert an archive, look up a format detail, or fix a file that will not open.</p>
       <div class="tools__grid">
         <a v-for="tool in page.tools" :key="tool.href" class="tool-card" :href="tool.href">
-          <span class="tool-card__kind">{{ tool.kind === 'tool' ? 'Tool' : 'Guide' }}</span>
+          <span class="tool-card__kind">{{ tool.kind === 'sample' ? 'Sample' : tool.kind === 'tool' ? 'Tool' : 'Guide' }}</span>
           <span class="tool-card__label">{{ tool.label }}</span>
           <span class="tool-card__note">{{ tool.note }}</span>
         </a>

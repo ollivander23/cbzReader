@@ -2,7 +2,7 @@ export interface PageToolLink {
   href: string
   label: string
   note: string
-  kind: 'tool' | 'guide'
+  kind: 'tool' | 'guide' | 'sample'
 }
 
 export interface PageSection {
@@ -56,7 +56,7 @@ export const PAGES: PageContent[] = [
       'Read CBZ comics and convert CBZ to PDF in your browser. Files stay on your device: no upload, no account. Manga right-to-left, spreads, zoom, and resume.',
     h1: 'Read CBZ comics in your browser',
     eyebrow: 'CBZ reader and converter',
-    lead: 'Drop a .cbz file and start reading in seconds, or turn the same archive into a PDF. Both run on your device, so the file is never uploaded. No account, no library to maintain.',
+    lead: 'Open a CBZ to read, or convert it to PDF. Both run on your device.',
     tool: true,
     schema: 'app',
     schemaFeatures: [
@@ -68,39 +68,8 @@ export const PAGES: PageContent[] = [
       'Local reading progress',
     ],
     updated: '2026-11-11',
-    sections: [
-      {
-        heading: 'A reader, not another upload form',
-        paragraphs: [
-          'Most online comic readers ask you to upload an archive, wait for a server to unpack it, and then hand you a temporary link. That is a lot of trust for a file you already own. This reader takes the opposite approach: the archive is opened with the browser file API, and every page is decoded locally.',
-          'That means the first page usually appears before an upload would have finished. It also means the site has no copy of your comic, no storage bill, and nothing to leak.',
-        ],
-      },
-      {
-        heading: 'Built for real comic archives',
-        bullets: [
-          'Reads the ZIP central directory, so it can jump to page 180 without unpacking pages 1 to 179.',
-          'Natural page sorting: 2.jpg comes before 10.jpg, not after it.',
-          'Understands ComicInfo.xml, including the Manga / right-to-left hint.',
-          'Single-page and double-page views, with the cover kept on its own page.',
-          'Pinch, double-tap, and wheel zoom with pan, plus keyboard shortcuts on desktop.',
-          'Keeps your page locally and restores it when you open the same file again.',
-        ],
-      },
-      {
-        heading: 'Works offline, and installs like an app',
-        paragraphs: [
-          'After the first visit the reader shell is stored on your device, so reloading the page or reopening it with no connection still works. Your comics were never online in the first place: they are read from local files, so page turning keeps working offline as well.',
-          'On Android and desktop Chrome you can install the site from the browser menu (Install app, or Add to Home screen) and launch it full screen. On iPhone and iPad, open the site in Safari and use Share → Add to Home Screen. Offline support relies on the browser keeping its stored copy; a long gap without visits may clear it, and one online visit restores it.',
-        ],
-      },
-      {
-        heading: 'What this version does not do',
-        paragraphs: [
-          'It does not read CBR (RAR) or CB7 (7z) archives yet, and it does not open files from a URL. There is no cloud library, no sync across devices, and no DRM support. Those are deliberate omissions: the goal of this version is to make CBZ reading fast and dependable before adding more containers.',
-        ],
-      },
-    ],
+    trust: ['Nothing is uploaded — the file stays in your browser, no account needed.'],
+    sections: [],
     faq: [
       {
         question: 'Is my comic uploaded to a server?',
@@ -113,101 +82,83 @@ export const PAGES: PageContent[] = [
           'Yes, after the first visit. The page shell is kept by a service worker, so the reader can be reloaded without a connection, and your CBZ file is read from your device, so page turning does not need the network either. Pages you have never opened on this site are not stored, and a browser may drop its stored copy after a long period without visits; one online visit restores it.',
       },
       {
-        question: 'Can I add it to my home screen?',
-        answer:
-          'Yes. On Android and desktop Chrome use the Install app entry in the browser menu; on iPhone and iPad open the site in Safari and choose Share → Add to Home Screen. It then opens full screen without browser chrome.',
-      },
-      {
-        question: 'Does it work on iPhone and iPad?',
-        answer:
-          'Yes. iOS does not let websites register as file handlers, so you open this page first and then pick the .cbz file from the Files app. On iOS the file picker is intentionally allowed to show all files, because .cbz has no registered system type.',
-      },
-      {
         question: 'Which formats are supported?',
         answer:
           'CBZ and ZIP archives that contain JPG, PNG, WebP, GIF, AVIF, or BMP pages. CBR and CB7 are on the roadmap but are not supported in this version.',
-      },
-      {
-        question: 'Does it remember where I stopped reading?',
-        answer:
-          'Yes. The reader stores a page marker in your browser, keyed by a fingerprint of the file (name, size, and a hash of the first and last 64 KB). Pick the same file again and it offers to resume.',
-      },
-      {
-        question: 'Is there a file size limit?',
-        answer:
-          'There is no fixed limit in the code. The practical limit is your device memory. A 1 GB archive is fine on a desktop browser, but phones have a much smaller per-tab memory budget, so very large pages are downsampled automatically.',
-      },
-      {
-        question: 'Is it free?',
-        answer: 'Yes. The reader runs entirely in your browser and does not require an account.',
       },
     ],
     tools: [
       {
         href: '/cbz-to-pdf/',
         label: 'CBZ to PDF converter',
-        note: 'Rebuild the archive as a PDF, keeping original page sizes or fitting A4.',
+        note: 'PDF with original sizes or A4.',
         kind: 'tool',
       },
       {
         href: '/read-cbz-online/',
         label: 'Read CBZ online',
-        note: 'What changes when the reader never uploads the archive.',
+        note: 'What changes without uploads.',
         kind: 'guide',
       },
       {
         href: '/manga-reader/',
         label: 'Manga mode',
-        note: 'Right-to-left spreads for Japanese comics, and how to flip the direction.',
+        note: 'Right-to-left spreads in one tap.',
         kind: 'guide',
       },
       {
         href: '/how-to-open-cbz/',
         label: 'How to open a CBZ',
-        note: 'Desktop, Android, and iPhone, step by step.',
+        note: 'Desktop, Android, iPhone.',
         kind: 'guide',
       },
       {
         href: '/what-is-a-cbz-file/',
         label: 'What is a CBZ file?',
-        note: 'The ZIP container, the page images, and the metadata inside.',
+        note: 'ZIP container, pages, metadata.',
         kind: 'guide',
       },
       {
         href: '/cbz-file-format/',
         label: 'Inside the CBZ format',
-        note: 'ComicInfo.xml, page order, and how the archive is laid out.',
+        note: 'ComicInfo.xml, page order, layout.',
         kind: 'guide',
       },
       {
         href: '/how-to-make-a-cbz-file/',
         label: 'Make a CBZ',
-        note: 'Zip a folder of scans into an archive readers accept.',
+        note: 'Zip scans into a readable archive.',
         kind: 'guide',
       },
       {
         href: '/cbz-file-wont-open/',
         label: 'A CBZ that will not open',
-        note: 'Renamed RAR files, encrypted entries, and broken page names.',
+        note: 'Renamed RAR or encrypted.',
         kind: 'guide',
       },
       {
         href: '/cbz-vs-cbr/',
         label: 'CBZ vs CBR vs CB7',
-        note: 'Which containers a browser can open, and why CBR needs extra code.',
+        note: 'Which containers browsers open.',
         kind: 'guide',
       },
       {
         href: '/read-cbz-on-iphone/',
         label: 'Read CBZ on iPhone',
-        note: 'Working within the Files app and Safari limits.',
+        note: 'Files app and Safari limits.',
         kind: 'guide',
       },
       {
         href: '/read-cbz-on-android/',
         label: 'Read CBZ on Android',
-        note: 'Picking a file from Downloads or Drive without a reader app.',
+        note: 'Downloads or Drive, no app.',
         kind: 'guide',
+      },
+      {
+        href: '/demo/',
+        label: 'Try a sample comic',
+        note: 'A public-domain comic, no file.',
+        kind: 'sample',
       },
     ],
     related: [],
