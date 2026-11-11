@@ -237,10 +237,11 @@ const bookmarkedPages = computed(() => new Set(bookmarks.value.map((item) => ite
 
 /**
  * Keep the head and the extension of a long name, so the middle ellipsis never
- * collapses to a single letter when the toolbar is narrow.
+ * collapses to a single letter when the toolbar is narrow. ComicInfo title wins;
+ * the archive file name is the fallback.
  */
 const displayName = computed(() => {
-  const name = fileName.value || title.value
+  const name = title.value || fileName.value
   const budget = nameBudget.value
   if (!name || name.length <= budget) return name
   // Keep the extension and the last page number, then spend what is left on the head.
@@ -253,6 +254,19 @@ const displayName = computed(() => {
   if (boundary > 0 && boundary <= 3) tailText = tailText.slice(boundary + 1)
   return `${name.slice(0, head).trimEnd()}…${tailText.trimStart()}`
 })
+
+const seriesLabel = computed(() => {
+  const info = source.value?.info
+  if (!info) return ''
+  if (info.series && info.number) return `${info.series} #${info.number}`
+  return info.series || (info.number ? `#${info.number}` : '')
+})
+
+const summaryText = computed(() => source.value?.info.summary ?? '')
+
+// Empty unless ComicInfo has chapter bookmarks or the pages live in more than
+// one folder, so flat archives never get a fake table of contents.
+const tocEntries = computed(() => source.value?.info.toc ?? [])
 
 const visiblePages = computed(() =>
   visibleIndices.value.map((page) => ({
@@ -1951,7 +1965,7 @@ onBeforeUnmount(() => {
     <section v-else ref="viewerEl" class="viewer">
       <header class="toolbar" :class="{ 'toolbar--hidden': !toolbarVisible }">
         <div ref="metaEl" class="meta">
-          <strong :title="fileName || title">{{ displayName }}</strong>
+          <strong :title="title || fileName">{{ displayName }}</strong>
           <span>{{ currentLabel }}</span>
         </div>
         <div class="tools">
@@ -2092,6 +2106,11 @@ onBeforeUnmount(() => {
                     ×
                   </button>
                 </div>
+              </div>
+              <div v-if="seriesLabel || summaryText" class="menu__group">
+                <p class="menu__label">Comic info</p>
+                <p v-if="seriesLabel" class="menu__series">{{ seriesLabel }}</p>
+                <p v-if="summaryText" class="menu__summary">{{ summaryText }}</p>
               </div>
             </div>
           </div>
@@ -2264,6 +2283,21 @@ onBeforeUnmount(() => {
             <strong>Pages</strong>
             <span>{{ pageCount }} pages</span>
           </header>
+          <nav v-if="tocEntries.length" class="toc" aria-label="Contents">
+            <p class="toc__label">Contents</p>
+            <div class="toc__list">
+              <button
+                v-for="(entry, position) in tocEntries"
+                :key="`${position}-${entry.page}`"
+                type="button"
+                class="toc__item"
+                @click="jumpFromThumb(entry.page)"
+              >
+                <span class="toc__title">{{ entry.title }}</span>
+                <span class="toc__page">Page {{ entry.page + 1 }}</span>
+              </button>
+            </div>
+          </nav>
           <div ref="thumbGridEl" class="thumb-grid">
             <button
               v-for="page in pageIndices"
@@ -2615,6 +2649,29 @@ onBeforeUnmount(() => {
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.menu__series,
+.menu__summary {
+  margin: 0;
+  padding: 0 10px;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: normal;
+}
+
+.menu__series {
+  color: rgba(255, 255, 255, 0.86);
+  font-weight: 600;
+}
+
+.menu__summary {
+  max-height: 9.5em;
+  margin-top: 2px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  color: rgba(255, 255, 255, 0.62);
 }
 
 .menu__row {
@@ -3043,6 +3100,70 @@ onBeforeUnmount(() => {
 .thumb-head span {
   color: rgba(255, 255, 255, 0.48);
   font-size: 11px;
+}
+
+/*
+ * Contents strip above the grid: one horizontal row that scrolls sideways, so
+ * chapters never steal height from the thumbnails or widen the panel.
+ */
+.toc {
+  flex: 0 0 auto;
+  padding: 0 16px 8px;
+}
+
+.toc__label {
+  margin: 0 0 4px;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.toc__list {
+  display: flex;
+  gap: 6px;
+  padding-bottom: 2px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.toc__item {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 1px;
+  max-width: 168px;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.86);
+  text-align: left;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.toc__item:hover,
+.toc__item:focus-visible {
+  border-color: rgba(251, 146, 60, 0.55);
+  background: rgba(194, 65, 12, 0.24);
+  color: #fff;
+  outline: none;
+}
+
+.toc__title {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toc__page {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
 }
 
 .thumb-grid {

@@ -58,25 +58,80 @@ function mimeFor(name: string): string {
   }
 }
 
-function readTag(xml: string, tag: string): string {
-  const match = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, 'i').exec(xml)
-  if (!match) return ''
-  return match[1]
+function decodeEntities(text: string): string {
+  return text
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&apos;/g, "'")
     .replace(/&amp;/g, '&')
-    .trim()
 }
 
-function stripExtension(name: string): string {
-  return name.replace(/\.[^.]+$/, '')
+function readTag(xml: string, tag: string): string {
+  const match = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, 'i').exec(xml)
+  if (!match) return ''
+  return decodeEntities(match[1]).trim()
+}
+
+function readAttr(tag: string, name: string): string {
+  const match = new RegExp(`\\b${name}\\s*=\\s*("([^"]*)"|'([^']*)')`, 'i').exec(tag)
+  if (!match) return ''
+  return decodeEntities(match[2] ?? match[3] ?? '').trim()
+}
+
+export interface TocEntry {
+  title: string
+  page: number
+}
+
+/** Chapter bookmarks from ComicInfo's PageList; `Image` is a 0-based page index. */
+function readPageList(xml: string): TocEntry[] {
+  const block = /<PageList[^>]*>([\s\S]*?)<\/PageList>/i.exec(xml)
+  if (!block) return []
+  const entries: TocEntry[] = []
+  const pageRe = /<Page(?:\s[^>]*)?\/?>/gi
+  let match: RegExpExecArray | null
+  while ((match = pageRe.exec(block[1]))) {
+    const title = readAttr(match[0], 'Bookmark')
+    const page = Number.parseInt(readAttr(match[0], 'Image'), 10)
+    if (!title || !Number.isInteger(page)) continue
+    entries.push({ title, page })
+  }
+  return entries
+}
+
+/**
+ * Folder of an image inside the archive. Multi-folder archives are read folder
+ * by folder so a chapter's pages stay contiguous; flat archives and archives
+ * with a single wrapper folder keep the plain file-name order.
+ */
+function dirName(path: string): string {
+  const slash = path.lastIndexOf('/')
+  return slash === -1 ? '' : path.slice(0, slash)
+}
+
+/**
+ * One TOC item per folder, pointing at that folder's first page. A single
+ * folder (or a flat archive) yields no TOC: wrapping every page in one group
+ * would be a fake table of contents.
+ */
+function folderToc(images: ZipEntry[]): TocEntry[] {
+  const folders = new Map<string, TocEntry>()
+  images.forEach((entry, page) => {
+    const folder = dirName(entry.filename)
+    if (folders.has(folder)) return
+    folders.set(folder, { title: folder || 'Top level', page })
+  })
+  return folders.size >= 2 ? [...folders.values()] : []
 }
 
 export interface ArchiveInfo {
   pageCount: number
   title: string
+  series: string
+  number: string
+  summary: string
+  toc: TocEntry[]
   rtl: boolean
 }
 
@@ -116,6 +171,7 @@ export class ZipPageSource {
       )
       .sort(
         (a, b) =>
+          naturalCompare(dirName(a.filename), dirName(b.filename)) ||
           naturalCompare(baseName(a.filename), baseName(b.filename)) ||
           naturalCompare(a.filename, b.filename),
       )
@@ -132,7 +188,12 @@ export class ZipPageSource {
     }
 
     let rtl = false
-    let title = stripExtension(file.name)
+    let title = ''
+    let series = ''
+    let number = ''
+    let summary = ''
+    let comicPageCount = 0
+    let bookmarks: TocEntry[] = []
 
     const comicInfo = entries.find(
       (entry) => !entry.directory && /(^|\/)ComicInfo\.xml$/i.test(entry.filename),
@@ -141,17 +202,32 @@ export class ZipPageSource {
       try {
         const xml = await comicInfo.getData<string>(new TextWriter())
         rtl = /yesandrighttoleft/i.test(readTag(xml, 'Manga'))
-        const series = readTag(xml, 'Series')
-        const number = readTag(xml, 'Number')
-        if (series) title = number ? `${series} #${number}` : series
+        series = readTag(xml, 'Series')
+        number = readTag(xml, 'Number')
+        summary = readTag(xml, 'Summary')
+        // Title wins outright; otherwise fall back to "Series #Number" and let
+        // the caller use the file name when neither tag is present.
+        title = readTag(xml, 'Title') || (series ? (number ? `${series} #${number}` : series) : '')
+        comicPageCount = Number.parseInt(readTag(xml, 'PageCount'), 10) || 0
+        bookmarks = readPageList(xml)
+          .filter((entry) => entry.page >= 0 && entry.page < images.length)
+          .sort((a, b) => a.page - b.page)
       } catch {
         // ComicInfo is optional; a malformed file should not block reading.
       }
     }
 
     return new ZipPageSource(reader, images, {
-      pageCount: images.length,
+      // The image entries are the source of truth; PageCount only fills in when
+      // the archive exposes no readable images.
+      pageCount: images.length || comicPageCount,
       title,
+      series,
+      number,
+      summary,
+      // Curated chapter bookmarks beat folder names; folders are the fallback
+      // only when the pages actually live in more than one directory.
+      toc: bookmarks.length > 0 ? bookmarks : folderToc(images),
       rtl,
     })
   }

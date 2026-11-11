@@ -85,8 +85,8 @@
 | iOS 文件选择放宽 | ✅ | iOS 上把 `accept` 放宽为 `*/*`，避免 `.cbz` 被系统置灰 |
 | ZIP 中央目录读取 | ✅ | 用 zip.js 读取条目列表，不整包解压 |
 | 按需单页解压 | ✅ | 只为当前可见页生成 Blob 与 objectURL，翻页时按需取下一页 |
-| 自然排序 | ✅ | `2.jpg` 排在 `10.jpg` 之前；同名数字回退到完整路径比较 |
-| ComicInfo.xml | ✅ | 解析 `Manga`、`Series`、`Number`，用于 RTL 与标题 |
+| 自然排序 | ✅ | `2.jpg` 排在 `10.jpg` 之前；多目录包先按目录、再按文件名自然排序，同目录同名回退到完整路径比较。单层包（全部图片在根目录或单一文件夹）的页序与旧版一致 |
+| ComicInfo.xml | ✅ | 解析 `Manga`（`yesandrighttoleft` → 初始 RTL）、`Title`、`Series`、`Number`、`Summary`；缺字段留空，不使用占位符。页数仍以归档内的图片条目数为准，仅在没有图片条目时回退 `PageCount`。工具栏标题优先级为 `Title` → `Series #Number` → 原始文件名（文件名仍是兜底）。系列/卷号与简介放在 `⋮` 菜单底部的 `Comic info` 分组：系列一行加粗，简介限高（约 6 行）且可滚动，不进入工具栏，375px 下工具栏布局不变 |
 | 单页阅读 | ✅ | 适合手机竖屏与单页漫画 |
 | 双页阅读 | ✅ | 桌面宽屏默认双页；封面单独成页，之后按 2-3、4-5 配对 |
 | 纵向连续阅读 | ✅ | 第三种模式，滚动连读；窗口化渲染最多 12 页，滚动靠近边缘时滑动窗口并补偿滚动位置 |
@@ -110,6 +110,7 @@
 | 续读策略 | ✅ | ≤32MB 的包在 IndexedDB 存副本（最多保留最近 3 个），点条目直接续读；超限或副本已被淘汰时只留指纹，点条目打开文件选择器并提示重新选同一文件 |
 | 书签 | ✅ | `⋮` 菜单可给当前页加/取消书签，菜单内按页序列出、点击跳转、× 删除；按文件指纹存 IndexedDB，与续读进度互不覆盖 |
 | 页面缩略图 | ✅ | 底栏网格按钮（`aria-label="Page thumbnails"`）打开下半屏面板；列数自适应（桌面 6–8、手机竖屏 3、横屏 5–6），当前页高亮、书签页带角标。打开文件时不预生成；面板打开后只对视口内的瓦片排队，滚出视口即取消，且一次只解码一张。瓦片按显示宽度 × DPR 生成并限制在 240×320；优先复用阅读器已解码的页面，未缓存的页走同一个 `ZipPageSource` 按需解压。缩略图使用独立的 60 张 LRU 与独立的 objectURL，不占用阅读器的位图预算（32MP），被淘汰的滚回去再重建。面板打开期间工具栏不自动淡出；Esc / 点遮罩 / 再点按钮关闭，关闭后焦点回到按钮。单页、双页、纵向三种模式均可用 |
+| 目录跳转 | ✅ | 仅在两种情况下出现，都没有时面板里完全不渲染目录：归档内图片条目分布在两个及以上目录（含根目录）；或 `ComicInfo.xml` 的 `PageList` 含同时带 `Bookmark` 与 `Image` 属性的 `<Page>` 条目，且页码落在有效范围内。入口复用缩略图面板：`Pages` 标题下多一条 `Contents` 横向列表，可左右滚动，不新增工具栏按钮。分组依据：`PageList` 书签优先（`Image` 为 0 起始索引，映射到当前页序）；没有书签时按图片所在目录分组，目录项跳到该目录第一页，根目录组名为 `Top level`。点击目录项复用缩略图跳页逻辑（关闭面板、`goToPage`、记录 `thumb_jump`）。单层包（全部图片在根目录或同一目录）不触发目录，页序也不变；只有多目录包改为按目录连续排列 |
 | 深色 / 浅色主题 | ✅ | 页头右上角的太阳/月亮按钮是二态直切（16 条路由与 404 都有）：点一次就在 light / dark 之间切换，图标随 `data-theme` 同步，按钮带 `aria-pressed` 与随状态变化的 `aria-label`（`Switch to dark theme` / `Switch to light theme`），鼠标悬停有同样的 `title`。阅读器 `⋮` 菜单的 `Theme` 分组是一个 `menuitemcheckbox` 的 `Dark mode` 开关（右侧显示 On / Off），与页头共用 `resolvedTheme`，任一处改动另一处立即同步。存储仍是 `localStorage['cbz-theme']`；`auto` 继续是合法值并随系统实时切换，但 UI 不再提供入口，首次点击时按当前屏幕外观取反（系统浅色→dark，系统深色→light），之后写入明确的 light/dark。`src/prerender/head.ts` 在样式表之前输出阻塞内联脚本，先给 `<html>` 打 `data-theme` 再绘制，因此不会先白后黑。页头按钮的静态标记随预渲染 HTML 一起输出，`src/lib/themeSwitch.ts` 只负责增强（用 `watch(resolvedTheme)` 同步 ARIA 与点击切换），JS 未执行时页面仍按 head 脚本的主题正常显示，只是按钮不可点。图标显隐由 `:root[data-theme='dark']` 控制，不依赖 JS。颜色统一收敛为 `base.css` 的 `--token`（`:root` 浅色 + `:root[data-theme='dark']` 覆盖），覆盖落地页正文/列表/CTA/相关内链/页脚、书架卡片、404、`color-scheme` 滚动条、选中色与焦点环。漫画页面本身不做反色或背景替换 |
 | PWA 清单与图标 | ✅ | `public/manifest.webmanifest` 声明 `display: standalone`、`start_url` / `scope`、`lang`、192/512 与 maskable 图标；深浅色各一份 manifest，用 `<link rel="manifest" media="(prefers-color-scheme: …)">` 区分 `theme_color` / `background_color`（不支持 `media` 的浏览器会回退到先出现的浅色那份）。`renderHead()` 同时输出 manifest 与 `apple-touch-icon` 链接，随预渲染 HTML 一起落地。图标由 `npm run icons` 从 `favicon.svg` 渲染 |
 | 离线可用 | ✅ | `scripts/sw-template.js` 由 `scripts/prerender.mjs` 注入版本号与预缓存清单后写成 `dist/sw.js`（版本取自带 hash 的资源名，旧缓存自动清理）。导航请求 network-first + 缓存兜底，`/assets/*` cache-first，同源其它资源 stale-while-revalidate；只预缓存首页外壳与静态资源，未访问过的内容页不进缓存。新版本 install 后停在 waiting，由下一次导航的页面发 `SKIP_WAITING` 接管，不在阅读中途刷新；dev 环境不注册 |
@@ -410,7 +411,7 @@ npm run samples:demo                # 只生成 /demo/ 用的两个包，写入 
 | `zoom` | `level`：首次进入放大时的百分比 | 判断高倍缩放需求，只报每本书的第一次 |
 | `bookmark_add` | 无 | 书签使用率；删除书签不上报 |
 | `thumb_open` | 无 | 页面缩略图面板的打开率 |
-| `thumb_jump` | `from` / `to`：1 起始的页码 | 用缩略图跳页的距离分布；不带文件名 |
+| `thumb_jump` | `from` / `to`：1 起始的页码 | 用缩略图或目录跳页的距离分布；不带文件名 |
 | `resume_accept` | 无 | 书架续读被接受（直接用本地副本打开） |
 | `resume_decline` | 无 | 书架续读被拒绝（无副本，走重新选文件分支） |
 | `cta_click` | `page`：所在页面路径；`target`：目标 href | 落地页 CTA 与相关内链的去向 |
