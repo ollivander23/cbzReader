@@ -3,9 +3,12 @@
  *
  * Pages are rendered in headless Edge/Chrome and screenshotted, so every page
  * has crisp text at any zoom level. Output goes outside the repo by default.
+ * The two demo archives are the exception: they ship with the site, so they go
+ * to public/samples/ and are committed.
  *
  *   node scripts/make-samples.mjs
  *   node scripts/make-samples.mjs --out D:\somewhere\archive
+ *   node scripts/make-samples.mjs --demo
  */
 import { existsSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
@@ -59,6 +62,30 @@ const SAMPLES = [
     width: 5000,
     height: 7500,
     note: '极端大页，验证 canvas 面积钳制',
+  },
+]
+
+/** Shipped with the site so /demo/ can auto-open something on a phone. */
+const DEMO_SAMPLES = [
+  {
+    file: 'sample-12-pages.cbz',
+    pages: 12,
+    width: 1200,
+    height: 1800,
+    format: 'jpeg',
+    quality: 72,
+    out: path.join('public', 'samples'),
+    note: '演示包，1–2MB，常态交互检查',
+  },
+  {
+    file: 'sample-large-20-pages.cbz',
+    pages: 20,
+    width: 3000,
+    height: 4500,
+    format: 'jpeg',
+    quality: 78,
+    out: path.join('public', 'samples'),
+    note: '大图演示包，验证内存、降采样与画布钳制',
   },
 ]
 
@@ -226,7 +253,7 @@ function parseArgs() {
   const outIndex = args.indexOf('--out')
   const out = outIndex >= 0 && args[outIndex + 1] ? args[outIndex + 1] : OUT_DIR
   const only = args.find((arg) => arg.startsWith('--only='))?.slice('--only='.length)
-  return { out, only }
+  return { out, only, demo: args.includes('--demo') }
 }
 
 async function renderSample(browser, sample, index, total, out) {
@@ -271,10 +298,16 @@ async function renderSample(browser, sample, index, total, out) {
       },
     )
 
-    const shot = await page.screenshot({ type: 'png', captureBeyondViewport: false })
+    const format = sample.format === 'jpeg' ? 'jpeg' : 'png'
+    const shot = await page.screenshot(
+      format === 'jpeg'
+        ? { type: 'jpeg', quality: sample.quality ?? 80, captureBeyondViewport: false }
+        : { type: 'png', captureBeyondViewport: false },
+    )
+    const extension = format === 'jpeg' ? 'jpg' : 'png'
     const name = sample.entryName
       ? sample.entryName(human)
-      : `page-${String(human).padStart(3, '0')}.png`
+      : `page-${String(human).padStart(3, '0')}.${extension}`
     entries.push({ name, data: Buffer.from(shot) })
 
     if ((step + 1) % 20 === 0 || step + 1 === order.length) {
@@ -284,7 +317,8 @@ async function renderSample(browser, sample, index, total, out) {
 
   await page.close()
   const zip = buildZip(entries)
-  const target = path.join(out, sample.file)
+  const target = path.join(sample.out ?? out, sample.file)
+  await mkdir(path.dirname(target), { recursive: true })
   await writeFile(target, zip)
 
   const seconds = ((Date.now() - started) / 1000).toFixed(1)
@@ -298,9 +332,10 @@ async function renderSample(browser, sample, index, total, out) {
 }
 
 async function main() {
-  const { out, only } = parseArgs()
+  const { out, only, demo } = parseArgs()
+  const pool = demo ? DEMO_SAMPLES : SAMPLES
   await mkdir(out, { recursive: true })
-  const samples = only ? SAMPLES.filter((sample) => sample.file.includes(only)) : SAMPLES
+  const samples = only ? pool.filter((sample) => sample.file.includes(only)) : pool
   if (samples.length === 0) throw new Error(`No sample matched --only=${only}`)
 
   const browser = await puppeteer.launch({
@@ -318,7 +353,7 @@ async function main() {
     await browser.close()
   }
 
-  console.log(`\nOutput: ${out}`)
+  console.log(`\nOutput: ${demo ? path.join('public', 'samples') : out}`)
   console.log('file                                     pages   page size    size')
   for (const item of results) {
     console.log(

@@ -113,6 +113,9 @@ function buildSchema(page: PageContent, url: string, siteUrl: string): unknown {
   return { '@context': 'https://schema.org', '@graph': graph }
 }
 
+const ANALYTICS =
+  '<script defer src="https://cloud.umami.is/script.js" data-website-id="3f17a819-f15d-4d7f-8143-ed16f426b12e"></script>'
+
 export function renderHead(page: PageContent, siteUrl: string): string {
   const url = absolute(siteUrl, page.path)
   const title = escapeHtml(page.title)
@@ -148,6 +151,24 @@ ${themeScript()}
 <meta name="twitter:description" content="${description}" />
 <meta name="twitter:image" content="${ogImage}" />
 <meta name="twitter:image:alt" content="${title}" />
-<script defer src="https://cloud.umami.is/script.js" data-website-id="3f17a819-f15d-4d7f-8143-ed16f426b12e"></script>
+${ANALYTICS}
 ${schema}`
+}
+
+/**
+ * The demo page is a device-checking aid, not a landing page: no social cards,
+ * no structured data, and explicitly excluded from search.
+ */
+export function renderDemoHead(siteUrl: string): string {
+  const url = absolute(siteUrl, '/demo/')
+  return `<title>Sample CBZ - CBZ Reader</title>
+<meta name="description" content="A built-in sample archive opens automatically so a phone can be checked in one tap." />
+<link rel="canonical" href="${url}" />
+<meta name="robots" content="noindex,nofollow" />
+<meta name="theme-color" content="${THEME_COLORS.light}" />
+${themeScript()}
+<link rel="manifest" href="/manifest.webmanifest" />
+<link rel="manifest" href="/manifest-dark.webmanifest" media="(prefers-color-scheme: dark)" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+${ANALYTICS}`
 }

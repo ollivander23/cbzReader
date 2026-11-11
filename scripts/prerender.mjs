@@ -49,6 +49,7 @@ for (const route of routes) {
 
 const lastmod = new Date().toISOString().slice(0, 10)
 const urlset = routes
+  .filter((route) => !route.noindex)
   .map((route) => {
     const priority = route.path === '/' ? '1.0' : '0.7'
     return `  <url>\n    <loc>${siteUrl}${route.path}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>${priority}</priority>\n  </url>`

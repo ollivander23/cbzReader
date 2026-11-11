@@ -9,6 +9,13 @@ const isIOS =
   (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
 
+// Samples shipped in public/samples for the /demo/ page.
+const DEMO_SAMPLE = { url: '/samples/sample-12-pages.cbz', name: 'sample-12-pages.cbz' }
+const DEMO_SAMPLE_LARGE = {
+  url: '/samples/sample-large-20-pages.cbz',
+  name: 'sample-large-20-pages.cbz',
+}
+
 let readerRequested = false
 
 function startReader(file?: File | null, replace = false): void {
@@ -60,6 +67,42 @@ function wireStaticReader(): void {
       startReader(file)
     }
   })
+}
+
+/**
+ * /demo/ opens a bundled archive without a picker so a device can be checked in
+ * one tap. The sample is a normal File to the reader, so progress and the shelf
+ * work as usual; the fixed lastModified keeps the fingerprint stable between
+ * visits, which is what resume relies on.
+ */
+function wireDemo(): void {
+  const root = document.querySelector<HTMLElement>('[data-demo]')
+  const host = document.getElementById('reader-app')
+  if (!root || !host) return
+
+  const large = new URLSearchParams(location.search).get('size') === 'large'
+  const sample = large ? DEMO_SAMPLE_LARGE : DEMO_SAMPLE
+  const status = root.querySelector<HTMLElement>('[data-demo-status]')
+  const error = root.querySelector<HTMLElement>('[data-demo-error]')
+
+  void fetch(sample.url)
+    .then((response) => {
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      return response.blob()
+    })
+    .then((blob) => {
+      const file = new File([blob], sample.name, {
+        type: 'application/zip',
+        lastModified: 0,
+      })
+      track('tool_open', { source: 'demo' })
+      status?.remove()
+      startReader(file)
+    })
+    .catch(() => {
+      if (status) status.hidden = true
+      if (error) error.hidden = false
+    })
 }
 
 function wireStaticConverter(): void {
@@ -145,6 +188,7 @@ function bootstrap(): void {
       mountThemeSwitch()
       wireStaticReader()
       wireStaticConverter()
+      wireDemo()
       mountRecentShelf((file) => startReader(file, true))
     })
     return
@@ -153,6 +197,7 @@ function bootstrap(): void {
   mountThemeSwitch()
   wireStaticReader()
   wireStaticConverter()
+  wireDemo()
   mountRecentShelf((file) => startReader(file, true))
 }
 

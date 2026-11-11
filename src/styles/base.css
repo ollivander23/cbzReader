@@ -493,6 +493,40 @@ h1 {
   font-weight: 600;
 }
 
+/* /demo/ is a bare test entry: one line of status, then the reader. */
+.demo {
+  min-height: 100vh;
+  min-height: 100svh;
+  padding: calc(30px + env(safe-area-inset-top)) 20px calc(30px + env(safe-area-inset-bottom));
+}
+
+.demo__panel {
+  max-width: 520px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.demo__status,
+.demo__error {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.demo__error {
+  color: var(--accent);
+}
+
+.demo__hint {
+  margin: 0;
+  color: var(--faint);
+  font-size: 13px;
+}
+
+.demo__hint a {
+  color: var(--ink);
+}
+
 .reader-section {
   margin: 38px 0 8px;
 }
@@ -799,6 +833,21 @@ h1 {
   margin-top: 18px !important;
   color: rgba(245, 245, 247, 0.52) !important;
   font-size: 12px !important;
+}
+
+.dropzone__sample {
+  margin-top: 10px !important;
+  font-size: 12px !important;
+}
+
+.dropzone__sample a {
+  color: rgba(245, 245, 247, 0.72);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.dropzone__sample a:hover {
+  color: #f5f5f7;
 }
 
 .content {

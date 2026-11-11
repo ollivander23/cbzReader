@@ -623,6 +623,30 @@ try {
     throw new Error('F entered fullscreen although document.fullscreenEnabled is false')
   }
 
+  // /demo/ loads a bundled sample without touching the file picker.
+  await page.goto(`${base}demo/`, { waitUntil: 'networkidle2' })
+  await page.waitForSelector('.reader--open', { timeout: 20_000 })
+  await page.waitForFunction(
+    () => {
+      const image = document.querySelector('.page-slot img')
+      return Boolean(image && image.complete && image.naturalWidth > 0)
+    },
+    { timeout: 20_000 },
+  )
+  const demo = await page.evaluate(() => {
+    const image = document.querySelector('.page-slot img')
+    return {
+      path: location.pathname,
+      width: image?.naturalWidth,
+      height: image?.naturalHeight,
+      askedForFile: Boolean(document.querySelector('.dropzone')),
+    }
+  })
+  if (demo.path !== '/demo/' || demo.width !== 1200 || demo.height !== 1800) {
+    throw new Error(`Demo did not auto-open the bundled sample: ${JSON.stringify(demo)}`)
+  }
+  if (demo.askedForFile) throw new Error('Demo page still shows the file dropzone')
+
   if (errors.length > 0) throw new Error(`Page errors: ${errors.join(' | ')}`)
 
   console.log(

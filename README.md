@@ -120,9 +120,10 @@
 | 转换不上传 | ✅ | 转换链路只读本地文件与本地 blob，全程不发起携带文件内容或页面图像的请求（转换期间只有一次不含文件数据的统计事件）；`npm run test:convert` 拦截页面上所有非 GET/HEAD/OPTIONS 请求并断言为 0 |
 | 转换页可自行验证 | ✅ | `/cbz-to-pdf/` 的 *How the conversion works in this tab* 一节内嵌一块 *Verify it yourself*（桌面 DevTools → Network、手机飞行模式两条可执行步骤），FAQ 增加对应问答。文案严格限定在转换功能上（`this converter` / `the conversion runs entirely in this tab`），不写成全站承诺，也不使用「没有任何网络请求」这类与统计脚本矛盾的表述。**这段话与实现绑定：若转换功能的实现方式变化（例如引入服务端转换），必须同步修改这一块与对应 FAQ。** |
 | 转换测试 | ✅ | `npm run test:convert` 覆盖：30 页 PNG 包的原图尺寸与页数、A4 页盒、JPEG 包的直通（PDF ≥ 原 JPEG 字节 95%）、CBR 文案、20 页 3000×4500 压力包，以及全程零上传 |
-| 预渲染落地页 | ✅ | 13 条静态路由：首页、`/cbz-to-pdf/`、`/read-cbz-online/`、`/manga-reader/`、`/how-to-open-cbz/`、`/cbz-vs-cbr/`、`/what-is-a-cbz-file/`、`/cbz-file-format/`、`/read-cbz-on-iphone/`、`/read-cbz-on-android/`、`/how-to-make-a-cbz-file/`、`/cbz-file-wont-open/`、`/privacy/` |
+| 预渲染落地页 | ✅ | 14 条静态路由：首页、`/cbz-to-pdf/`、`/read-cbz-online/`、`/manga-reader/`、`/how-to-open-cbz/`、`/cbz-vs-cbr/`、`/what-is-a-cbz-file/`、`/cbz-file-format/`、`/read-cbz-on-iphone/`、`/read-cbz-on-android/`、`/how-to-make-a-cbz-file/`、`/cbz-file-wont-open/`、`/privacy/`、`/demo/`（其中 `/demo/` 为 `noindex` 且不进 sitemap，sitemap 仍是 13 条） |
+| 真机测试入口 | ✅ | `/demo/` 打开后自动加载内置样例并进入阅读器，无需选择文件；`/demo/?size=large` 加载 20 页 3000×4500 大图包。页面不出现落地页导航与页脚，`noindex,nofollow`；首页只有一个低权重文本链接。样例包位于 `public/samples/`，不进入 Service Worker 预缓存 |
 | 工具站信息架构 | ✅ | 首页双入口与 *More CBZ tools* 全部是预渲染的静态 HTML，无 JS 也可见；首页不再渲染 *Keep reading*（由工具分发区取代），避免同页重复链接。首页 title 55 字符、description 153 字符，仍以 `Read CBZ comics in your browser` 为主关键词意图；JSON-LD 的 `featureList` 增加转换能力，`WebSite.description` 同步为「读取 + 转换」 |
-| SEO 元信息 | ✅ | 每页独立 title/description、canonical、hreflang、OG/Twitter、JSON-LD（WebSite / WebApplication / Article / FAQPage / BreadcrumbList）；站内链接全部指向已预渲染的 13 条路由，构建后检查无断链 |
+| SEO 元信息 | ✅ | 每页独立 title/description、canonical、hreflang、OG/Twitter、JSON-LD（WebSite / WebApplication / Article / FAQPage / BreadcrumbList）；站内链接全部指向已预渲染的 14 条路由（`/demo/` 为 noindex，不参与收录），构建后检查无断链 |
 | 社交分享图 | ✅ | `public/og-image.png` 1200×630；`og:image` 含 width/height/alt，`twitter:image`，卡片类型为 `summary_large_image` |
 | 404 与静态资源 | ✅ | `public/404.html`；未知路径与缺失的 `/assets/*` 由 Cloudflare Pages 返回 404，而不是回退首页 200 |
 | sitemap / robots | ✅ | 构建时按 `SITE_URL` 生成 `sitemap.xml` 与 `robots.txt` |
@@ -133,7 +134,7 @@
 | 端到端自测 | ✅ | `npm run test:e2e` 用本机 Edge/Chrome 打开 CBZ，验证解码、翻页、纵向窗口滑动与模式切换保位，断言阅读层覆盖视口、工具栏隐藏/恢复、关闭回原滚动位置、`popstate` 关闭阅读器、`F` 全屏与 `fullscreenEnabled` 为假时的降级，并断言 dev 环境不注册 Service Worker |
 | 离线验收测试 | ✅ | `npm run test:offline` 针对生产构建断言：外壳预缓存不含内容页、断网刷新首页完整显示、断网打开本地 CBZ 并成功翻页、改动后的文档在下一次导航可见 |
 | 格式错误文案 | ✅ | CBR/RAR 与 CB7/7z 会明确提示容器不支持，并给出「解包后重新打包成 .cbz」的建议，而不是笼统的 `not a valid CBZ or ZIP` |
-| 测试样例脚本 | ✅ | `npm run samples` 用无头浏览器渲染图片并打包 CBZ，一次生成 6 个样例到 `D:\edgeDown\testData\archive`（页数/尺寸/文件名可按参数改，输出不进仓库） |
+| 测试样例脚本 | ✅ | `npm run samples` 用无头浏览器渲染图片并打包 CBZ，一次生成 6 个样例到 `D:\edgeDown\testData\archive`（页数/尺寸/文件名可按参数改，输出不进仓库）；`npm run samples:demo` 只生成 `/demo/` 用的两个包并写入 `public/samples/` |
 
 ### 3.2 真机验证记录
 
@@ -148,7 +149,7 @@
 | 离线（飞行模式） | 已访问过一次的站点 + 本地 `demo-30pages.cbz` | ✅ 安卓与 iPhone 真机确认：飞行模式下刷新首页可打开，本地 CBZ 可导入并翻页 |
 | 添加到主屏 | 站点首页 | ✅ 安卓与 iPhone 真机确认可添加成功 |
 | 沉浸式阅读层与浮动工具栏 | `demo-30pages.cbz` | 🟡 桌面无头 Edge 通过：阅读层四角覆盖、关闭回原滚动位置、`popstate` 关闭、`F` 进入/退出全屏、`fullscreenEnabled` 为假时菜单无该项且 `F` 无效；安全区与下滑隐藏待真机 |
-| 离线转换（生产构建 + 浏览器离线模式） | `demo-30pages.cbz`（30 页） | ✅ 联网状态访问过 `/cbz-to-pdf/` 后断网重新加载，页面仍可打开（来自运行时缓存），转换完成并下载 16.6MB PDF，全程无网络。真机飞行模式未在本机复跑，文案里已写明「先把这页打开一次」这一前提 |
+| 离线转换（飞行模式） | 本地 CBZ | ✅ iOS 真机通过：先联网打开 `/cbz-to-pdf/`，开飞行模式，选择本地 CBZ，进度走完并成功下载 PDF。桌面侧另有生产构建 + 浏览器离线模式的记录（30 页包，16.6MB PDF），两端结果一致 |
 
 ### 3.3 仍需真机确认（含 iOS 盲区）
 
@@ -164,7 +165,7 @@
 - 🟡 移动端其它手势：滑动翻页、点击分区翻页、双击复位只在桌面无头 Chromium 中验证。
 - 🟡 双页模式在窄屏下的默认值：宽度 ≥980px 默认双页，否则默认单页；小屏双页可读性未评估。
 - 🟡 **暗色的边缘行为未验证**：安卓与 iPhone 真机已确认暗色显示；对比度仍是桌面测量（正文 13.1:1、次要文字 7.8:1、主按钮 6.9:1、⋮ 菜单 14:1、页头主题按钮图标 16.4:1），系统主题实时切换、强制深色（forced dark）、`color-scheme` 滚动条、选中色与焦点环只有桌面记录。
-- 🟡 CBZ → PDF 转换只在桌面无头 Edge 上验证：页数、页面尺寸、JPEG 直通与零上传都有测试覆盖，但没有真机记录；iOS Safari 上 30 页 3000×4500 这类包的内存上限是明确盲区。
+- 🟡 CBZ → PDF 转换的大包内存未验证：iOS 真机已在飞行模式下跑通一次本地 CBZ 转换（先联网打开 `/cbz-to-pdf/`，断网后转换并下载 PDF），桌面侧另有页数、页面尺寸、JPEG 直通与零上传的测试覆盖；但 30 页 3000×4500 这类大包在 iOS Safari 上的内存上限仍是明确盲区。
 - 🟡 超大包压力测试：尚未用 300 页以上、单页 4K 的真实漫画包做压测。
 
 ### 3.4 续读策略与统一解码上限
@@ -368,6 +369,7 @@ Chrome 对同一站点的第二次自动下载会要求用户手势，因此第�
 npm run samples                     # 全部生成到 D:\edgeDown\testData\archive
 npm run samples -- --out D:\somewhere\archive
 npm run samples -- --only=long      # 只生成文件名含 long 的样例
+npm run samples:demo                # 只生成 /demo/ 用的两个包，写入 public/samples/
 ```
 
 每个页面都印有超大页码、`PAGE n OF N` 与文件名，并逐页换底色，方便肉眼判断页序、跳页和重复页。默认样例：
@@ -383,13 +385,22 @@ npm run samples -- --only=long      # 只生成文件名含 long 的样例
 
 输出目录在仓库外，不会被提交；重新运行会直接覆盖同名文件。
 
+`/demo/` 用的两个包是例外，它们随站点部署，所以写进 `public/samples/` 并提交：
+
+| 文件 | URL | 页数 | 单页尺寸 | 体积 | 用途 |
+| --- | --- | --- | --- | --- | --- |
+| `sample-12-pages.cbz` | `/demo/` | 12 | 1200×1800 | 约 1.0 MB | 常态交互检查：打开、翻页、切纵向 |
+| `sample-large-20-pages.cbz` | `/demo/?size=large` | 20 | 3000×4500 | 约 6.5 MB | 内存、降采样与画布钳制 |
+
+两个包用 JPEG 页（`format: 'jpeg'`），页面仍然是合成图，不含任何真实漫画内容。`/demo/` 是**设备测试入口**：打开即自动加载样例，不需要选择文件；页面 `noindex,nofollow`、不进 `sitemap.xml`、不进顶栏导航，样例也不在 Service Worker 预缓存里（只有外壳与 `/assets/*` 预缓存）。首页只在阅读卡片底部留一个低权重文本链接「No file handy? Open the sample」。
+
 ### 5.8 事件字典（Umami）
 
 统计脚本写在 `src/prerender/head.ts` 的 `renderHead()` 里，随预渲染输出到每个静态页；本地开发没有这段脚本，`src/lib/track.ts` 检测不到 `window.umami` 时直接返回，不报错、不排队。所有事件只允许下列粗粒度属性，**不上报文件名、页面内容、书签内容或任何可识别个人的信息**。
 
 | 事件 | 属性 | 用途 |
 | --- | --- | --- |
-| `tool_open` | `source`: `picker` / `drag`；`ext`（仅扩展名，异常值记 `unknown`）；`size_bucket`: `<10MB` / `10-50MB` / `>50MB` | 打开链路的来源与包体积分布，判断大包比例 |
+| `tool_open` | `source`: `picker` / `drag` / `demo`；`ext`（仅扩展名，异常值记 `unknown`）；`size_bucket`: `<10MB` / `10-50MB` / `>50MB`（`demo` 只带 `source`，不带文件名与体积） | 打开链路的来源与包体积分布，判断大包比例 |
 | `render_success` | `ms`：从打开文件到首屏解码完成 | 核心转化指标，替代「打开即成功」的误判 |
 | `mode_switch` | `mode`: `single` / `double` / `scroll`（切换后的模式） | 布局偏好，验证纵向与双页的实际使用 |
 | `zoom` | `level`：首次进入放大时的百分比 | 判断高倍缩放需求，只报每本书的第一次 |
@@ -436,8 +447,8 @@ cbz-reader/
 ├─ scripts/prerender.mjs       # 构建时预渲染、sitemap、robots、sw.js
 ├─ scripts/sw-template.js      # Service Worker 模板（注入版本与预缓存清单）
 ├─ scripts/make-icons.mjs      # 从 favicon.svg 渲染 PWA 图标
-├─ scripts/make-samples.mjs    # 生成真机测试用 CBZ（输出到仓库外）
-├─ public/                     # favicon、manifest、PWA 图标、_headers、IndexNow key 文件
+├─ scripts/make-samples.mjs    # 生成真机测试用 CBZ（默认输出到仓库外，--demo 写入 public/samples）
+├─ public/                     # favicon、manifest、PWA 图标、_headers、IndexNow key 文件、samples/（/demo/ 样例包）
 ├─ src/
 │  ├─ main.ts                  # 静态首屏入口：文件选择 / 拖拽 / 懒加载阅读器
 │  ├─ dev/devLanding.ts        # 仅开发模式：客户端挂载落地页

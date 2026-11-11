@@ -115,6 +115,7 @@ const trustItems = computed(() => props.page.trust ?? DEFAULT_TRUST)
                 aria-label="Choose a CBZ file"
               />
               <p class="dropzone__fine">Nothing is uploaded. Works with CBZ and ZIP archives.</p>
+              <p class="dropzone__sample"><a href="/demo/">No file handy? Open the sample</a></p>
             </div>
           </div>
         </div>
