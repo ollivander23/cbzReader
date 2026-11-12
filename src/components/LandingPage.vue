@@ -18,6 +18,24 @@ const year = 2026
 const isLocalized = computed(() => locale.value !== 'en')
 const homeHref = computed(() => (isLocalized.value ? `/${locale.value}/` : '/'))
 const isHome = computed(() => ['/', '/zh/', '/ja/'].includes(props.page.path))
+
+// The language control is a row of real links, not a <select>: a crawler can
+// follow them, and a visitor keeps the page they are on when a translation of
+// that page exists. Guides are English-only for now, so zh/ja land on the
+// localized home page instead of a 404.
+const LOCALE_LINKS = [
+  { code: 'en', hreflang: 'en', label: 'EN' },
+  { code: 'zh', hreflang: 'zh-CN', label: '中文' },
+  { code: 'ja', hreflang: 'ja', label: '日本語' },
+] as const
+
+const localeLinks = computed(() =>
+  LOCALE_LINKS.map((link) => ({
+    ...link,
+    href: link.code === 'en' ? (isLocalized.value ? '/' : props.page.path) : `/${link.code}/`,
+    current: locale.value === link.code,
+  })),
+)
 const navItems = computed(() =>
   NAV.map((item) => ({
     ...item,
@@ -53,18 +71,18 @@ function toolKindLabel(kind: 'sample' | 'tool' | 'guide'): string {
             {{ item.label }}
           </a>
         </nav>
-        <div class="lang-switch">
-          <select
-            class="lang-switch__select"
-            :aria-label="t('header.language')"
-            :data-en-href="isLocalized ? '/' : page.path"
-            data-lang-switch
-          >
-            <option value="en" :selected="locale === 'en'">EN</option>
-            <option value="zh" :selected="locale === 'zh'">中文</option>
-            <option value="ja" :selected="locale === 'ja'">日本語</option>
-          </select>
-        </div>
+        <nav class="lang-switch" :aria-label="t('header.language')">
+          <a
+            v-for="link in localeLinks"
+            :key="link.code"
+            class="lang-switch__link"
+            :class="{ 'lang-switch__link--current': link.current }"
+            :href="link.href"
+            :hreflang="link.hreflang"
+            :lang="link.hreflang"
+            :aria-current="link.current ? 'page' : undefined"
+          >{{ link.label }}</a>
+        </nav>
         <div class="theme-switch">
           <button
             type="button"

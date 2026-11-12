@@ -1,6 +1,6 @@
 import './styles/base.css'
 import { mountRecentShelf } from './components/recentShelf'
-import { LOCALE_STORAGE_KEY, localeFromPath, setSiteLocale, type SiteLocale } from './i18n'
+import { localeFromPath, setSiteLocale } from './i18n'
 import { fileExtension, sizeBucket, track } from './lib/track'
 import { initTheme } from './lib/theme'
 import { mountThemeSwitch } from './lib/themeSwitch'
@@ -161,26 +161,6 @@ function preventBrowserDrop(event: DragEvent): void {
   event.preventDefault()
 }
 
-// The switcher is a normal <select> in the prerendered header. It only records
-// an explicit choice; nothing here redirects based on Accept-Language.
-function wireLanguageSwitch(): void {
-  const select = document.querySelector<HTMLSelectElement>('[data-lang-switch]')
-  if (!select) return
-
-  select.value = localeFromPath(location.pathname)
-
-  select.addEventListener('change', () => {
-    const locale = select.value as SiteLocale
-    try {
-      localStorage.setItem(LOCALE_STORAGE_KEY, locale)
-    } catch {
-      // Storage can be unavailable in private mode; navigation still works.
-    }
-    const enHref = select.dataset.enHref || '/'
-    location.href = locale === 'en' ? enHref : `/${locale}/`
-  })
-}
-
 // Production only: a service worker in dev would serve stale files and make
 // local debugging confusing. The worker itself is generated at build time.
 function registerServiceWorker(): void {
@@ -205,7 +185,6 @@ function bootstrap(): void {
   window.addEventListener('dragover', preventBrowserDrop)
   window.addEventListener('drop', preventBrowserDrop)
   wireCtaTracking()
-  wireLanguageSwitch()
 
   if (import.meta.env.DEV) {
     // Production pages are prerendered into real HTML at build time.
@@ -213,7 +192,6 @@ function bootstrap(): void {
     void import('./dev/devLanding').then(({ mountDevLanding }) => {
       mountDevLanding()
       // The header only exists after the client-side landing page mounts.
-      wireLanguageSwitch()
       mountThemeSwitch()
       wireStaticReader()
       wireStaticConverter()

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run typecheck && vite build && vite build --ssr src/prerender/entry-server.ts --outDir dist-ssr && node scripts/prerender.mjs",
+    "build": "npm run typecheck && vite build && vite build --ssr src/prerender/entry-server.ts --outDir dist-ssr && node scripts/prerender.mjs && node scripts/indexnow.mjs",
     "preview": "vite preview --port 4173",
     "typecheck": "vue-tsc --noEmit",
     "samples": "node scripts/make-samples.mjs",

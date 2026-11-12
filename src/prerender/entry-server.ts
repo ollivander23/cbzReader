@@ -25,6 +25,8 @@ export interface PrerenderRoute {
   path: string
   lang: string
   alternates: readonly PrerenderAlternate[]
+  /** Editorial date of the page, written to the sitemap as lastmod. */
+  updated?: string
   noindex?: boolean
 }
 
@@ -43,11 +45,13 @@ export const routes: PrerenderRoute[] = [
     path: page.path,
     lang: htmlLang('en'),
     alternates: page.path === '/' ? HOME_ALTERNATES : englishAlternates(page.path),
+    updated: page.updated,
   })),
   ...(['zh', 'ja'] as const).map((locale) => ({
     path: LOCALIZED_HOME_PAGES[locale].path,
     lang: htmlLang(locale),
     alternates: HOME_ALTERNATES,
+    updated: LOCALIZED_HOME_PAGES[locale].updated,
   })),
   // A device-testing entry: prerendered so it works without JS, but kept out
   // of the sitemap and marked noindex.

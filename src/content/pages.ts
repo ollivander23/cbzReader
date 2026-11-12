@@ -51,12 +51,12 @@ export interface PageContent {
 export const PAGES: PageContent[] = [
   {
     path: '/',
-    title: 'CBZ Reader - Read and Convert CBZ Files in Your Browser',
+    title: 'CBZ Reader and CBZ to PDF Converter - No Upload',
     description:
-      'Read CBZ comics and convert CBZ to PDF in your browser. Files stay on your device: no upload, no account. Manga right-to-left, spreads, zoom, and resume.',
-    h1: 'Read CBZ comics in your browser',
+      'Open a CBZ to read it, or convert it to PDF, both inside the browser tab. The archive never leaves your device: no upload, no account, no install.',
+    h1: 'Read a CBZ, or convert it to PDF — no upload needed',
     eyebrow: 'CBZ reader and converter',
-    lead: 'Open a CBZ to read, or convert it to PDF. Both run on your device.',
+    lead: 'Pick a file to read it here, or export it as a PDF. Both run in this tab, so the archive never leaves your device.',
     tool: true,
     schema: 'app',
     schemaFeatures: [
@@ -67,7 +67,7 @@ export const PAGES: PageContent[] = [
       'Zoom and pan',
       'Local reading progress',
     ],
-    updated: '2026-11-11',
+    updated: '2026-11-12',
     trust: ['Nothing is uploaded — the file stays in your browser, no account needed.'],
     sections: [],
     faq: [
@@ -735,7 +735,7 @@ export const PAGES: PageContent[] = [
       {
         question: 'Does it work offline on Android?',
         answer:
-          'There is no app and no service worker in this version, so reloading the page needs a network connection. Once the reader is loaded, page turns are local.',
+          'Yes, after the first visit. The page shell is kept by a service worker, so the reader reloads with no connection, and page turns are local either way. Clearing site data or using a private window removes the stored copy.',
       },
       {
         question: 'Why does the tab reload when I switch apps?',
@@ -1092,9 +1092,9 @@ export const PAGES: PageContent[] = [
   },
   {
     path: '/cbz-to-pdf/',
-    title: 'CBZ to PDF Converter - Local, No Upload',
+    title: 'CBZ to PDF Converter - No Upload, Runs in Your Browser',
     description:
-      'Convert a CBZ comic archive to PDF in your browser. Nothing is uploaded, JPEG pages are copied unchanged, and pages keep their original size or fit A4.',
+      'Convert a CBZ comic to PDF in your browser without uploading it. JPEG pages are copied unchanged, and pages keep their original size or fit A4.',
     h1: 'Convert CBZ to PDF without uploading',
     eyebrow: 'CBZ to PDF',
     lead: 'Pick a .cbz file and get a PDF back without a round trip to a server. The archive is unpacked and the PDF is assembled in this tab, so the pages never leave your device.',
@@ -1108,13 +1108,18 @@ export const PAGES: PageContent[] = [
       'No upload and no account',
       'Cancelable conversion with specific error messages',
     ],
-    updated: '2026-11-11',
+    updated: '2026-11-12',
     sections: [
       {
         heading: 'Why most CBZ to PDF converters upload your file',
         paragraphs: [
           'Uploading is the simplest way to build this tool. The archive goes to a server, a machine with a PDF library and plenty of memory unpacks it, and the finished file comes back as a download link. The browser only has to send and receive bytes.',
           'That design suits the operator, not the reader. A copy of your comic exists somewhere else even if it is deleted an hour later, large files usually need an account or a paid tier, and the result depends on someone else keeping the service online. For a file that is already on your disk, the round trip buys nothing.',
+        ],
+        bullets: [
+          'Upload-based converter: the archive leaves your device, is converted on a server, and comes back as a link. A copy exists on a machine you do not control until that operator deletes it.',
+          'This converter: the archive is opened from your disk, the PDF is written in the same tab, and the browser saves the result. No request ever carries page bytes.',
+          'The trade-off, stated plainly: one archive at a time, no OCR, and no CBR input. In exchange, the only copy of the comic stays where it already was.',
         ],
       },
       {
@@ -1196,6 +1201,16 @@ export const PAGES: PageContent[] = [
         question: 'How can I check that the conversion does not upload my file?',
         answer:
           'Open this page once, then either watch DevTools → Network while converting or switch a phone to airplane mode and convert. On desktop the request list shows the page, its scripts and an analytics ping, but nothing that carries the archive or the page images. With the network off, the same conversion still finishes and downloads a PDF. This applies to this converter only: the archive and the finished PDF never leave the tab.',
+      },
+      {
+        question: 'Can I convert a comic I bought without uploading it somewhere?',
+        answer:
+          'Yes. This converter has no upload step at all: the archive is opened from your disk with the browser file API and the PDF is written in the same tab. You can confirm it in DevTools → Network, or by converting once with the device in airplane mode.',
+      },
+      {
+        question: 'How large a CBZ can it convert?',
+        answer:
+          'There is no quota, because nothing is sent to a server; the limit is the memory the tab is given. A few hundred ordinary pages convert comfortably on a desktop, while hundreds of very large pages can exhaust a phone. The run pauses between pages, and Cancel stops it without downloading a partial PDF.',
       },
       {
         question: 'Does the converter work offline?',

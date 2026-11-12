@@ -48,10 +48,14 @@ for (const route of routes) {
   console.log(`[prerender] ${route.path} -> ${path.relative(root, target)}`)
 }
 
-const lastmod = new Date().toISOString().slice(0, 10)
+// Fallback only: each route carries its own editorial date, so a redeploy that
+// changes one page does not restamp all eighteen. A sitemap where every URL
+// changes on every build teaches search engines to ignore lastmod.
+const buildDate = new Date().toISOString().slice(0, 10)
 const urlset = routes
   .filter((route) => !route.noindex)
   .map((route) => {
+    const lastmod = route.updated || buildDate
     const priority = route.path === '/' ? '1.0' : '0.7'
     const alternates = (route.alternates ?? [])
       .map(
