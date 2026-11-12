@@ -1,3 +1,5 @@
+**English** | [简体中文](README.zh-CN.md)
+
 # CBZ Reader — read CBZ comics in your browser
 **A browser-based comic reader and cbz to pdf converter that keeps files on your device. No upload, no account, no install.**
 **Try it: [cbzreader.mavi.help](https://cbzreader.mavi.help/) · Live demo: [cbzreader.mavi.help/demo](https://cbzreader.mavi.help/demo/)**
