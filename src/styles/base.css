@@ -259,6 +259,29 @@ img {
   background: var(--card-bg-hover);
 }
 
+/* An entry rendered as a button: that language has no version of this page, so
+   clicking must not navigate anywhere. It looks the same as the links on
+   purpose; the page-header notice explains what happened. */
+.lang-switch button.lang-switch__link {
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.lang-notice {
+  width: min(var(--wrap), calc(100% - 40px));
+  margin: 0 auto 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
 .theme-switch__trigger {
   display: grid;
   place-items: center;

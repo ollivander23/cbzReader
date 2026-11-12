@@ -1,13 +1,7 @@
 import { createApp } from 'vue'
 import DemoPage from '../components/DemoPage.vue'
 import LandingPage from '../components/LandingPage.vue'
-import { findPage } from '../content/pages'
-import {
-  LOCALIZED_HOME_PAGES,
-  i18n,
-  localeFromPath,
-  setSiteLocale,
-} from '../i18n'
+import { i18n, localeFromPath, pageForPath, setSiteLocale } from '../i18n'
 
 export function mountDevLanding(): void {
   const host = document.getElementById('landing')
@@ -21,9 +15,8 @@ export function mountDevLanding(): void {
     return
   }
 
-  const page =
-    locale === 'zh' || locale === 'ja'
-      ? LOCALIZED_HOME_PAGES[locale]
-      : findPage(window.location.pathname)
+  // Same resolver as the prerenderer, so dev cannot disagree with production
+  // about which page a URL renders.
+  const page = pageForPath(window.location.pathname)
   createApp(LandingPage, { page }).use(i18n).mount(host)
 }

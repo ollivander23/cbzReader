@@ -2,7 +2,7 @@ import { createSSRApp, h } from 'vue'
 import { renderToString } from '@vue/server-renderer'
 import DemoPage from '../components/DemoPage.vue'
 import LandingPage from '../components/LandingPage.vue'
-import { PAGES, findPage, type PageContent } from '../content/pages'
+import { PAGES } from '../content/pages'
 import {
   HOME_ALTERNATES,
   LOCALIZED_CONTENT_PAGES,
@@ -11,6 +11,7 @@ import {
   createSiteI18n,
   htmlLang,
   localeFromPath,
+  pageForPath,
   type SiteLocale,
 } from '../i18n'
 import { renderDemoHead, renderHead } from './head'
@@ -67,14 +68,6 @@ export const routes: PrerenderRoute[] = [
   // of the sitemap and marked noindex.
   { path: '/demo/', lang: htmlLang('en'), alternates: [], noindex: true },
 ]
-
-function pageForPath(path: string): PageContent {
-  const localized = LOCALIZED_CONTENT_PAGES.find((page) => page.path === path)
-  if (localized) return localized
-  if (path === '/zh/') return LOCALIZED_HOME_PAGES.zh
-  if (path === '/ja/') return LOCALIZED_HOME_PAGES.ja
-  return findPage(path)
-}
 
 function localeForPath(path: string): SiteLocale {
   return localeFromPath(path)

@@ -255,6 +255,8 @@ export default {
   },
   header: {
     language: '语言',
+    noTranslation: '这一页还没有{lang}版本。',
+    localeName: { en: '英文', zh: '中文', ja: '日文' },
     themeDark: '切换到深色主题',
     themeLight: '切换到浅色主题',
   },

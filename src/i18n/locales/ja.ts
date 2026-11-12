@@ -258,6 +258,8 @@ export default {
   },
   header: {
     language: '言語',
+    noTranslation: 'このページの{lang}版はまだありません。',
+    localeName: { en: '英語', zh: '中国語', ja: '日本語' },
     themeDark: 'ダークテーマに切り替える',
     themeLight: 'ライトテーマに切り替える',
   },

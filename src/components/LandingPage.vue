@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { NAV, SITE } from '../content/site'
 import { findPage, type PageContent } from '../content/pages'
-import { pathForLocale, isSamePage, translatedHref, type SiteLocale } from '../i18n'
+import { isSamePage, pathIfTranslated, translatedHref, type SiteLocale } from '../i18n'
 
 const props = defineProps<{ page: PageContent }>()
 const { t, tm, locale } = useI18n()
@@ -31,11 +31,18 @@ const LOCALE_LINKS = [
 ] as const
 
 const localeLinks = computed(() =>
-  LOCALE_LINKS.map((link) => ({
-    ...link,
-    href: pathForLocale(props.page.path, link.code),
-    current: locale.value === link.code,
-  })),
+  LOCALE_LINKS.map((link) => {
+    const target = pathIfTranslated(props.page.path, link.code)
+    return {
+      ...link,
+      // null means this page has no version in that language yet. The switcher
+      // must not navigate anywhere in that case, or the visitor loses the page
+      // they were reading.
+      href: target,
+      current: locale.value === link.code,
+      missingMessage: t('header.noTranslation', { lang: t(`header.localeName.${link.code}`) }),
+    }
+  }),
 )
 const navItems = computed(() =>
   NAV.map((item) => ({
@@ -76,16 +83,31 @@ function toolKindLabel(kind: 'sample' | 'tool' | 'guide'): string {
           </a>
         </nav>
         <nav class="lang-switch" :aria-label="t('header.language')">
-          <a
-            v-for="link in localeLinks"
-            :key="link.code"
-            class="lang-switch__link"
-            :class="{ 'lang-switch__link--current': link.current }"
-            :href="link.href"
-            :hreflang="link.hreflang"
-            :lang="link.hreflang"
-            :aria-current="link.current ? 'page' : undefined"
-          >{{ link.label }}</a>
+          <template v-for="link in localeLinks" :key="link.code">
+            <span
+              v-if="link.current"
+              class="lang-switch__link lang-switch__link--current"
+              :lang="link.hreflang"
+              aria-current="page"
+            >{{ link.label }}</span>
+            <a
+              v-else-if="link.href"
+              class="lang-switch__link"
+              :href="link.href"
+              :hreflang="link.hreflang"
+              :lang="link.hreflang"
+            >{{ link.label }}</a>
+            <button
+              v-else
+              type="button"
+              class="lang-switch__link"
+              :lang="link.hreflang"
+              :title="link.missingMessage"
+              :aria-label="link.missingMessage"
+              :data-lang-message="link.missingMessage"
+              data-lang-missing
+            >{{ link.label }}</button>
+          </template>
         </nav>
         <div class="theme-switch">
           <button
@@ -108,6 +130,7 @@ function toolKindLabel(kind: 'sample' | 'tool' | 'guide'): string {
         </div>
       </div>
     </div>
+    <p class="lang-notice" data-lang-notice role="status" hidden></p>
   </header>
 
   <main class="wrap">

@@ -9,6 +9,8 @@ export default {
   },
   header: {
     language: 'Language',
+    noTranslation: 'This page is not available in {lang} yet.',
+    localeName: { en: 'English', zh: 'Chinese', ja: 'Japanese' },
     themeDark: 'Switch to dark theme',
     themeLight: 'Switch to light theme',
   },

@@ -161,6 +161,29 @@ function preventBrowserDrop(event: DragEvent): void {
   event.preventDefault()
 }
 
+// A language the current page has no version in cannot navigate anywhere: that
+// used to drop the visitor on the language home page, losing what they were
+// reading. The switcher renders those entries as buttons, and this explains in
+// place why nothing moved. The line hides itself again after a moment.
+function wireLanguageNotice(): void {
+  const notice = document.querySelector<HTMLElement>('[data-lang-notice]')
+  if (!notice) return
+  let hideTimer: number | undefined
+
+  document.addEventListener('click', (event) => {
+    const element = event.target instanceof Element ? event.target : null
+    const button = element?.closest<HTMLElement>('[data-lang-missing]')
+    if (!button) return
+    event.preventDefault()
+    notice.textContent = button.dataset.langMessage ?? ''
+    notice.hidden = false
+    window.clearTimeout(hideTimer)
+    hideTimer = window.setTimeout(() => {
+      notice.hidden = true
+    }, 5000)
+  })
+}
+
 // Production only: a service worker in dev would serve stale files and make
 // local debugging confusing. The worker itself is generated at build time.
 function registerServiceWorker(): void {
@@ -185,6 +208,7 @@ function bootstrap(): void {
   window.addEventListener('dragover', preventBrowserDrop)
   window.addEventListener('drop', preventBrowserDrop)
   wireCtaTracking()
+  wireLanguageNotice()
 
   if (import.meta.env.DEV) {
     // Production pages are prerendered into real HTML at build time.
@@ -192,6 +216,7 @@ function bootstrap(): void {
     void import('./dev/devLanding').then(({ mountDevLanding }) => {
       mountDevLanding()
       // The header only exists after the client-side landing page mounts.
+      wireLanguageNotice()
       mountThemeSwitch()
       wireStaticReader()
       wireStaticConverter()

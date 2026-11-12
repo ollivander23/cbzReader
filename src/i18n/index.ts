@@ -1,5 +1,5 @@
 import { createI18n } from 'vue-i18n'
-import type { PageContent } from '../content/pages'
+import { findPage, type PageContent } from '../content/pages'
 import en from './locales/en'
 import zh, { zhCbzToPdf, zhHome } from './locales/zh'
 import ja, { jaCbzToPdf, jaHome } from './locales/ja'
@@ -20,6 +20,18 @@ export const LOCALIZED_HOME_PAGES: Record<'zh' | 'ja', PageContent> = {
 export const LOCALIZED_CONTENT_PAGES: readonly PageContent[] = [zhCbzToPdf, jaCbzToPdf]
 
 /**
+ * The page object a path renders, shared by the prerenderer and the dev server.
+ * They used to resolve this separately, so adding a translated page fixed
+ * production and silently left dev rendering the language home page instead.
+ */
+export function pageForPath(path: string): PageContent {
+  const localized = [...LOCALIZED_CONTENT_PAGES, ...Object.values(LOCALIZED_HOME_PAGES)].find(
+    (page) => page.path === path,
+  )
+  return localized ?? findPage(path)
+}
+
+/**
  * Every page that exists in more than one language, as one equivalence group.
  * hreflang and the language switcher both read this, so translating one more page
  * means adding a row here and letting entry-server build the route from it.
@@ -38,6 +50,17 @@ export function alternatesForPath(path: string): { hreflang: string; path: strin
     { hreflang: 'ja', path: group.ja },
     { hreflang: 'x-default', path: group.en },
   ]
+}
+
+/**
+ * The URL of this page in `locale`, or null when that translation does not
+ * exist. This is what the language switcher must use: falling back to the home
+ * page (see pathForLocale) turns "translate this page" into "throw me away".
+ */
+export function pathIfTranslated(path: string, locale: SiteLocale): string | null {
+  const group = LOCALIZED_GROUPS.find((entry) => Object.values(entry).includes(path))
+  if (group) return group[locale]
+  return locale === 'en' ? path : null
 }
 
 /** The same page in another language; falls back to that language's home page. */
