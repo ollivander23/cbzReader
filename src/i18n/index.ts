@@ -47,6 +47,23 @@ export function pathForLocale(path: string, locale: SiteLocale): string {
   return locale === 'en' ? path : `/${locale}/`
 }
 
+/**
+ * A link to a page in the requested language. Unlike pathForLocale this keeps
+ * untranslated pages pointing at their English URL instead of dropping the
+ * visitor on the home page, so navigation stays predictable.
+ */
+export function translatedHref(path: string, locale: SiteLocale): string {
+  const group = LOCALIZED_GROUPS.find((entry) => Object.values(entry).includes(path))
+  return group ? group[locale] : path
+}
+
+/** True when two paths are the same page in different languages. */
+export function isSamePage(a: string, b: string): boolean {
+  if (a === b) return true
+  const group = LOCALIZED_GROUPS.find((entry) => Object.values(entry).includes(a))
+  return !!group && Object.values(group).includes(b)
+}
+
 export const HOME_ALTERNATES = alternatesForPath('/') ?? []
 
 /** Path-derived locale. Never reads Accept-Language, so shared links stay stable. */

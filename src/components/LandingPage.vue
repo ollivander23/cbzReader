@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { NAV, SITE } from '../content/site'
 import { findPage, type PageContent } from '../content/pages'
-import { pathForLocale } from '../i18n'
+import { pathForLocale, isSamePage, translatedHref, type SiteLocale } from '../i18n'
 
 const props = defineProps<{ page: PageContent }>()
 const { t, tm, locale } = useI18n()
@@ -41,7 +41,10 @@ const navItems = computed(() =>
   NAV.map((item) => ({
     ...item,
     label: t(item.labelKey),
-    href: item.href === '/' ? homeHref.value : item.href,
+    // Keep the visitor in their language when the target exists in it, and keep
+    // the highlight when they are already on the translated page.
+    href: translatedHref(item.href, locale.value as SiteLocale),
+    current: isSamePage(props.page.path, item.href),
   })),
 )
 const DEFAULT_TRUST = computed(() => tm('home.defaultTrust') as string[])
@@ -67,7 +70,7 @@ function toolKindLabel(kind: 'sample' | 'tool' | 'guide'): string {
             v-for="item in navItems"
             :key="item.href"
             :href="item.href"
-            :aria-current="page.path === item.href ? 'page' : undefined"
+            :aria-current="item.current ? 'page' : undefined"
           >
             {{ item.label }}
           </a>
