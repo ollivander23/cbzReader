@@ -40,39 +40,15 @@ export const zhHome: PageContent = {
   ],
   tools: [
     {
-      href: '/cbz-to-pdf/',
-      label: 'CBZ 转 PDF',
-      note: '按原始尺寸或 A4 输出。',
-      kind: 'tool',
-    },
-    {
-      href: '/read-cbz-online/',
-      label: '在线读 CBZ',
-      note: '不上传文件时，流程有什么不同。',
-      kind: 'guide',
-    },
-    {
-      href: '/manga-reader/',
-      label: '漫画模式',
-      note: '一键切换右开双页。',
-      kind: 'guide',
-    },
-    {
-      href: '/how-to-open-cbz/',
-      label: '如何打开 CBZ',
-      note: '电脑、Android、iPhone。',
-      kind: 'guide',
-    },
-    {
       href: '/what-is-a-cbz-file/',
       label: 'CBZ 是什么文件？',
       note: 'ZIP 容器、页面和元数据。',
       kind: 'guide',
     },
     {
-      href: '/cbz-file-format/',
-      label: 'CBZ 格式详解',
-      note: 'ComicInfo.xml、页序和排版。',
+      href: '/how-to-open-cbz/',
+      label: '如何打开 CBZ',
+      note: '电脑、Android、iPhone。',
       kind: 'guide',
     },
     {
@@ -91,18 +67,6 @@ export const zhHome: PageContent = {
       href: '/cbz-vs-cbr/',
       label: 'CBZ、CBR 与 CB7',
       note: '浏览器能打开哪些容器。',
-      kind: 'guide',
-    },
-    {
-      href: '/read-cbz-on-iphone/',
-      label: '在 iPhone 上读 CBZ',
-      note: '「文件」App 与 Safari 的限制。',
-      kind: 'guide',
-    },
-    {
-      href: '/read-cbz-on-android/',
-      label: '在 Android 上读 CBZ',
-      note: '从下载目录或 Drive 打开，不用装 App。',
       kind: 'guide',
     },
     {
@@ -236,7 +200,7 @@ export const zhCbzToPdf: PageContent = {
         '可以，首次访问之后就行。转换器和阅读器打包在同一个可离线运行的页面外壳里，而你的 CBZ 本来就是本地文件。',
     },
   ],
-  related: ['/', '/what-is-a-cbz-file/', '/cbz-file-format/', '/cbz-file-wont-open/'],
+  related: ['/', '/what-is-a-cbz-file/', '/cbz-file-wont-open/'],
   bridge: {
     text: '只是想翻一遍这个压缩包，不需要转换？',
     href: '/zh/',
@@ -244,13 +208,102 @@ export const zhCbzToPdf: PageContent = {
   },
 }
 
+export const zhPrivateProcess: PageContent = {
+  path: '/zh/private-process/',
+  title: '本地处理 - 标签页里究竟发生了什么',
+  description:
+    '压缩包在这个标签页里解开，页面在这里解码，PDF 也在这里写出。哪些事因此不会发生，哪些仍会发生，以及怎么用一分钟自己验证。',
+  h1: '是本地处理，不是一个在线服务',
+  eyebrow: '打开盖子看看',
+  lead: '下面这些事都发生在这个标签页里，没有另一头可以接收文件。',
+  schema: 'article',
+  updated: '2026-11-13',
+  sections: [
+    {
+      heading: '「本地处理」在这里指什么',
+      paragraphs: [
+        '晚上十一点，同事发来一个 .cbz。公司电脑装着一套锁死的系统，没有漫画软件，也不允许自己装。你于是打开一个浏览器标签页来读它。',
+        '整件事就这么简单：文件进来，处理在标签页里完成，结果回到你手上。这个循环里没有任何一处可以顺手把副本发出去。',
+      ],
+    },
+    {
+      heading: '那几句承诺，各自靠什么撑着',
+      paragraphs: [
+        '你在酒店的 Wi-Fi 上，用的是公司电脑，规定不许上传任何文件。首页写了四句承诺，每一句背后都有一件具体的事。',
+      ],
+      table: {
+        head: ['承诺', '靠什么成立'],
+        rows: [
+          ['文件留在你的设备上', '通过浏览器的文件句柄打开，从不写进任何请求体'],
+          ['读', 'ZIP 中央目录就地读取，一次只取一页'],
+          ['转', '浏览器解码图片，再由 pdf-lib 在标签页里写出 PDF 字节'],
+          ['不交出去', '下载地址是本机生成的 Blob URL，没有可调用的上传接口'],
+        ],
+      },
+    },
+    {
+      heading: '一个文件走过的路',
+      flow: ['解包', '解码', '排版', '交付'],
+      paragraphs: [
+        '手机上一个 App 都没装，也能打开一个 400 MB 的压缩包。',
+        '解包读出 ZIP 索引，一次取一页；解码和排版都在标签页里跑；交付有两条出口，像素送到屏幕，PDF 字节送到下载。两条出口都不通往服务器。',
+      ],
+    },
+    {
+      heading: '标签页的边界在哪',
+      paragraphs: [
+        '这个站仍然有服务器和账单，所以有三样东西会离开浏览器。它们都不包含你的文件。',
+      ],
+      bullets: [
+        'Cloudflare 负责接收连接，能看到请求的元数据：IP 地址、User-Agent、页面地址。',
+        'Umami 每次访问或转换收到一条事件，里面有事件名、页面路径，以及页数、耗时之类的计数。',
+        '浏览器存储里存着语言选择和阅读进度，清除站点数据就都没了。',
+      ],
+    },
+    {
+      heading: '一分钟自己验证',
+      paragraphs: ['挑一个真实文件，处理的时候盯着浏览器看。'],
+      bullets: [
+        '打开 DevTools → Network，按本站域名过滤，再开始处理。唯一的非 GET 请求是统计上报，里面没有文件。',
+        '先把页面加载一次，再切到飞行模式去转换。它照样跑完，下载照样出现。',
+        '在请求列表里找找有没有接收文件的接口。找不到。',
+      ],
+    },
+  ],
+  faq: [
+    {
+      question: '这和隐私页是一回事吗？',
+      answer: '隐私页列的是收集了哪些信息、为什么收集。这页讲的是代码拿文件做了什么。',
+    },
+    {
+      question: '浏览器存储里到底存了什么？',
+      answer: '语言偏好和阅读进度，还有 Service Worker 存下的这一页。清除站点数据就全清了。',
+    },
+    {
+      question: '为什么在飞机上也能转换完？',
+      answer: '第一次访问后 Service Worker 把页面和脚本留在了本机。压缩包本来就在你的磁盘上。',
+    },
+    {
+      question: '换个浏览器会怎样？',
+      answer: '什么都带不过去。阅读进度留在写它的那个浏览器里。',
+    },
+  ],
+  related: [
+    { href: '/zh/', label: '回到阅读器' },
+    { href: '/zh/cbz-to-pdf/', label: '拿一个文件试试' },
+    { href: '/privacy/', label: '这个站收集什么' },
+    { href: '/cbz-vs-cbr/', label: '换个容器会有什么不同' },
+  ],
+}
+
 export default {
   nav: {
     primary: '主导航',
     reader: '阅读器',
     cbzToPdf: 'CBZ 转 PDF',
+    privateProcess: '本地处理',
+    // Footer labels only; the top bar is the three entries above.
     howToOpen: '如何打开 CBZ',
-    mangaMode: '漫画模式',
     compare: 'CBZ 与 CBR',
   },
   header: {
@@ -334,8 +387,7 @@ export default {
     tip: '小提示：在 iPhone 或 iPad 上，先打开本页，再从「文件」App 里选择文件。iOS 不允许网站注册为文件处理器。',
     noscript:
       '解压和显示 CBZ 页面需要 JavaScript。所有解析都在浏览器里完成，不会发送到服务器。',
-    toolsHeading: '更多 CBZ 工具',
-    toolsIntro: '转换压缩包、查格式细节，或处理打不开的文件。',
+    toolsHeading: '处理 CBZ 文件',
     kindSample: '样例',
     kindTool: '工具',
     kindGuide: '指南',

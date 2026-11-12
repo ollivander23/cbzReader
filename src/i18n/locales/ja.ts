@@ -40,39 +40,15 @@ export const jaHome: PageContent = {
   ],
   tools: [
     {
-      href: '/cbz-to-pdf/',
-      label: 'CBZをPDFに変換',
-      note: '元のサイズ、またはA4で出力。',
-      kind: 'tool',
-    },
-    {
-      href: '/read-cbz-online/',
-      label: 'CBZをオンラインで読む',
-      note: 'アップロードしない場合との違い。',
-      kind: 'guide',
-    },
-    {
-      href: '/manga-reader/',
-      label: 'マンガモード',
-      note: '右開きの見開きをワンタップで。',
-      kind: 'guide',
-    },
-    {
-      href: '/how-to-open-cbz/',
-      label: 'CBZの開き方',
-      note: 'パソコン、Android、iPhone。',
-      kind: 'guide',
-    },
-    {
       href: '/what-is-a-cbz-file/',
       label: 'CBZファイルとは',
       note: 'ZIPコンテナ、ページ、メタデータ。',
       kind: 'guide',
     },
     {
-      href: '/cbz-file-format/',
-      label: 'CBZ形式の内部',
-      note: 'ComicInfo.xml、ページ順、レイアウト。',
+      href: '/how-to-open-cbz/',
+      label: 'CBZの開き方',
+      note: 'パソコン、Android、iPhone。',
       kind: 'guide',
     },
     {
@@ -91,18 +67,6 @@ export const jaHome: PageContent = {
       href: '/cbz-vs-cbr/',
       label: 'CBZ・CBR・CB7の違い',
       note: 'ブラウザで開けるコンテナ。',
-      kind: 'guide',
-    },
-    {
-      href: '/read-cbz-on-iphone/',
-      label: 'iPhoneでCBZを読む',
-      note: 'ファイルAppとSafariの制限。',
-      kind: 'guide',
-    },
-    {
-      href: '/read-cbz-on-android/',
-      label: 'AndroidでCBZを読む',
-      note: 'ダウンロードやDriveからアプリなしで。',
       kind: 'guide',
     },
     {
@@ -239,7 +203,7 @@ export const jaCbzToPdf: PageContent = {
         '初回アクセス以降は可能です。変換ツールはリーダーと同じオフライン対応のシェルに含まれており、CBZ はもともとローカルファイルです。',
     },
   ],
-  related: ['/', '/what-is-a-cbz-file/', '/cbz-file-format/', '/cbz-file-wont-open/'],
+  related: ['/', '/what-is-a-cbz-file/', '/cbz-file-wont-open/'],
   bridge: {
     text: '中身を眺めるだけでいい？',
     href: '/ja/',
@@ -247,13 +211,102 @@ export const jaCbzToPdf: PageContent = {
   },
 }
 
+export const jaPrivateProcess: PageContent = {
+  path: '/ja/private-process/',
+  title: 'ローカル処理 - タブの中で実際に起きていること',
+  description:
+    '書庫はこのタブで展開され、ページはここでデコードされ、PDF もここで書き出されます。起きないこと、起きること、そして1分で確かめる方法。',
+  h1: 'ローカル処理であって、サービスではない',
+  eyebrow: '中身の話',
+  lead: '以下のことはすべてこのタブの中で起きます。ファイルを受け取る相手がそもそもいません。',
+  schema: 'article',
+  updated: '2026-11-13',
+  sections: [
+    {
+      heading: 'ここでいうローカル処理とは',
+      paragraphs: [
+        '夜の11時に同僚から .cbz が届く。会社のノートPCは固められた社内イメージで、コミックアプリも入っていないし、入れる権限もない。そこでブラウザのタブで開くことになる。',
+        '要はそういうことだ。ファイルが入ってきて、作業はタブの中で終わり、結果が手元に戻る。この輪の中に、写しを送りつける場所がない。',
+      ],
+    },
+    {
+      heading: '四つの約束と、それを支えているもの',
+      paragraphs: [
+        'ホテルのWi-Fi、会社のノートPC、アップロード禁止という条件。トップページには約束が四つあり、それぞれに具体的な支えがある。',
+      ],
+      table: {
+        head: ['約束', '支え'],
+        rows: [
+          ['ファイルは端末に残る', 'ブラウザのファイルハンドルで開き、リクエスト本文には一度も書かない'],
+          ['読む', 'ZIPの中央ディレクトリをその場で読み、1ページずつ取り出す'],
+          ['変換する', 'ブラウザが画像をデコードし、pdf-lib がタブ内でPDFのバイト列を書く'],
+          ['渡さない', 'ダウンロードはローカルで作った Blob URL から。呼び出すアップロード先がない'],
+        ],
+      },
+    },
+    {
+      heading: 'ファイルがたどる道',
+      flow: ['展開', 'デコード', 'レイアウト', '受け渡し'],
+      paragraphs: [
+        'アプリが1つも入っていないスマートフォンでも、400 MB の書庫が開く。',
+        '展開はZIPの索引を読んで1ページずつ取り出す。デコードとレイアウトはタブ内で動く。受け渡しには二つの出口があり、画面へはピクセル、ダウンロードへはPDFのバイト列。どちらの出口もサーバーでは終わらない。',
+      ],
+    },
+    {
+      heading: 'タブの境界',
+      paragraphs: [
+        'このサイトにもサーバーと請求書があるので、ブラウザの外に出るものが三つある。どれもファイルを含まない。',
+      ],
+      bullets: [
+        'Cloudflare が接続を受け、リクエストのメタデータ（IPアドレス、ユーザーエージェント、ページURL）を見る。',
+        'Umami にはアクセスや変換ごとに1件のイベントが届く。イベント名、ページのパス、ページ数や所要時間といったカウンタ。',
+        'ブラウザのストレージには言語の選択と閲覧位置が残る。サイトデータを消せば両方消える。',
+      ],
+    },
+    {
+      heading: '1分で自分で確かめる',
+      paragraphs: ['実際のファイルを1つ選んで、処理中にブラウザを眺めてみる。'],
+      bullets: [
+        'DevTools → Network を開き、このドメインで絞り込んでから処理を始める。GET以外のリクエストは計測の1件だけで、ファイルは載っていない。',
+        '一度ページを読み込んでから機内モードに切り替えて変換する。それでも完了し、ダウンロードも出る。',
+        'リクエスト一覧から、ファイルを受け取る先を探してみる。見つからない。',
+      ],
+    },
+  ],
+  faq: [
+    {
+      question: 'プライバシーページと同じ内容ですか？',
+      answer: 'プライバシーページは何をなぜ集めるかの一覧です。このページは、コードがファイルをどう扱うかの話です。',
+    },
+    {
+      question: 'ブラウザのストレージには何が残りますか？',
+      answer: '言語の設定と閲覧位置、それに Service Worker が保存したこのページです。サイトデータを消せばすべて消えます。',
+    },
+    {
+      question: '飛行機の中で変換が終わったのはなぜですか？',
+      answer: '初回アクセス時に Service Worker がページとスクリプトを保持していました。書庫はもともと端末のディスクにありました。',
+    },
+    {
+      question: 'ブラウザを変えたらどうなりますか？',
+      answer: '何も引き継がれません。閲覧位置は書いたブラウザの中に残ります。',
+    },
+  ],
+  related: [
+    { href: '/ja/', label: 'リーダーに戻る' },
+    { href: '/ja/cbz-to-pdf/', label: '1つ試してみる' },
+    { href: '/privacy/', label: 'このサイトが集めるもの' },
+    { href: '/cbz-vs-cbr/', label: 'コンテナが変わると何が変わるか' },
+  ],
+}
+
 export default {
   nav: {
     primary: 'メインナビゲーション',
     reader: 'リーダー',
     cbzToPdf: 'CBZをPDFに',
+    privateProcess: 'ローカル処理',
+    // Footer labels only; the top bar is the three entries above.
     howToOpen: 'CBZの開き方',
-    mangaMode: 'マンガモード',
     compare: 'CBZとCBR',
   },
   header: {
@@ -339,8 +392,7 @@ export default {
     tip: 'ヒント：iPhoneやiPadでは、先にこのページを開いてから「ファイル」Appで選択してください。iOSではWebサイトをファイルハンドラとして登録できません。',
     noscript:
       'CBZの展開と表示にはJavaScriptが必要です。処理はすべてブラウザ内で行われ、サーバーには送信されません。',
-    toolsHeading: 'その他のCBZツール',
-    toolsIntro: 'アーカイブの変換、形式の確認、開けないファイルの対処に使えます。',
+    toolsHeading: 'CBZファイルを扱う',
     kindSample: 'サンプル',
     kindTool: 'ツール',
     kindGuide: 'ガイド',

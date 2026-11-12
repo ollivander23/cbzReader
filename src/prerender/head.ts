@@ -131,6 +131,8 @@ const BAIDU_VERIFY =
 export interface HeadOptions {
   locale?: SiteLocale
   alternates?: readonly { hreflang: string; path: string }[]
+  /** A route with no real content in this language stays crawlable but unindexed. */
+  noindex?: boolean
 }
 
 const OG_LOCALES: Record<SiteLocale, string> = {
@@ -163,7 +165,7 @@ export function renderHead(page: PageContent, siteUrl: string, options: HeadOpti
 <meta name="description" content="${description}" />
 <link rel="canonical" href="${url}" />
 ${alternateLinks}
-<meta name="robots" content="index,follow,max-image-preview:large" />
+<meta name="robots" content="${options.noindex ? 'noindex,follow' : 'index,follow,max-image-preview:large'}" />
 ${page.path === '/' ? BAIDU_VERIFY + '\n' : ''}
 <meta name="theme-color" content="${THEME_COLORS.light}" />
 ${themeScript()}

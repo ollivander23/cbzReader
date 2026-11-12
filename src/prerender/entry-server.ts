@@ -91,6 +91,10 @@ export async function renderPage(path: string): Promise<{ html: string; head: st
   const html = await renderToString(app)
   return {
     html,
-    head: renderHead(page, siteUrl, { locale, alternates: route.alternates }),
+    head: renderHead(page, siteUrl, {
+      locale,
+      alternates: route.alternates,
+      noindex: route.noindex,
+    }),
   }
 }

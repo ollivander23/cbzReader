@@ -8,9 +8,8 @@ export const SITE = {
 export const NAV = [
   { labelKey: 'nav.reader', href: '/' },
   { labelKey: 'nav.cbzToPdf', href: '/cbz-to-pdf/' },
-  { labelKey: 'nav.howToOpen', href: '/how-to-open-cbz/' },
-  { labelKey: 'nav.mangaMode', href: '/manga-reader/' },
-  { labelKey: 'nav.compare', href: '/cbz-vs-cbr/' },
+  // { labelKey: 'nav.howToOpen', href: '/how-to-open-cbz/' },
+  { labelKey: 'nav.privateProcess', href: '/private-process/' },
 ] as const
 
 export function normalizePath(pathname: string): string {

@@ -134,7 +134,7 @@ try {
     cacheState.urls.some((url) => url.startsWith('/assets/')),
     'shell cache has no hashed assets',
   )
-  const visitedRoute = ['/read-cbz-online/', '/manga-reader/', '/what-is-a-cbz-file/']
+  const visitedRoute = ['/how-to-open-cbz/', '/what-is-a-cbz-file/', '/cbz-vs-cbr/']
   assert(
     !cacheState.urls.some((url) => visitedRoute.includes(url)),
     `content pages must not be precached: ${cacheState.urls.join(', ')}`,

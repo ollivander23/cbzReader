@@ -6,6 +6,7 @@ export default {
     howToOpen: 'How to open CBZ',
     mangaMode: 'Manga mode',
     compare: 'CBZ vs CBR',
+    privateProcess: 'Private Process',
   },
   header: {
     language: 'Language',
@@ -90,8 +91,7 @@ export default {
     tip: 'Tip: on iPhone or iPad, open this page first, then pick the file from the Files app. iOS does not let websites register as file handlers.',
     noscript:
       'JavaScript is required to unpack and display CBZ pages. The parsing runs entirely in your browser; nothing is sent to a server.',
-    toolsHeading: 'More CBZ tools',
-    toolsIntro: 'Convert an archive, look up a format detail, or fix a file that will not open.',
+    toolsHeading: 'Working with CBZ files',
     kindSample: 'Sample',
     kindTool: 'Tool',
     kindGuide: 'Guide',

@@ -9,9 +9,14 @@ const props = defineProps<{ page: PageContent }>()
 const { t, tm, locale } = useI18n()
 
 const related = computed(() =>
-  props.page.related.map((path) => {
-    const page = findPage(path)
-    return { path, label: page.h1 }
+  props.page.related.map((entry) => {
+    const href = typeof entry === 'string' ? entry : entry.href
+    const page = findPage(href)
+    return {
+      path: href,
+      // A page may give its own anchor text; otherwise use the target's H1.
+      label: typeof entry === 'string' ? page.h1 : (entry.label ?? page.h1),
+    }
   }),
 )
 
@@ -133,14 +138,14 @@ function toolKindLabel(kind: 'sample' | 'tool' | 'guide'): string {
     <p class="lang-notice" data-lang-notice role="status" hidden></p>
   </header>
 
-  <main class="wrap">
+  <main class="wrap" :class="{ 'wrap--article': !isHome }">
     <nav v-if="!isHome" class="crumbs" :aria-label="t('breadcrumb.label')">
       <a :href="homeHref">{{ t('breadcrumb.reader') }}</a>
       <span aria-hidden="true">/</span>
       <span>{{ page.eyebrow }}</span>
     </nav>
 
-    <section class="hero">
+    <section class="hero" :class="{ 'hero--home': page.tool }">
       <p v-if="!isHome" class="eyebrow">{{ page.eyebrow }}</p>
       <h1>{{ page.h1 }}</h1>
       <p class="lead">{{ page.lead }}</p>
@@ -165,6 +170,10 @@ function toolKindLabel(kind: 'sample' | 'tool' | 'guide'): string {
       <ul class="trust">
         <li v-for="item in trustItems" :key="item">{{ item }}</li>
       </ul>
+      <p v-if="page.heroNote" class="hero-note">
+        {{ page.heroNote }}
+        <a v-if="page.heroNoteLink" :href="page.heroNoteLink.href">{{ page.heroNoteLink.label }}</a>
+      </p>
     </section>
 
     <section v-if="page.tool" id="recent-shelf" class="shelf" hidden aria-labelledby="recent-title">
@@ -230,6 +239,11 @@ function toolKindLabel(kind: 'sample' | 'tool' | 'guide'): string {
     <div v-if="page.sections.length" class="content">
       <section v-for="section in page.sections" :key="section.heading">
         <h2>{{ section.heading }}</h2>
+        <ol v-if="section.flow" class="flow">
+          <li v-for="step in section.flow" :key="step" class="flow__step">
+            <span>{{ step }}</span>
+          </li>
+        </ol>
         <p v-for="paragraph in section.paragraphs" :key="paragraph">{{ paragraph }}</p>
         <p v-if="section.contact && page.contact" class="contact">
           <a :href="`mailto:${page.contact}`">{{ page.contact }}</a>
@@ -237,6 +251,23 @@ function toolKindLabel(kind: 'sample' | 'tool' | 'guide'): string {
         <ul v-if="section.bullets">
           <li v-for="bullet in section.bullets" :key="bullet">{{ bullet }}</li>
         </ul>
+        <p v-if="section.link" class="section-more">
+          <a :href="section.link.href">{{ section.link.label }}</a>
+        </p>
+        <div v-if="section.table" class="section-table">
+          <table>
+            <thead>
+              <tr>
+                <th v-for="column in section.table.head" :key="column" scope="col">{{ column }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in section.table.rows" :key="row[0]">
+                <td v-for="(cell, index) in row" :key="index">{{ cell }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
         <aside v-if="section.note" class="section-note">
           <h3>{{ section.note.title }}</h3>
           <p v-for="paragraph in section.note.paragraphs" :key="paragraph">{{ paragraph }}</p>
@@ -249,7 +280,6 @@ function toolKindLabel(kind: 'sample' | 'tool' | 'guide'): string {
 
     <section v-if="page.tools" class="tools" aria-labelledby="tools-heading">
       <h2 id="tools-heading">{{ t('home.toolsHeading') }}</h2>
-      <p class="tools__intro">{{ t('home.toolsIntro') }}</p>
       <div class="tools__grid">
         <a v-for="tool in page.tools" :key="tool.href" class="tool-card" :href="tool.href">
           <span class="tool-card__kind">{{ toolKindLabel(tool.kind) }}</span>
@@ -269,6 +299,9 @@ function toolKindLabel(kind: 'sample' | 'tool' | 'guide'): string {
       <details v-for="item in page.faq" :key="item.question">
         <summary>{{ item.question }}</summary>
         <p>{{ item.answer }}</p>
+        <p v-if="item.link" class="faq__more">
+          <a :href="item.link.href">{{ item.link.label }}</a>
+        </p>
       </details>
     </section>
 
@@ -297,7 +330,6 @@ function toolKindLabel(kind: 'sample' | 'tool' | 'guide'): string {
         <a :href="homeHref">{{ t('nav.reader') }}</a>
         <a href="/cbz-to-pdf/">{{ t('nav.cbzToPdf') }}</a>
         <a href="/how-to-open-cbz/">{{ t('nav.howToOpen') }}</a>
-        <a href="/manga-reader/">{{ t('nav.mangaMode') }}</a>
         <a href="/cbz-vs-cbr/">{{ t('nav.compare') }}</a>
         <a href="/about/">{{ t('footer.about') }}</a>
         <a href="/privacy/">{{ t('footer.privacy') }}</a>

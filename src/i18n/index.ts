@@ -1,8 +1,8 @@
 import { createI18n } from 'vue-i18n'
 import { findPage, type PageContent } from '../content/pages'
 import en from './locales/en'
-import zh, { zhCbzToPdf, zhHome } from './locales/zh'
-import ja, { jaCbzToPdf, jaHome } from './locales/ja'
+import zh, { zhCbzToPdf, zhHome, zhPrivateProcess } from './locales/zh'
+import ja, { jaCbzToPdf, jaHome, jaPrivateProcess } from './locales/ja'
 
 export const SITE_LOCALES = ['en', 'zh', 'ja'] as const
 export type SiteLocale = (typeof SITE_LOCALES)[number]
@@ -17,7 +17,12 @@ export const LOCALIZED_HOME_PAGES: Record<'zh' | 'ja', PageContent> = {
 }
 
 /** Content pages that also exist in a translated form; home pages are above. */
-export const LOCALIZED_CONTENT_PAGES: readonly PageContent[] = [zhCbzToPdf, jaCbzToPdf]
+export const LOCALIZED_CONTENT_PAGES: readonly PageContent[] = [
+  zhCbzToPdf,
+  jaCbzToPdf,
+  zhPrivateProcess,
+  jaPrivateProcess,
+]
 
 /**
  * The page object a path renders, shared by the prerenderer and the dev server.
@@ -39,6 +44,7 @@ export function pageForPath(path: string): PageContent {
 const LOCALIZED_GROUPS: readonly Record<SiteLocale, string>[] = [
   { en: '/', zh: '/zh/', ja: '/ja/' },
   { en: '/cbz-to-pdf/', zh: '/zh/cbz-to-pdf/', ja: '/ja/cbz-to-pdf/' },
+  { en: '/private-process/', zh: '/zh/private-process/', ja: '/ja/private-process/' },
 ]
 
 export function alternatesForPath(path: string): { hreflang: string; path: string }[] | null {
