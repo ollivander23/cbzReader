@@ -329,8 +329,10 @@ function releaseAssets(): void {
 }
 
 async function resetReader(): Promise<void> {
+  // Save before the state below is cleared: this is the last chance to record
+  // where the current file was left.
+  flushSave()
   generation += 1
-  window.clearTimeout(saveTimer)
   window.clearTimeout(resumeTimer)
   window.clearTimeout(tapTimer)
   const current = source.value
@@ -919,22 +921,41 @@ function onSlider(event: Event): void {
   if (Number.isFinite(value)) goToPage(value)
 }
 
+// Writes the current position now. scheduleSave() is only the throttle; this is
+// the guarantee, and it runs before the reader is torn down or the tab goes away
+// so the last few hundred milliseconds of page turns are not lost.
+function flushSave(): void {
+  window.clearTimeout(saveTimer)
+  saveTimer = undefined
+  if (!fileFingerprint.value || !source.value) return
+  const key = fileFingerprint.value
+  void writeProgress(key, {
+    index: index.value,
+    mode: mode.value,
+    rtl: rtl.value,
+    updatedAt: Date.now(),
+  })
+  void touchEntry(key, {
+    index: index.value,
+    mode: mode.value,
+    rtl: rtl.value,
+  })
+}
+
 function scheduleSave(): void {
   if (!fileFingerprint.value || !source.value) return
   window.clearTimeout(saveTimer)
-  saveTimer = window.setTimeout(() => {
-    void writeProgress(fileFingerprint.value, {
-      index: index.value,
-      mode: mode.value,
-      rtl: rtl.value,
-      updatedAt: Date.now(),
-    })
-    void touchEntry(fileFingerprint.value, {
-      index: index.value,
-      mode: mode.value,
-      rtl: rtl.value,
-    })
-  }, 350)
+  saveTimer = window.setTimeout(flushSave, 350)
+}
+
+// Backgrounding, tab close and navigation away: whichever one the browser
+// honours first, the position has already been written.
+function onPageHide(): void {
+  flushSave()
+}
+
+function onVisibilityChange(): void {
+  if (document.visibilityState === 'hidden') flushSave()
 }
 
 watch([index, mode, rtl], scheduleSave)
@@ -1919,6 +1940,8 @@ onMounted(async () => {
   window.addEventListener('drop', preventBrowserDrop)
   document.addEventListener('pointerdown', onDocumentPointerDown, true)
   document.addEventListener('fullscreenchange', onFullscreenChange)
+  window.addEventListener('pagehide', onPageHide)
+  document.addEventListener('visibilitychange', onVisibilityChange)
 
   if (props.initialFile) await openFile(props.initialFile)
 
@@ -1934,6 +1957,8 @@ onBeforeUnmount(() => {
   window.removeEventListener('drop', preventBrowserDrop)
   document.removeEventListener('pointerdown', onDocumentPointerDown, true)
   document.removeEventListener('fullscreenchange', onFullscreenChange)
+  window.removeEventListener('pagehide', onPageHide)
+  document.removeEventListener('visibilitychange', onVisibilityChange)
   resizeObserver?.disconnect()
   resizeObserver = null
   window.clearTimeout(saveTimer)

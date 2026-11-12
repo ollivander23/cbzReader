@@ -15,6 +15,7 @@ export default {
   footer: {
     tagline: 'Files stay on your device.',
     label: 'Footer',
+    about: 'About',
     privacy: 'Privacy',
     terms: 'Terms',
     disclaimer: 'Disclaimer',

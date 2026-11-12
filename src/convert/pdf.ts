@@ -9,6 +9,12 @@ const A4_WIDTH = 595.28
 const A4_HEIGHT = 841.89
 // Only used for formats PDF cannot embed natively (WebP, GIF, AVIF, BMP).
 const TRANSCODE_QUALITY = 0.92
+// Guard rails. A 5000 x 7500 page needs ~150 MB of RGBA before it is embedded,
+// and a single page like that is enough to kill the tab, so oversized PNG pages
+// are re-encoded once at a smaller size instead of being decoded at full size.
+const MAX_ENTRY_BYTES = 96 * 1024 * 1024
+const MAX_EMBED_PIXELS = 24_000_000
+const DOWNSCALE_EDGE = 4096
 
 export type ConvertReason =
   | 'not-zip'
@@ -33,6 +39,8 @@ interface ZipEntry {
   filename: string
   directory: boolean
   encrypted?: boolean
+  /** Declared by the central directory; used to reject absurd pages up front. */
+  uncompressedSize?: number
   getData<T>(writer: Uint8ArrayWriter): Promise<T>
 }
 
@@ -77,16 +85,36 @@ function sniff(bytes: Uint8Array): 'jpeg' | 'png' | 'other' {
   return 'other'
 }
 
+// Reads the PNG IHDR chunk, so an oversized page can be re-encoded before the
+// PDF library decodes it at full resolution.
+function pngSize(bytes: Uint8Array): { width: number; height: number } | null {
+  if (bytes.length < 24) return null
+  if (bytes[12] !== 0x49 || bytes[13] !== 0x48 || bytes[14] !== 0x44 || bytes[15] !== 0x52) return null
+  const read = (offset: number): number => {
+    const value =
+      (bytes[offset] << 24) |
+      (bytes[offset + 1] << 16) |
+      (bytes[offset + 2] << 8) |
+      bytes[offset + 3]
+    return value >>> 0
+  }
+  const width = read(16)
+  const height = read(20)
+  return width > 0 && height > 0 ? { width, height } : null
+}
+
 function isOutOfMemory(error: unknown): boolean {
   if (error instanceof RangeError) return true
   const message = error instanceof Error ? error.message : ''
   return /allocation failed|out of memory|cannot allocate|Array buffer allocation/i.test(message)
 }
 
-// Only used for GIF/WebP/AVIF/BMP and for JPEG/PNG files the PDF library cannot
-// read as-is. JPEG pages that can be embedded directly never reach this path.
+// Only used for GIF/WebP/AVIF/BMP, for oversized PNG pages, and for JPEG/PNG
+// files the PDF library cannot read as-is. JPEG pages that can be embedded
+// directly never reach this path.
 async function transcodeToJpeg(
   bytes: Uint8Array,
+  maxEdge = Number.POSITIVE_INFINITY,
 ): Promise<{ data: Uint8Array; width: number; height: number }> {
   let bitmap: ImageBitmap
   try {
@@ -98,8 +126,17 @@ async function transcodeToJpeg(
     )
   }
 
-  const width = bitmap.width
-  const height = bitmap.height
+  if (!bitmap.width || !bitmap.height) {
+    bitmap.close()
+    throw new ConversionError(
+      'unknown',
+      'One of the pages has no pixel dimensions, so it cannot be placed on a PDF page.',
+    )
+  }
+
+  const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height))
+  const width = Math.max(1, Math.round(bitmap.width * scale))
+  const height = Math.max(1, Math.round(bitmap.height * scale))
   const canvas = document.createElement('canvas')
   canvas.width = width
   canvas.height = height
@@ -108,7 +145,11 @@ async function transcodeToJpeg(
     bitmap.close()
     throw new ConversionError('memory', 'The browser ran out of memory while preparing a page.')
   }
-  context.drawImage(bitmap, 0, 0)
+  // JPEG has no alpha channel: without a white base, transparent areas of a GIF
+  // or WebP page come out black in the PDF.
+  context.fillStyle = '#ffffff'
+  context.fillRect(0, 0, width, height)
+  context.drawImage(bitmap, 0, 0, width, height)
   bitmap.close()
 
   const jpeg = await new Promise<Blob | null>((resolve) => {
@@ -198,6 +239,14 @@ export async function convertCbzToPdf(
       }
 
       const entry = pages[index]
+      const declaredSize = typeof entry.uncompressedSize === 'number' ? entry.uncompressedSize : 0
+      if (declaredSize > MAX_ENTRY_BYTES) {
+        throw new ConversionError(
+          'memory',
+          `Page ${index + 1} ("${entry.filename}") claims ${Math.round(declaredSize / (1024 * 1024))} MB uncompressed, which is too large to embed in a browser tab. Split the archive, or use a desktop converter.`,
+        )
+      }
+
       let bytes: Uint8Array
       try {
         bytes = await entry.getData<Uint8Array>(new Uint8ArrayWriter())
@@ -208,6 +257,14 @@ export async function convertCbzToPdf(
         )
       }
 
+      // The declared size can lie (or be missing); check what actually arrived.
+      if (bytes.length > MAX_ENTRY_BYTES) {
+        throw new ConversionError(
+          'memory',
+          `Page ${index + 1} ("${entry.filename}") is ${Math.round(bytes.length / (1024 * 1024))} MB, which is too large to embed in a browser tab. Split the archive, or use a desktop converter.`,
+        )
+      }
+
       let image: PDFImage
       try {
         const kind = sniff(bytes)
@@ -215,7 +272,15 @@ export async function convertCbzToPdf(
           // Embedded as-is: the JPEG bitstream goes straight into the PDF.
           image = await pdf.embedJpg(bytes)
         } else if (kind === 'png') {
-          image = await pdf.embedPng(bytes)
+          const size = pngSize(bytes)
+          if (size && size.width * size.height > MAX_EMBED_PIXELS) {
+            // One re-encode at a bounded size, instead of letting the PDF
+            // library decode a 37-megapixel page at full resolution.
+            const transcoded = await transcodeToJpeg(bytes, DOWNSCALE_EDGE)
+            image = await pdf.embedJpg(transcoded.data)
+          } else {
+            image = await pdf.embedPng(bytes)
+          }
         } else {
           const transcoded = await transcodeToJpeg(bytes)
           image = await pdf.embedJpg(transcoded.data)
@@ -230,7 +295,7 @@ export async function convertCbzToPdf(
         }
         // A JPEG the library cannot parse (rare) is re-encoded once.
         try {
-          const transcoded = await transcodeToJpeg(bytes)
+          const transcoded = await transcodeToJpeg(bytes, DOWNSCALE_EDGE)
           image = await pdf.embedJpg(transcoded.data)
         } catch (fallbackError) {
           if (fallbackError instanceof ConversionError) throw fallbackError

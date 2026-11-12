@@ -1156,6 +1156,7 @@ export const PAGES: PageContent[] = [
       {
         heading: 'What this converter does not do',
         bullets: [
+          'No full-resolution output for a PNG page above roughly 24 megapixels. A page that large is decoded at up to 4096 px and re-encoded once, because decoding it at full size can take the tab down; ordinary 3000 x 4500 scans are unaffected.',
           'No OCR and no text layer. Output pages are images, so text cannot be selected, searched or read aloud.',
           'One archive at a time. Batch conversion is not implemented.',
           'No CBR (RAR) or CB7 (7z) input. Browsers cannot open those containers; convert them to CBZ first.',
@@ -1224,6 +1225,75 @@ export const PAGES: PageContent[] = [
       href: '/',
       label: 'Open this CBZ in the browser reader',
     },
+  },
+  {
+    path: '/about/',
+    title: 'About CBZ Reader - Who Builds It and What It Leaves Out',
+    description:
+      'An independent, single-purpose tool for opening and converting comic archives. Who builds it, how it is funded, what it deliberately leaves out, and what changed when.',
+    h1: 'About this site',
+    eyebrow: 'Who runs this',
+    lead: 'CBZ Reader is a small independent tool with one job: open a comic archive you already own, in a browser tab, without sending it anywhere. This page says who builds it and what it deliberately does not do.',
+    schema: 'article',
+    updated: '2026-11-12',
+    sections: [
+      {
+        heading: 'Who builds it',
+        paragraphs: [
+          'One developer, working on it between other things. There is no company behind it and no roadmap meeting: a page gets added when someone asks a real question that nothing here answers yet.',
+          'Corrections are welcome and get taken seriously. If a claim on this site is wrong — a format detail, an iOS behaviour, a limitation that has since changed — write to the address on the privacy page and it gets fixed rather than argued with.',
+        ],
+      },
+      {
+        heading: 'What it does',
+        paragraphs: [
+          'Two tools share the same archive reader: a comic viewer and a CBZ to PDF converter. Both read the file from your disk with the browser file API and do their work inside the tab, which is why there is no upload step to opt out of.',
+          'Nothing here is a service you sign into. No account, no library on a server, no conversion queue. You pick a file, you get a result, and the tab can be closed.',
+        ],
+      },
+      {
+        heading: 'What it deliberately leaves out',
+        bullets: [
+          'CBR and CB7 input. A browser ships no RAR or 7z decoder, and adding one is a licensing question rather than a weekend patch. The comparison page says so plainly instead of pretending otherwise.',
+          'OCR and text layers. The PDF output is images, so nothing in it is selectable or searchable.',
+          'Accounts, sync and cloud libraries. Reading progress is kept in this browser only, keyed by a fingerprint of the file you opened.',
+          'Batch conversion. One archive at a time keeps memory bounded and makes Cancel mean something.',
+        ],
+      },
+      {
+        heading: 'How it is funded',
+        paragraphs: [
+          'It is free, with no ads, no paid tier and no watermark. The marginal cost is a static site on a hosting plan plus a domain, which stays small enough to pay for out of pocket.',
+          'The same fact is why there is no incentive to upload your files: there is no storage to sell and no dataset to build.',
+        ],
+      },
+      {
+        heading: 'What changed',
+        bullets: [
+          '2026-11-12 — Repositioned the homepage around reading and converting without an upload. The language switcher became plain links, so a visitor keeps the page they are reading instead of being sent home. Per-page dates now go into the sitemap instead of the build date.',
+          '2026-11-11 — First public version: browser reader, CBZ to PDF converter with original-size and A4 output, an offline shell, and the English, Chinese and Japanese home pages.',
+          'Corrections since launch — the Android guide claimed the site had no service worker, which had stopped being true. It now describes the offline shell accurately, and the converter notes how very large pages are handled.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: 'Who makes CBZ Reader?',
+        answer:
+          'An independent developer. The source is public on GitHub, and the address for corrections and questions is on the privacy page.',
+      },
+      {
+        question: 'Is there an app, or a paid version?',
+        answer:
+          'No and no. It is a static site that runs in the browser, with no account, no paid tier and no watermark. Installing it as a PWA is the closest thing to an app.',
+      },
+      {
+        question: 'How does the site make money?',
+        answer:
+          'It does not. Hosting a static site is cheap enough to pay for directly, which is also why there is no incentive to collect files or build a dataset from them.',
+      },
+    ],
+    related: ['/', '/cbz-to-pdf/', '/privacy/', '/cbz-vs-cbr/'],
   },
 ]
 

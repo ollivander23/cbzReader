@@ -132,6 +132,7 @@ export default {
   footer: {
     tagline: '文件只留在你的设备上。',
     label: '页脚导航',
+    about: '关于',
     privacy: '隐私政策',
     terms: '使用条款',
     disclaimer: '免责声明',

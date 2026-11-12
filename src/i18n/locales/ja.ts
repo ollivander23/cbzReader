@@ -132,6 +132,7 @@ export default {
   footer: {
     tagline: 'ファイルは端末内に残ります。',
     label: 'フッターナビゲーション',
+    about: 'このサイトについて',
     privacy: 'プライバシー',
     terms: '利用規約',
     disclaimer: '免責事項',

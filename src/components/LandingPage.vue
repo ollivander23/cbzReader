@@ -280,6 +280,7 @@ function toolKindLabel(kind: 'sample' | 'tool' | 'guide'): string {
         <a href="/how-to-open-cbz/">{{ t('nav.howToOpen') }}</a>
         <a href="/manga-reader/">{{ t('nav.mangaMode') }}</a>
         <a href="/cbz-vs-cbr/">{{ t('nav.compare') }}</a>
+        <a href="/about/">{{ t('footer.about') }}</a>
         <a href="/privacy/">{{ t('footer.privacy') }}</a>
         <a href="/terms/">{{ t('footer.terms') }}</a>
         <a href="/disclaimer/">{{ t('footer.disclaimer') }}</a>
