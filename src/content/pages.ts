@@ -527,55 +527,40 @@ export const PAGES: PageContent[] = [
       'CBZ Reader processes files locally in your browser. No uploads, no account, no cookies, and only cookie-free visit statistics.',
     h1: 'Privacy',
     eyebrow: 'Plain language',
-    lead: 'The short version: your comic never leaves your device, this site does not ask for an account, and the visit statistics it keeps are cookie-free and aggregate.',
+    lead: 'Your comic never leaves your device, there is no account, and visit statistics are cookie-free and aggregate.',
     contact: 'jiamin.wu23@mavi.help',
     schema: 'article',
-    updated: '2026-11-11',
+    updated: '2026-11-13',
     sections: [
       {
         heading: 'Files',
         paragraphs: [
-          'Comic archives are opened with the browser File API and parsed in the page. Page images are decoded locally. There is no upload endpoint, no server-side conversion, and no copy of your file stored by this site.',
-          'Reading progress is stored in your browser IndexedDB, keyed by a fingerprint derived from the file name, size, and a hash of the first and last 64 KB. It stays on your device and can be removed by clearing site data.',
+          'Archives are opened with the browser File API and decoded in the tab; nothing is uploaded and no server copy is kept. Reading progress stays in IndexedDB, keyed by a file fingerprint, and clearing site data removes it.',
         ],
       },
       {
-        heading: 'Analytics and cookies',
+        heading: 'Analytics',
         paragraphs: [
-          'Two cookie-free measurement tools are in use: Cloudflare Web Analytics, provided by the host, and Umami. Neither sets cookies, fingerprints devices, nor follows you across other sites. They are used to count page views and see which pages and features are actually used.',
-          'Umami records page views plus a small set of coarse interaction events: a file was opened (with its extension and size range), the first page finished rendering (with timing), a layout mode was chosen, the first zoom, a bookmark was added, whether a recently opened file was resumed, and clicks on the reader button or related links. An event carries only its name and a few aggregate properties such as mode or size range. File names, page images, bookmark contents, and anything that could identify a person are never sent.',
+          'Cloudflare Web Analytics, served by the host, and Umami count visits without cookies, device fingerprints, or cross-site tracking.',
+          'Umami records page views and coarse events: file opened (extension, size range), first-page timing, layout, zoom, bookmark, resume, and reader or related-link clicks. File names, page images, and anything identifying a person are never sent.',
         ],
       },
       {
         heading: 'Third parties',
         paragraphs: [
-          'Pages load one third-party script: the Umami tracker from cloud.umami.is, identified by a public website ID. Cloudflare Web Analytics is supplied by the hosting provider. The site does not load remote fonts, remote images, embedded players, or advertising scripts, and it does not sell or share data with anyone else.',
+          'The only third-party script is Umami from cloud.umami.is. No remote fonts, images, players, or ads load, and data is not sold or shared.',
         ],
       },
       {
-        heading: 'Contact',
+        heading: 'Changes and contact',
         contact: true,
         paragraphs: [
-          'For privacy questions, corrections, or removal requests, write to the address below.',
-          'This page is a technical description of the current build, not legal advice.',
+          'This page is updated with the site; the date above is the latest revision.',
+          'Questions, corrections, or removal requests: write to the address below.',
         ],
       },
     ],
-    faq: [
-      {
-        question: 'Do you keep my comics?',
-        answer: 'No. There is no upload. The file is read from your disk inside the browser tab.',
-      },
-      {
-        question: 'Can I delete my reading history?',
-        answer:
-          'Yes. Clear site data for this domain in your browser settings. That removes the locally stored page markers and settings.',
-      },
-      {
-        question: 'Do you use cookies?',
-        answer: 'No. The reader uses IndexedDB for local progress, which is not a cookie and is not sent to a server. Both analytics tools are cookie-free as well.',
-      },
-    ],
+    faq: [],
     related: [
       '/',
       '/how-to-open-cbz/',
@@ -591,50 +576,43 @@ export const PAGES: PageContent[] = [
       'The terms that apply to this browser-based CBZ reader and converter: as-is service, local file processing, acceptable use, and liability limits.',
     h1: 'Terms of Use',
     eyebrow: 'Legal',
-    lead: 'These terms cover your use of this site and its CBZ reader and converter. By using the site, you accept them.',
+    lead: 'These terms cover your use of this site and its reader and converter; using the site means you accept them.',
     contact: 'jiamin.wu23@mavi.help',
     legal: true,
     schema: 'article',
-    updated: '2026-11-11',
+    updated: '2026-11-13',
     sections: [
       {
         heading: 'The service',
         paragraphs: [
-          'This site is a browser-based tool for reading CBZ archives and converting them to PDF. It is provided on an "as is" and "as available" basis. The operator does not promise that it will always be available, uninterrupted, or free of errors, and may change or discontinue it at any time.',
-          'No account is required to use the features described on this site.',
+          'This site is a browser-based CBZ reader and converter, provided "as is" and "as available", and may change or end at any time.',
         ],
       },
       {
         heading: 'Your files',
         paragraphs: [
-          'Files you open or convert are read by your browser and processed inside the page. They are not uploaded to, stored on, or backed up by this site.',
-          'You are responsible for making sure you have the right to open, convert, and use every file you load. Do not use this site for copyright infringement, for material you are not allowed to hold, or for any other unlawful purpose.',
+          'Files are read and processed inside your browser tab; nothing is uploaded or stored here. You must have the right to open every file, and must not use the site for infringement or other unlawful purposes.',
         ],
       },
       {
         heading: 'No warranty',
         paragraphs: [
-          'The site and its output are provided without warranties of any kind, express or implied, including fitness for a particular purpose and non-infringement. A conversion may fail, re-encode some image formats, or produce a file that another application reads differently; check the result before relying on it.',
+          'The site and its output come with no warranty, express or implied, including fitness for a particular purpose and non-infringement. Check a conversion before relying on it.',
         ],
       },
       {
         heading: 'Limitation of liability',
         paragraphs: [
-          'To the extent permitted by law, the operator is not liable for data loss, corrupted output, lost profits, or any indirect or consequential loss arising from the use of, or inability to use, this site. Keep your own copies of important files.',
-          'Nothing in these terms excludes liability that cannot be excluded under applicable law, or limits rights that mandatory consumer law gives you.',
+          'To the extent permitted by law, the operator is not liable for data loss, corrupted output, lost profits, or indirect loss from this site or its unavailability. Keep your own copies. Liability that cannot be excluded by law and consumer rights are unaffected.',
         ],
       },
       {
-        heading: 'Changes and governing law',
-        paragraphs: [
-          'These terms may be updated as the site changes. The revision date at the top of this page reflects the current version, and continued use after an update means you accept the revised terms.',
-          'These terms are governed by the laws applicable at the operator\'s place of business, without regard to conflict-of-law rules. Disputes are subject to the competent courts there, unless mandatory law provides otherwise.',
-        ],
-      },
-      {
-        heading: 'Contact',
+        heading: 'Changes, law and contact',
         contact: true,
-        paragraphs: ['Questions about these terms can be sent to the address below.'],
+        paragraphs: [
+          'These terms may be updated; continued use after a change means you accept the current version. Local law governs, without affecting mandatory consumer rights.',
+          'Questions: write to the address below.',
+        ],
       },
     ],
     faq: [],
@@ -647,40 +625,41 @@ export const PAGES: PageContent[] = [
       'CBZ Reader is an independent local tool. It is not affiliated with any comic publisher or platform, and it does not host or distribute comic content apart from one credited public-domain sample.',
     h1: 'Disclaimer',
     eyebrow: 'Legal',
-    lead: 'This site is an independent tool for files you already have. It is not a comic platform and has no relationship with the companies that publish or sell comics.',
+    lead: 'An independent tool for files you already have, not a comic platform.',
+    contact: 'jiamin.wu23@mavi.help',
     legal: true,
     schema: 'article',
-    updated: '2026-11-11',
+    updated: '2026-11-13',
     sections: [
       {
-        heading: 'No affiliation or endorsement',
+        heading: 'No affiliation',
         paragraphs: [
-          'This site is not affiliated with, authorized by, sponsored by, or endorsed by any comic publisher, distributor, storefront, scanlation group, or reading platform. Any similarity in naming is descriptive only.',
+          'This site is an independent tool, not affiliated with, authorized, sponsored, or endorsed by any publisher, distributor, storefront, scanlation group, or reading platform.',
         ],
       },
       {
-        heading: 'Trademarks and format names',
+        heading: 'Trademarks and content',
         paragraphs: [
-          'Names such as CBZ, CBR, and PDF, along with any product or company names mentioned on this site, are the property of their respective owners and are used only to describe file formats and compatibility.',
+          'CBZ, CBR, PDF, and product names belong to their owners and describe formats only. This site hosts no comics, catalogue, or links to copyrighted works; it handles only files you open. The sample is public domain and credited.',
         ],
       },
       {
-        heading: 'No comic content is hosted',
+        heading: 'Local processing',
         paragraphs: [
-          'This site does not distribute, host, index, or provide links to comic books or any other copyrighted works. There is no library, no catalogue, and no search for titles. The only files it handles are the ones you open from your own device.',
-          'The single exception is the built-in public-domain sample on the sample page: a classic comic whose copyright has expired, included with its title, author, licence, and source credited. It is there so the reader can be tried without a file; it is not a catalogue or a library.',
+          'Everything runs in your browser tab; no server-side copy is kept and a deleted file cannot be recovered.',
         ],
       },
       {
-        heading: 'Local processing only',
+        heading: 'External links',
         paragraphs: [
-          'Reading and conversion run inside your browser tab. The site has no server-side copy of your files and no way to recover a file you closed or deleted.',
+          'Third-party links are outside this site\'s control, may change, and are not endorsements; their own terms and privacy practices apply.',
         ],
       },
       {
-        heading: 'Third-party links',
+        heading: 'Changes and contact',
+        contact: true,
         paragraphs: [
-          'Some pages link to third-party sites for reference. Those sites are outside its control, their content may change, and a link is not an endorsement. Their own terms and privacy practices apply when you visit them.',
+          'This page is updated with the site; questions: write to the address below.',
         ],
       },
     ],
@@ -907,66 +886,47 @@ export const PAGES: PageContent[] = [
       'An independent, single-purpose tool for opening and converting comic archives. Who builds it, how it is funded, what it deliberately leaves out, and what changed when.',
     h1: 'About this site',
     eyebrow: 'Who runs this',
-    lead: 'CBZ Reader is a small independent tool with one job: open a comic archive you already own, in a browser tab, without sending it anywhere. This page says who builds it and what it deliberately does not do.',
+    lead: 'CBZ Reader is a small independent tool with one job: open a comic archive you already own, in a browser tab, without sending it anywhere.',
     schema: 'article',
-    updated: '2026-11-12',
+    updated: '2026-11-13',
     sections: [
       {
         heading: 'Who builds it',
         paragraphs: [
-          'One developer, working on it between other things. There is no company behind it and no roadmap meeting: a page gets added when someone asks a real question that nothing here answers yet.',
-          'Corrections are welcome and get taken seriously. If a claim on this site is wrong — a format detail, an iOS behaviour, a limitation that has since changed — write to the address on the privacy page and it gets fixed rather than argued with.',
+          'One independent developer, between other work. There is no company or roadmap meeting: pages are added when a real question has no answer yet. Corrections are welcome — write to the address on the privacy page.',
         ],
       },
       {
         heading: 'What it does',
         paragraphs: [
-          'Two tools share the same archive reader: a comic viewer and a CBZ to PDF converter. Both read the file from your disk with the browser file API and do their work inside the tab, which is why there is no upload step to opt out of.',
-          'Nothing here is a service you sign into. No account, no library on a server, no conversion queue. You pick a file, you get a result, and the tab can be closed.',
+          'A comic viewer and a CBZ to PDF converter share one archive reader. Both read files from your disk and work inside the tab, so there is no upload to opt out of. No account, server library, or conversion queue.',
         ],
       },
       {
-        heading: 'What it deliberately leaves out',
+        heading: 'What it leaves out',
         bullets: [
-          'CBR and CB7 input. A browser ships no RAR or 7z decoder, and adding one is a licensing question rather than a weekend patch. The comparison page says so plainly instead of pretending otherwise.',
-          'OCR and text layers. The PDF output is images, so nothing in it is selectable or searchable.',
-          'Accounts, sync and cloud libraries. Reading progress is kept in this browser only, keyed by a fingerprint of the file you opened.',
-          'Batch conversion. One archive at a time keeps memory bounded and makes Cancel mean something.',
+          'CBR and CB7 input: browsers ship no RAR or 7z decoder.',
+          'OCR and text layers: PDF output is images, so nothing is selectable.',
+          'Accounts, sync, cloud libraries: progress stays in this browser.',
+          'Batch conversion: one archive at a time keeps memory bounded and Cancel meaningful.',
         ],
       },
       {
         heading: 'How it is funded',
         paragraphs: [
-          'It is free, with no ads, no paid tier and no watermark. The marginal cost is a static site on a hosting plan plus a domain, which stays small enough to pay for out of pocket.',
-          'The same fact is why there is no incentive to upload your files: there is no storage to sell and no dataset to build.',
+          'Free, with no ads, paid tier, or watermark. Static hosting and a domain cost little enough to pay for directly, and there is no storage to sell or dataset to build.',
         ],
       },
       {
         heading: 'What changed',
         bullets: [
-          '2026-11-12 — Repositioned the homepage around reading and converting without an upload. The language switcher became plain links, so a visitor keeps the page they are reading instead of being sent home. Per-page dates now go into the sitemap instead of the build date.',
-          '2026-11-11 — First public version: browser reader, CBZ to PDF converter with original-size and A4 output, an offline shell, and the English, Chinese and Japanese home pages.',
-          'Corrections since launch — the Android guide claimed the site had no service worker, which had stopped being true. It now describes the offline shell accurately, and the converter notes how very large pages are handled.',
+          '2026-11-12 — Homepage repositioned around reading and converting without an upload; the language switcher became plain links; page dates moved into the sitemap.',
+          '2026-11-11 — First public version: browser reader, CBZ to PDF converter, and offline shell.',
+          'Since launch — Corrected the Android guide and documented how very large pages are handled.',
         ],
       },
     ],
-    faq: [
-      {
-        question: 'Who makes CBZ Reader?',
-        answer:
-          'An independent developer. The source is public on GitHub, and the address for corrections and questions is on the privacy page.',
-      },
-      {
-        question: 'Is there an app, or a paid version?',
-        answer:
-          'No and no. It is a static site that runs in the browser, with no account, no paid tier and no watermark. Installing it as a PWA is the closest thing to an app.',
-      },
-      {
-        question: 'How does the site make money?',
-        answer:
-          'It does not. Hosting a static site is cheap enough to pay for directly, which is also why there is no incentive to collect files or build a dataset from them.',
-      },
-    ],
+    faq: [],
     related: [
       '/',
       '/privacy/',

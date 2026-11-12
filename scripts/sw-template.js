@@ -23,8 +23,8 @@ const PRECACHE = __PRECACHE__
 const OFFLINE_PAGE = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Offline - CBZ Reader</title>
-<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f7f5f0;color:#17171a;font:16px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}main{max-width:34rem;padding:2rem;text-align:center}a{color:#c2410c}</style>
-</head><body><main><h1>You are offline</h1><p>This page has not been saved for offline reading yet. The reader itself still works: <a href="/">open CBZ Reader</a> and pick a file from your device.</p></main></body></html>`
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:#e6ecef;color:#101418;font:16px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}main{max-width:34rem;padding:2rem;border:2px solid #101418;background:#f4f7f8;box-shadow:6px 6px 0 rgba(0,0,0,.55);text-align:center}.stamp{display:inline-block;margin:0 0 14px;padding:4px 8px;border:2px solid #b8362a;color:#b8362a;font:700 10px/1 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.14em;text-transform:uppercase;transform:rotate(-4deg)}h1{margin:0 0 10px;font-size:1.6rem;letter-spacing:-.02em}p{margin:0;color:#5b6870}a{color:#101418;text-decoration:underline;text-underline-offset:2px}@media (prefers-color-scheme:dark){body{background:#12161b;color:#eef2f4}main{background:#1a1f25;border-color:#c9d3da;box-shadow:6px 6px 0 rgba(0,0,0,.55)}.stamp{border-color:#d95f4a;color:#d95f4a}p{color:#a7b2b9}a{color:#eef2f4}}</style>
+</head><body><main><p class="stamp">Offline</p><h1>You are offline</h1><p>This page has not been saved for offline reading yet. The reader itself still works: <a href="/">open CBZ Reader</a> and pick a file from your device.</p></main></body></html>`
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
