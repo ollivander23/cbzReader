@@ -705,19 +705,14 @@ export const PAGES: PageContent[] = [
       'No upload and no account',
       'Cancelable conversion with specific error messages',
     ],
-    updated: '2026-11-12',
+    updated: '2026-11-13',
     sections: [
       {
         heading: 'Why most CBZ to PDF converters upload your file',
         paragraphs: [
-          'Uploading is the simplest way to build this tool. The archive goes to a server, a machine with a PDF library and plenty of memory unpacks it, and the finished file comes back as a download link. The browser only has to send and receive bytes.',
-          'That design suits the operator, not the reader. A copy of your comic exists somewhere else even if it is deleted an hour later, large files usually need an account or a paid tier, and the result depends on someone else keeping the service online. For a file that is already on your disk, the round trip buys nothing.',
+          'Other converters upload because the work happens on a server, and a server has to be paid for, kept online, and given somewhere to hold the archive while the job runs.',
         ],
-        bullets: [
-          'Upload-based converter: the archive leaves your device, is converted on a server, and comes back as a link. A copy exists on a machine you do not control until that operator deletes it.',
-          'This converter: the archive is opened from your disk, the PDF is written in the same tab, and the browser saves the result. No request ever carries page bytes.',
-          'The trade-off, stated plainly: one archive at a time, no OCR, and no CBR input. In exchange, the only copy of the comic stays where it already was.',
-        ],
+        link: { href: '/private-process/', label: 'What a server in the middle means for your file →' },
       },
       {
         heading: 'How the conversion works in this tab',
@@ -730,18 +725,14 @@ export const PAGES: PageContent[] = [
           'JPEG and PNG pages: embedded without re-encoding.',
           'WebP, GIF, AVIF, BMP pages: re-encoded once as JPEG at quality 92.',
           'Page order follows a natural sort of the image file names, the same order the reader uses.',
-          'The finished PDF downloads directly; no link expires and no copy is kept.',
         ],
       },
       {
-        heading: 'Offline use, and how to check it',
+        heading: 'Offline use',
         paragraphs: [
-          'The converter loads once, then runs from the same offline shell as the reader. A CBZ is a local file, so after that first visit a conversion needs no network at all.',
+          'The converter loads once, then runs from the same offline shell as the reader, so after that first visit a conversion needs no network at all. You can confirm it on your own device; the method is on the private-process page.',
         ],
-        bullets: [
-          'Desktop: open DevTools → Network and start a conversion. The page, its scripts and one analytics request appear; nothing carries the archive or the page images. That request records only the page count, the elapsed time and the page-size choice.',
-          'Phone: open this page once while online, turn on airplane mode, reload, then convert a local CBZ. The PDF is still built and downloaded.',
-        ],
+        link: { href: '/private-process/', label: 'Check it in a minute →' },
       },
       {
         heading: 'Original size or A4',
@@ -750,24 +741,7 @@ export const PAGES: PageContent[] = [
           'With A4, every page becomes 595 × 842 points and the image is scaled to fit inside it without cropping or stretching, centred with margins. Choose this when the PDF is meant for printing or for an app that handles very large page boxes badly. The embedded image data is identical in both modes, so file size barely changes; only the page geometry does.',
         ],
       },
-      {
-        heading: 'What this converter does not do',
-        table: {
-          head: ['Limit', 'Why', 'What to do'],
-          rows: [
-            [
-              'PNG page above roughly 24 MP',
-              'Full-size decoding can crash the tab',
-              'Ordinary 3000 × 4500 scans are unaffected; use a desktop tool for an untouched original',
-            ],
-            ['No OCR or text layer', 'Pages are stored as images', 'Run OCR afterwards if you need searchable text'],
-            ['One archive at a time', 'Keeps memory bounded and Cancel predictable', 'Start the next file after the first PDF downloads'],
-            ['No CBR (RAR) or CB7 (7z) input', 'Browsers cannot open those containers', 'Convert to CBZ first'],
-            ['No encrypted archives', 'Rejected before anything is written', 'Remove the password in your archive tool'],
-            ['No server fallback', 'There is no upload path to fall back to', 'Close other tabs or split the archive'],
-          ],
-        },
-      },
+   
       {
         heading: 'When a conversion fails',
         paragraphs: [
@@ -778,15 +752,9 @@ export const PAGES: PageContent[] = [
     ],
     faq: [
       {
-        question: 'How does local processing actually work?',
-        answer:
-          'The browser reads the ZIP central directory in the tab, pulls one page at a time, and pdf-lib writes the PDF bytes locally. The download comes from a Blob URL, so no request carries the archive.',
-        link: { href: '/private-process/', label: 'See the full process →' },
-      },
-      {
         question: 'Does converting to PDF reduce image quality?',
         answer:
-          'For JPEG and PNG pages, no. The compressed image data is copied into the PDF unchanged. WebP, GIF, AVIF and BMP pages are re-encoded once as JPEG at quality 92, because PDF has no native format for them. If your archive is made of JPEG scans, as most CBZ files are, each page image in the PDF is the same data as in the archive.',
+          'For JPEG and PNG pages, no: the compressed image data is copied into the PDF unchanged, and only WebP, GIF, AVIF and BMP pages are decoded and written once as JPEG at quality 92.',
       },
       {
         question: 'Can I convert several CBZ files at once?',
@@ -806,7 +774,7 @@ export const PAGES: PageContent[] = [
       {
         question: 'Can I convert a comic I bought without uploading it somewhere?',
         answer:
-          'Yes. This converter has no upload step at all: the archive is opened from your disk with the browser file API and the PDF is written in the same tab. You can confirm it in DevTools → Network, or by converting once with the device in airplane mode.',
+          'Yes. There is no upload step: the archive is opened from your disk and the PDF is written in the same tab.',
       },
       {
         question: 'How large a CBZ can it convert?',
@@ -845,6 +813,13 @@ export const PAGES: PageContent[] = [
         ],
       },
       {
+        heading: 'Why the other tools need a server',
+        paragraphs: [
+          'An upload-based converter has a shape: the archive leaves the tab, a machine with the libraries and the memory to do the work picks it up, and a link comes back. The browser in front of you only moves bytes.',
+          'That shape decides what the reader gets. A copy sits on hardware someone else controls and stays there until they decide to delete it — often longer, in a cache or a log. Capacity is rationed, so large files tend to need an account or a paid tier. And the service has to still exist tomorrow for the tool to work at all. None of that is bad faith; it is what putting a server in the middle produces.',
+        ],
+      },
+      {
         heading: 'The promises, and what holds them up',
         paragraphs: [
           'You are on hotel Wi-Fi with a work laptop and a strict no-upload policy. The home page makes four promises, and each one rests on something specific.',
@@ -854,20 +829,21 @@ export const PAGES: PageContent[] = [
           rows: [
             [
               'Your file stays on your device',
-              'Opened through a browser file handle, never written into a request body',
+              'The browser hands the file to the page, and the page has no upload destination to hand it to',
             ],
-            ['read', 'ZIP central directory read in place, one page extracted at a time'],
-            ['convert', 'Browser image decode, then pdf-lib writing PDF bytes in the tab'],
-            ['without handing it over', 'Download from a Blob URL made locally, with no upload endpoint to call'],
+            ['read', 'Opened where it already sits, not copied to a service first'],
+            ['convert', 'Decoded and assembled on your machine, not on ours'],
+            ['without handing it over', 'Saved by your browser: no link to collect and no copy for anyone to hold'],
           ],
         },
+        link: { href: '/cbz-to-pdf/', label: 'How the conversion runs, step by step →' },
       },
       {
         heading: 'The path a file takes',
         flow: ['Unpack', 'Decode', 'Lay out', 'Deliver'],
         paragraphs: [
           'A 400 MB archive opens on a phone with no app installed.',
-          'Unpack reads the ZIP index and pulls one page at a time. Decode and lay out run in the tab, and Deliver has two exits: pixels to the screen, PDF bytes to a download. Neither exit ends at a server.',
+          'Unpack, decode and lay out all happen in the tab, and Deliver has two exits: pixels to the screen, PDF bytes to a download. Neither exit ends at a server.',
         ],
       },
       {
@@ -885,13 +861,18 @@ export const PAGES: PageContent[] = [
         heading: 'Check it in a minute',
         paragraphs: ['Pick a real file and watch the browser while it works.'],
         bullets: [
-          'Open DevTools → Network, filter by this domain, then start the work. The only non-GET request is the analytics ping, and it carries no file.',
-          'Load the page once, switch to airplane mode, then convert. It finishes and the download still appears.',
+          'Open DevTools → Network, filter by this domain, then start the work. The page and its scripts load, one analytics request appears, and nothing carries the archive or the page images.',
+          'On a phone, open this page once while online, turn on airplane mode, reload, then convert a local CBZ. The PDF is still built and saved.',
           'Search the request list for an endpoint that accepts a file. There is nothing to find.',
         ],
       },
     ],
     faq: [
+      {
+        question: 'How does local processing actually work?',
+        answer:
+          'The browser reads the ZIP central directory in the tab, pulls one page at a time, and pdf-lib writes the PDF bytes locally. The finished file is handed to you as a Blob download made in the tab, so no request carries the archive and there is no copy on a server to expire or to delete.',
+      },
       {
         question: 'Is this the same as the privacy page?',
         answer:

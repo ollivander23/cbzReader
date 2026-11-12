@@ -6,8 +6,8 @@ export type ResolvedTheme = 'light' | 'dark'
 // Mirrored by the blocking snippet in src/prerender/head.ts. Keep both in sync.
 export const THEME_KEY = 'cbz-theme'
 export const THEME_COLORS: Record<ResolvedTheme, string> = {
-  light: '#f7f5f0',
-  dark: '#0d0d12',
+  light: '#e6ecef',
+  dark: '#12161b',
 }
 
 const DARK_QUERY = '(prefers-color-scheme: dark)'

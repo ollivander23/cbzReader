@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="CBZ Reader">
-  <rect width="64" height="64" rx="14" fill="#0d0d12" />
+  <rect width="64" height="64" fill="#e6ecef" />
   <text
     x="32"
     y="38"
@@ -9,7 +9,7 @@
     font-family="Inter, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
     font-size="27"
     font-weight="800"
-    fill="#f7f5f0"
+    fill="#101418"
   >CBZ</text>
-  <rect x="22" y="43.5" width="20" height="2.8" rx="1.4" fill="#c2410c" />
+  <rect x="22" y="43.5" width="20" height="2.8" fill="#b8362a" />
 </svg>

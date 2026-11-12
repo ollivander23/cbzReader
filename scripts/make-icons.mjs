@@ -42,8 +42,8 @@ try {
     await page.setViewport({ width: target.size, height: target.size, deviceScaleFactor: 1 })
     await page.setContent(
       `<!doctype html><html><head><style>
-        html,body{margin:0;padding:0;background:#0d0d12}
-        .icon{width:${target.size}px;height:${target.size}px;display:grid;place-items:center;background:#0d0d12}
+        html,body{margin:0;padding:0;background:#e6ecef}
+        .icon{width:${target.size}px;height:${target.size}px;display:grid;place-items:center;background:#e6ecef}
         .icon svg{width:${Math.round(target.inset * 100)}%;height:auto;display:block}
       </style></head><body><div class="icon">${favicon}</div></body></html>`,
       { waitUntil: 'load' },

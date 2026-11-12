@@ -24,6 +24,9 @@ const year = 2026
 const isLocalized = computed(() => locale.value !== 'en')
 const homeHref = computed(() => (isLocalized.value ? `/${locale.value}/` : '/'))
 const isHome = computed(() => ['/', '/zh/', '/ja/'].includes(props.page.path))
+// Every article page shares the stacked first screen and the 820 column: label,
+// trust strip, title box, lead box, then the body. Home keeps its own grid.
+const isStacked = computed(() => !isHome.value && !props.page.converter)
 
 // The language control is a row of real links, not a <select>: a crawler can
 // follow them, and a visitor keeps the page they are on when a translation of
@@ -138,7 +141,15 @@ function toolKindLabel(kind: 'sample' | 'tool' | 'guide'): string {
     <p class="lang-notice" data-lang-notice role="status" hidden></p>
   </header>
 
-  <main class="wrap" :class="{ 'wrap--article': !isHome }">
+  <main
+    class="wrap"
+    :class="{
+      'wrap--article': !isHome,
+      'wrap--home': isHome,
+      'wrap--convert': !!page.converter,
+      'wrap--stack': isStacked,
+    }"
+  >
     <nav v-if="!isHome" class="crumbs" :aria-label="t('breadcrumb.label')">
       <a :href="homeHref">{{ t('breadcrumb.reader') }}</a>
       <span aria-hidden="true">/</span>
@@ -186,6 +197,7 @@ function toolKindLabel(kind: 'sample' | 'tool' | 'guide'): string {
     </section>
 
     <section v-if="page.tool" id="reader" class="reader-section" :aria-label="t('home.readerLabel')">
+      <span v-if="isHome" class="stamp" aria-hidden="true">STAYS ON THIS DEVICE</span>
       <div class="reader-frame">
         <div id="reader-app">
           <div class="reader-fallback">

@@ -288,7 +288,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .conv {
   min-height: 260px;
-  border-radius: calc(var(--radius) - 4px);
+  border-radius: 0;
   background: var(--surface);
   color: var(--ink);
   padding: 30px 26px;
@@ -368,18 +368,18 @@ onBeforeUnmount(() => {
   gap: 10px;
   align-items: flex-start;
   padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  border: 1.5px solid var(--rule);
+  border-radius: 0;
   cursor: pointer;
   background: var(--card-bg);
 }
 
 .conv__option:hover {
-  border-color: var(--line-strong);
+  background: var(--card-bg-hover);
 }
 
 .conv__option:has(input:checked) {
-  border-color: var(--accent-line);
+  border-color: var(--rule);
   background: var(--accent-soft);
 }
 
@@ -421,32 +421,47 @@ onBeforeUnmount(() => {
   justify-content: center;
   min-height: 44px;
   padding: 0 20px;
-  border-radius: 999px;
+  border-radius: 0;
   font: inherit;
   font-size: 15px;
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
-  border: 1px solid transparent;
+  border: 2px solid transparent;
+  transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.12s ease;
 }
 
 .conv__primary {
-  background: var(--btn-bg);
-  color: var(--btn-ink);
+  background: var(--solid-bg);
+  border-color: var(--solid-bg);
+  color: var(--solid-ink);
+  box-shadow: 4px 4px 0 var(--press-shadow);
 }
 
 .conv__primary:hover {
-  background: var(--btn-hover);
+  background: var(--solid-hover);
+  border-color: var(--solid-hover);
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 var(--press-shadow);
+}
+
+.conv__primary:active {
+  transform: translate(4px, 4px);
+  box-shadow: none;
 }
 
 .conv__secondary {
-  background: transparent;
-  border-color: var(--line-strong);
+  background: var(--surface);
+  border-color: var(--rule);
   color: var(--ink);
 }
 
 .conv__secondary:hover {
   background: var(--hover-fill);
+}
+
+.conv__secondary:active {
+  transform: translate(1px, 1px);
 }
 
 .conv__primary:focus-visible,
@@ -459,7 +474,8 @@ onBeforeUnmount(() => {
 .conv__bar {
   width: 100%;
   height: 10px;
-  border-radius: 999px;
+  border: 1px solid var(--rule);
+  border-radius: 0;
   background: var(--line);
   overflow: hidden;
 }
@@ -467,7 +483,7 @@ onBeforeUnmount(() => {
 .conv__bar span {
   display: block;
   height: 100%;
-  background: var(--accent);
+  background: var(--solid-bg);
   transition: width 0.12s linear;
 }
 
@@ -480,10 +496,10 @@ onBeforeUnmount(() => {
 .conv__error {
   margin: 0;
   padding: 12px 14px;
-  border: 1px solid var(--notice-line);
+  border: 2px solid var(--notice-line);
   background: var(--notice-bg);
   color: var(--notice-ink);
-  border-radius: 12px;
+  border-radius: 0;
   font-size: 14px;
   line-height: 1.55;
   text-align: left;
