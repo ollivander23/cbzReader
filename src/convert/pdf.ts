@@ -1,6 +1,6 @@
 import { PDFDocument, type PDFImage } from 'pdf-lib'
 import { BlobReader, Uint8ArrayWriter, ZipReader } from '@zip.js/zip.js'
-import { baseName, naturalCompare } from '../reader/core/naturalSort'
+import { baseName, comparePagePaths } from '../reader/core/naturalSort'
 
 const IMAGE_RE = /\.(jpe?g|png|webp|gif|avif|bmp)$/i
 const SKIP_RE = /(^|\/)(__MACOSX|\.DS_Store|Thumbs\.db)(\/|$)/i
@@ -191,8 +191,14 @@ export async function convertCbzToPdf(
     return fail('not-zip', notZipMessage(file.name))
   }
 
+  // AppleDouble sidecars (._001.jpg) match the image extension and would ship as
+  // garbage pages, so they are dropped here exactly as the reader drops them.
   const imageEntries = entries.filter(
-    (entry) => !entry.directory && IMAGE_RE.test(entry.filename) && !SKIP_RE.test(entry.filename),
+    (entry) =>
+      !entry.directory &&
+      IMAGE_RE.test(entry.filename) &&
+      !SKIP_RE.test(entry.filename) &&
+      !baseName(entry.filename).startsWith('._'),
   )
   const encrypted = imageEntries.filter((entry) => entry.encrypted)
 
@@ -204,11 +210,9 @@ export async function convertCbzToPdf(
     )
   }
 
-  const pages = imageEntries.sort(
-    (a, b) =>
-      naturalCompare(baseName(a.filename), baseName(b.filename)) ||
-      naturalCompare(a.filename, b.filename),
-  )
+  // Same order the reader uses, so a PDF page number and a reader page number
+  // mean the same thing in a multi-chapter archive.
+  const pages = imageEntries.sort((a, b) => comparePagePaths(a.filename, b.filename))
 
   if (pages.length === 0) {
     await reader.close().catch(() => undefined)

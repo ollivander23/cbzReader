@@ -1,8 +1,8 @@
 import { createI18n } from 'vue-i18n'
 import type { PageContent } from '../content/pages'
 import en from './locales/en'
-import zh, { zhHome } from './locales/zh'
-import ja, { jaHome } from './locales/ja'
+import zh, { zhCbzToPdf, zhHome } from './locales/zh'
+import ja, { jaCbzToPdf, jaHome } from './locales/ja'
 
 export const SITE_LOCALES = ['en', 'zh', 'ja'] as const
 export type SiteLocale = (typeof SITE_LOCALES)[number]
@@ -16,12 +16,38 @@ export const LOCALIZED_HOME_PAGES: Record<'zh' | 'ja', PageContent> = {
   ja: jaHome,
 }
 
-export const HOME_ALTERNATES = [
-  { hreflang: 'en', path: '/' },
-  { hreflang: 'zh', path: '/zh/' },
-  { hreflang: 'ja', path: '/ja/' },
-  { hreflang: 'x-default', path: '/' },
-] as const
+/** Content pages that also exist in a translated form; home pages are above. */
+export const LOCALIZED_CONTENT_PAGES: readonly PageContent[] = [zhCbzToPdf, jaCbzToPdf]
+
+/**
+ * Every page that exists in more than one language, as one equivalence group.
+ * hreflang and the language switcher both read this, so translating one more page
+ * means adding a row here and letting entry-server build the route from it.
+ */
+const LOCALIZED_GROUPS: readonly Record<SiteLocale, string>[] = [
+  { en: '/', zh: '/zh/', ja: '/ja/' },
+  { en: '/cbz-to-pdf/', zh: '/zh/cbz-to-pdf/', ja: '/ja/cbz-to-pdf/' },
+]
+
+export function alternatesForPath(path: string): { hreflang: string; path: string }[] | null {
+  const group = LOCALIZED_GROUPS.find((entry) => Object.values(entry).includes(path))
+  if (!group) return null
+  return [
+    { hreflang: 'en', path: group.en },
+    { hreflang: 'zh', path: group.zh },
+    { hreflang: 'ja', path: group.ja },
+    { hreflang: 'x-default', path: group.en },
+  ]
+}
+
+/** The same page in another language; falls back to that language's home page. */
+export function pathForLocale(path: string, locale: SiteLocale): string {
+  const group = LOCALIZED_GROUPS.find((entry) => Object.values(entry).includes(path))
+  if (group) return group[locale]
+  return locale === 'en' ? path : `/${locale}/`
+}
+
+export const HOME_ALTERNATES = alternatesForPath('/') ?? []
 
 /** Path-derived locale. Never reads Accept-Language, so shared links stay stable. */
 export function localeFromPath(pathname: string): SiteLocale {

@@ -108,7 +108,7 @@ export async function rememberArchive(
   if (!canStoreCopy(file.size)) return
 
   void storeArchiveCopy(entry, file).then((stored) => {
-    if (stored) void saveEntry({ ...entry, copy: true })
+    if (stored) void markCopyStored(entry.id)
   })
 }
 
@@ -147,6 +147,26 @@ export function touchEntry(
     entry.rtl = patch.rtl
     entry.updatedAt = patch.updatedAt ?? Date.now()
     await writeShelf([entry, ...entries.filter((item) => item.id !== id)])
+  })
+}
+
+/**
+ * Flag one entry as having a stored copy. Deliberately narrow: writing back the
+ * whole entry captured when the file was opened would roll the reading position
+ * back to that moment, and would resurrect an entry the user removed (or whose
+ * shelf was cleared) while the copy was still being stored.
+ */
+export function markCopyStored(id: string): Promise<void> {
+  return serialize(async () => {
+    const entries = await readShelf()
+    const entry = entries.find((item) => item.id === id)
+    if (!entry) {
+      // Gone in the meantime: drop the orphan blob instead of reviving the entry.
+      await dropArchiveCopy(id)
+      return
+    }
+    entry.copy = true
+    await writeShelf(entries)
   })
 }
 

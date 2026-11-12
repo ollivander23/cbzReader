@@ -108,11 +108,12 @@ function buildSchema(
   }
 
   if (!isHome) {
+    const homePath = locale === 'en' ? '/' : `/${locale}/`
     graph.push({
       '@type': 'BreadcrumbList',
       '@id': `${url}#breadcrumb`,
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'CBZ Reader', item: `${siteUrl}/` },
+        { '@type': 'ListItem', position: 1, name: 'CBZ Reader', item: `${siteUrl}${homePath}` },
         { '@type': 'ListItem', position: 2, name: page.h1, item: url },
       ],
     })

@@ -1,4 +1,5 @@
 import { createApp } from 'vue'
+import { i18n } from '../i18n'
 import ConvertApp from './ConvertApp.vue'
 
 /**
@@ -9,5 +10,5 @@ import ConvertApp from './ConvertApp.vue'
 export function mountConverter(host: HTMLElement, file?: File | null): void {
   host.innerHTML = ''
   host.dataset.mounted = 'true'
-  createApp(ConvertApp, { initialFile: file ?? null }).mount(host)
+  createApp(ConvertApp, { initialFile: file ?? null }).use(i18n).mount(host)
 }

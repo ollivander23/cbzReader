@@ -1,17 +1,20 @@
 import { BlobReader, BlobWriter, TextWriter, ZipReader } from '@zip.js/zip.js'
 import { translate } from '../../i18n'
-import { baseName, naturalCompare } from './naturalSort'
+import { baseName, comparePagePaths, dirName } from './naturalSort'
 import { ReaderError } from './types'
 
 interface ZipEntry {
   filename: string
   directory: boolean
   encrypted?: boolean
+  uncompressedSize?: number
   getData<T>(writer: BlobWriter | TextWriter): Promise<T>
 }
 
 const IMAGE_RE = /\.(jpe?g|png|webp|gif|avif|bmp)$/i
 const SKIP_RE = /(^|\/)(__MACOSX|\.DS_Store|Thumbs\.db)(\/|$)/i
+/** A single page above this is a broken archive or a zip bomb, not a comic. */
+const MAX_PAGE_BYTES = 64 * 1024 * 1024
 
 function fileExtension(fileName: string): string {
   const dot = fileName.lastIndexOf('.')
@@ -99,13 +102,17 @@ function readPageList(xml: string): TocEntry[] {
 }
 
 /**
- * Folder of an image inside the archive. Multi-folder archives are read folder
- * by folder so a chapter's pages stay contiguous; flat archives and archives
- * with a single wrapper folder keep the plain file-name order.
+ * macOS writes an AppleDouble sidecar (._page.jpg) next to every extracted file.
+ * It matches the image extension, sorts before the real page and decodes into
+ * garbage, so it has to be dropped before the page list is built. A zero-length
+ * entry is dropped for the same reason: it can only ever be a broken page.
  */
-function dirName(path: string): string {
-  const slash = path.lastIndexOf('/')
-  return slash === -1 ? '' : path.slice(0, slash)
+function isPageEntry(entry: ZipEntry): boolean {
+  if (entry.directory || entry.encrypted) return false
+  if (!IMAGE_RE.test(entry.filename) || SKIP_RE.test(entry.filename)) return false
+  if (baseName(entry.filename).startsWith('._')) return false
+  if (typeof entry.uncompressedSize === 'number' && entry.uncompressedSize === 0) return false
+  return true
 }
 
 /**
@@ -160,19 +167,8 @@ export class ZipPageSource {
       (entry) => !entry.directory && entry.encrypted && IMAGE_RE.test(entry.filename),
     )
     const images = entries
-      .filter(
-        (entry) =>
-          !entry.directory &&
-          !entry.encrypted &&
-          IMAGE_RE.test(entry.filename) &&
-          !SKIP_RE.test(entry.filename),
-      )
-      .sort(
-        (a, b) =>
-          naturalCompare(dirName(a.filename), dirName(b.filename)) ||
-          naturalCompare(baseName(a.filename), baseName(b.filename)) ||
-          naturalCompare(a.filename, b.filename),
-      )
+      .filter((entry) => isPageEntry(entry))
+      .sort((a, b) => comparePagePaths(a.filename, b.filename))
 
     if (images.length === 0) {
       await reader.close().catch(() => undefined)
@@ -234,6 +230,11 @@ export class ZipPageSource {
     const entry = this.entries[index]
     if (!entry) {
       throw new ReaderError('unknown', translate('errors.missingPage'))
+    }
+    // Refuse before reading: a page that declares more than MAX_PAGE_BYTES is a
+    // broken or hostile archive, and allocating it would take the tab down.
+    if (typeof entry.uncompressedSize === 'number' && entry.uncompressedSize > MAX_PAGE_BYTES) {
+      throw new ReaderError('image', translate('errors.decode'))
     }
     try {
       const blob = await entry.getData<Blob>(new BlobWriter(mimeFor(entry.filename)))

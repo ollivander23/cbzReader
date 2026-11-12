@@ -5,9 +5,12 @@ import LandingPage from '../components/LandingPage.vue'
 import { PAGES, findPage, type PageContent } from '../content/pages'
 import {
   HOME_ALTERNATES,
+  LOCALIZED_CONTENT_PAGES,
   LOCALIZED_HOME_PAGES,
+  alternatesForPath,
   createSiteI18n,
   htmlLang,
+  localeFromPath,
   type SiteLocale,
 } from '../i18n'
 import { renderDemoHead, renderHead } from './head'
@@ -44,13 +47,20 @@ export const routes: PrerenderRoute[] = [
   ...PAGES.map((page) => ({
     path: page.path,
     lang: htmlLang('en'),
-    alternates: page.path === '/' ? HOME_ALTERNATES : englishAlternates(page.path),
+    alternates: alternatesForPath(page.path) ?? englishAlternates(page.path),
+    updated: page.updated,
+  })),
+  // Translated content pages, e.g. /zh/cbz-to-pdf/ and /ja/cbz-to-pdf/.
+  ...LOCALIZED_CONTENT_PAGES.map((page) => ({
+    path: page.path,
+    lang: htmlLang(localeFromPath(page.path)),
+    alternates: alternatesForPath(page.path) ?? englishAlternates(page.path),
     updated: page.updated,
   })),
   ...(['zh', 'ja'] as const).map((locale) => ({
     path: LOCALIZED_HOME_PAGES[locale].path,
     lang: htmlLang(locale),
-    alternates: HOME_ALTERNATES,
+    alternates: alternatesForPath(LOCALIZED_HOME_PAGES[locale].path) ?? HOME_ALTERNATES,
     updated: LOCALIZED_HOME_PAGES[locale].updated,
   })),
   // A device-testing entry: prerendered so it works without JS, but kept out
@@ -59,15 +69,15 @@ export const routes: PrerenderRoute[] = [
 ]
 
 function pageForPath(path: string): PageContent {
+  const localized = LOCALIZED_CONTENT_PAGES.find((page) => page.path === path)
+  if (localized) return localized
   if (path === '/zh/') return LOCALIZED_HOME_PAGES.zh
   if (path === '/ja/') return LOCALIZED_HOME_PAGES.ja
   return findPage(path)
 }
 
 function localeForPath(path: string): SiteLocale {
-  if (path === '/zh/') return 'zh'
-  if (path === '/ja/') return 'ja'
-  return 'en'
+  return localeFromPath(path)
 }
 
 export async function renderPage(path: string): Promise<{ html: string; head: string }> {

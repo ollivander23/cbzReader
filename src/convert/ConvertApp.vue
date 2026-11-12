@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ConversionError, convertCbzToPdf, type PageSize } from './pdf'
 import { track } from '../lib/track'
 
 const props = defineProps<{ initialFile?: File | null }>()
+
+const { t } = useI18n()
 
 type Phase = 'idle' | 'ready' | 'working' | 'done' | 'error'
 
@@ -26,8 +29,19 @@ const percent = computed(() =>
   total.value === 0 ? 0 : Math.min(100, Math.round((done.value / total.value) * 100)),
 )
 const progressText = computed(() =>
-  total.value === 0 ? 'Reading the archive' : `Page ${done.value} of ${total.value}`,
+  total.value === 0
+    ? t('convert.reading')
+    : t('convert.progress', { done: done.value, total: total.value }),
 )
+
+// The reason is a stable enum; the library's own message is English prose, so
+// the panel shows a translated line per reason instead of echoing it.
+const CONVERT_ERROR_KEYS: Record<string, string> = {
+  'not-zip': 'convert.errNotZip',
+  encrypted: 'convert.errEncrypted',
+  'no-images': 'convert.errNoImages',
+  memory: 'convert.errMemory',
+}
 const pdfName = computed(() => {
   const name = file.value?.name ?? 'comic'
   return `${name.replace(/\.[^.]+$/, '') || 'comic'}.pdf`
@@ -123,10 +137,7 @@ async function convert(): Promise<void> {
       phase.value = file.value ? 'ready' : 'idle'
       return
     }
-    errorMessage.value =
-      error instanceof ConversionError
-        ? error.message
-        : 'Conversion failed for an unknown reason. Try again or use a different archive.'
+    errorMessage.value = t(CONVERT_ERROR_KEYS[reason] ?? 'convert.errUnknown')
     phase.value = 'error'
   } finally {
     controller = null
@@ -168,63 +179,60 @@ onBeforeUnmount(() => {
     @drop.prevent="onDrop"
   >
     <div v-if="phase === 'idle'" class="conv__panel">
-      <p class="conv__kicker">CBZ → PDF</p>
-      <h2 class="conv__title">Convert a CBZ to PDF</h2>
-      <p class="conv__lead">
-        Drop a .cbz file here, or choose one from your device. The archive is unpacked and the
-        PDF is built in this tab.
-      </p>
+      <p class="conv__kicker">{{ t('convert.kicker') }}</p>
+      <h2 class="conv__title">{{ t('convert.title') }}</h2>
+      <p class="conv__lead">{{ t('convert.lead') }}</p>
       <button class="conv__primary" type="button" data-convert-open @click="pick">
-        Choose a CBZ file
+        {{ t('convert.choose') }}
       </button>
       <input
         ref="input"
         class="conv__input"
         type="file"
         accept=".cbz,.zip"
-        aria-label="Choose a CBZ file to convert"
+        :aria-label="t('convert.chooseAria')"
         @change="onPick"
       />
-      <p class="conv__fine">Nothing is uploaded. JPEG pages are embedded without re-encoding.</p>
+      <p class="conv__fine">{{ t('convert.fine') }}</p>
     </div>
 
     <div v-else-if="phase === 'ready'" class="conv__panel">
-      <p class="conv__kicker">Ready to convert</p>
+      <p class="conv__kicker">{{ t('convert.ready') }}</p>
       <h2 class="conv__title">{{ pdfName }}</h2>
       <p class="conv__lead conv__file">{{ file?.name }}</p>
 
       <fieldset class="conv__options">
-        <legend class="conv__legend">Page size</legend>
+        <legend class="conv__legend">{{ t('convert.pageSize') }}</legend>
         <label class="conv__option">
           <input v-model="pageSize" type="radio" value="original" name="page-size" />
           <span>
-            <strong>Original size</strong>
-            <small>Each page matches the image pixels exactly. Nothing is scaled.</small>
+            <strong>{{ t('convert.sizeOriginal') }}</strong>
+            <small>{{ t('convert.sizeOriginalNote') }}</small>
           </span>
         </label>
         <label class="conv__option">
           <input v-model="pageSize" type="radio" value="a4" name="page-size" />
           <span>
-            <strong>Fit to A4</strong>
-            <small>Pages are scaled to fit A4 without cropping, for printing.</small>
+            <strong>{{ t('convert.sizeA4') }}</strong>
+            <small>{{ t('convert.sizeA4Note') }}</small>
           </span>
         </label>
       </fieldset>
 
       <div class="conv__actions">
         <button class="conv__primary" type="button" data-convert-start @click="convert">
-          Convert to PDF
+          {{ t('convert.start') }}
         </button>
         <button class="conv__secondary" type="button" data-convert-reset @click="reset">
-          Choose another file
+          {{ t('convert.startAnother') }}
         </button>
       </div>
-      <p class="conv__fine">The PDF downloads as soon as it is ready.</p>
+      <p class="conv__fine">{{ t('convert.fineDownload') }}</p>
     </div>
 
     <div v-else-if="phase === 'working'" class="conv__panel">
-      <p class="conv__kicker">Converting</p>
-      <h2 class="conv__title">Building the PDF…</h2>
+      <p class="conv__kicker">{{ t('convert.working') }}</p>
+      <h2 class="conv__title">{{ t('convert.building') }}</h2>
       <p class="conv__lead conv__file">{{ file?.name }}</p>
       <div
         class="conv__bar"
@@ -238,35 +246,40 @@ onBeforeUnmount(() => {
       </div>
       <p class="conv__fine">{{ progressText }} · {{ percent }}%</p>
       <button class="conv__secondary" type="button" data-convert-cancel @click="cancel">
-        Cancel
+        {{ t('convert.cancel') }}
       </button>
     </div>
 
     <div v-else-if="phase === 'done'" class="conv__panel">
-      <p class="conv__kicker">Done</p>
-      <h2 class="conv__title">Your PDF is ready</h2>
+      <p class="conv__kicker">{{ t('convert.done') }}</p>
+      <h2 class="conv__title">{{ t('convert.readyTitle') }}</h2>
       <p class="conv__lead">
-        {{ pages }} {{ pages === 1 ? 'page' : 'pages' }} · {{ sizeLabel }}
-        <span v-if="pageSize === 'a4'"> · A4</span>
-        <span v-else> · original page size</span>
+        {{
+          pages === 1
+            ? t('convert.pagesOne', { count: pages })
+            : t('convert.pagesMany', { count: pages })
+        }}
+        · {{ sizeLabel }}
+        <span v-if="pageSize === 'a4'"> · {{ t('convert.a4Note') }}</span>
+        <span v-else> · {{ t('convert.originalNote') }}</span>
       </p>
       <div class="conv__actions">
         <a class="conv__primary" :href="downloadUrl" :download="pdfName" data-convert-download>
-          Download {{ pdfName }}
+          {{ t('convert.download', { name: pdfName }) }}
         </a>
         <button class="conv__secondary" type="button" data-convert-reset @click="reset">
-          Convert another file
+          {{ t('convert.convertAnother') }}
         </button>
       </div>
-      <p class="conv__fine">The file never left your device.</p>
+      <p class="conv__fine">{{ t('convert.fineDone') }}</p>
     </div>
 
     <div v-else class="conv__panel">
-      <p class="conv__kicker">Could not convert</p>
-      <h2 class="conv__title">This file could not be turned into a PDF</h2>
+      <p class="conv__kicker">{{ t('convert.failed') }}</p>
+      <h2 class="conv__title">{{ t('convert.failedTitle') }}</h2>
       <p class="conv__error" role="alert">{{ errorMessage }}</p>
       <button class="conv__secondary" type="button" data-convert-reset @click="reset">
-        Try another file
+        {{ t('convert.tryAnother') }}
       </button>
     </div>
   </div>

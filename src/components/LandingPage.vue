@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { NAV, SITE } from '../content/site'
 import { findPage, type PageContent } from '../content/pages'
+import { pathForLocale } from '../i18n'
 
 const props = defineProps<{ page: PageContent }>()
 const { t, tm, locale } = useI18n()
@@ -32,7 +33,7 @@ const LOCALE_LINKS = [
 const localeLinks = computed(() =>
   LOCALE_LINKS.map((link) => ({
     ...link,
-    href: link.code === 'en' ? (isLocalized.value ? '/' : props.page.path) : `/${link.code}/`,
+    href: pathForLocale(props.page.path, link.code),
     current: locale.value === link.code,
   })),
 )
@@ -177,34 +178,26 @@ function toolKindLabel(kind: 'sample' | 'tool' | 'guide'): string {
       </noscript>
     </section>
 
-    <section v-if="page.converter" id="converter" class="converter-section" aria-label="CBZ to PDF converter">
+    <section v-if="page.converter" id="converter" class="converter-section" :aria-label="t('convert.title')">
       <div class="converter-shell">
         <div id="converter-app">
           <div class="converter-fallback">
-            <p class="converter-kicker">CBZ → PDF</p>
-            <h2>Convert a CBZ to PDF</h2>
-            <p>
-              Drop a .cbz file here, or choose one from your device. The archive is unpacked and
-              the PDF is built in this tab.
-            </p>
-            <button class="btn-primary" type="button" data-convert-open>Choose a CBZ file</button>
+            <p class="converter-kicker">{{ t('convert.kicker') }}</p>
+            <h2>{{ t('convert.title') }}</h2>
+            <p>{{ t('convert.lead') }}</p>
+            <button class="btn-primary" type="button" data-convert-open>{{ t('convert.choose') }}</button>
             <input
               type="file"
               hidden
               accept=".cbz,.zip,application/vnd.comicbook+zip,application/zip"
-              aria-label="Choose a CBZ file to convert"
+              :aria-label="t('convert.chooseAria')"
             />
-            <p class="converter-fine">
-              Nothing is uploaded. JPEG pages are embedded without re-encoding.
-            </p>
+            <p class="converter-fine">{{ t('convert.fine') }}</p>
           </div>
         </div>
       </div>
       <noscript>
-        <p class="noscript">
-          JavaScript is required to unpack the archive and build the PDF. Everything runs in your
-          browser; the file is never sent to a server.
-        </p>
+        <p class="noscript">{{ t('convert.noscript') }}</p>
       </noscript>
     </section>
 
