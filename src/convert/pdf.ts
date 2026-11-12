@@ -15,6 +15,9 @@ const TRANSCODE_QUALITY = 0.92
 const MAX_ENTRY_BYTES = 96 * 1024 * 1024
 const MAX_EMBED_PIXELS = 24_000_000
 const DOWNSCALE_EDGE = 4096
+// CSS pixels are defined at 96 DPI and PDF points are 1/72 inch, so one image
+// pixel is 0.75pt. Without this an 1800px page became 25 inches wide on paper.
+const PX_TO_PT = 72 / 96
 
 export type ConvertReason =
   | 'not-zip'
@@ -322,9 +325,12 @@ export async function convertCbzToPdf(
           height,
         })
       } else {
-        // Original size: one image pixel maps to one PDF point, no resampling.
-        const page = pdf.addPage([image.width, image.height])
-        page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height })
+        // Original size: pixels keep their authored physical size at 96 DPI
+        // (1px = 0.75pt) and are not resampled.
+        const width = image.width * PX_TO_PT
+        const height = image.height * PX_TO_PT
+        const page = pdf.addPage([width, height])
+        page.drawImage(image, { x: 0, y: 0, width, height })
       }
 
       options.onProgress?.(index + 1, total)

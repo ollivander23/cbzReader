@@ -15,6 +15,9 @@ const base = `http://localhost:${port}/`
 // A fresh directory per run: Windows keeps a handle on the previous PDF for a
 // moment, and deleting a locked directory would fail the whole check.
 const downloadDir = path.join(root, 'test/.cache/convert-downloads', String(Date.now()))
+// Original size keeps the image's physical size: 96 CSS DPI -> 72 PDF points.
+const PX_TO_PT = 0.75
+const close = (a, b) => Math.abs(a - b) < 0.01
 
 const edgeCandidates = [
   process.env.EDGE_PATH,
@@ -216,7 +219,7 @@ try {
   await page.goto(`${base}cbz-to-pdf/`, { waitUntil: 'networkidle2' })
   await page.waitForSelector('[data-convert-open]')
 
-  // Default mode: original page size, pages embedded without scaling.
+  // Default mode: original page size, pixels converted at 96 DPI (0.75pt each).
   const original = await convert(page, { file: sample, mode: 'original' })
   const originalBuffer = await readFile(original.downloaded)
   const originalPdf = await pdfInfo(originalBuffer)
@@ -225,9 +228,9 @@ try {
   assert(originalPdf.pages === source.count, `PDF has ${originalPdf.pages} of ${source.count} pages`)
   assert(
     source.first &&
-      originalPdf.sizes[0].width === source.first.width &&
-      originalPdf.sizes[0].height === source.first.height,
-    `original pages are not the source pixel size: ${JSON.stringify(originalPdf.sizes[0])} vs ${JSON.stringify(source.first)}`,
+      close(originalPdf.sizes[0].width, source.first.width * PX_TO_PT) &&
+      close(originalPdf.sizes[0].height, source.first.height * PX_TO_PT),
+    `original pages are not the source pixel size at 96 DPI: ${JSON.stringify(originalPdf.sizes[0])} vs ${JSON.stringify(source.first)}`,
   )
   assert(
     original.summary.includes(`${originalPdf.pages} pages`),
@@ -297,8 +300,8 @@ try {
     const bigPdf = await pdfInfo(bigBuffer)
     assert(bigPdf.pages > 0, 'stress PDF has no pages')
     assert(
-      bigPdf.sizes[0].width === 3000 && bigPdf.sizes[0].height === 4500,
-      `stress page is not the original 3000x4500: ${JSON.stringify(bigPdf.sizes[0])}`,
+      close(bigPdf.sizes[0].width, 3000 * PX_TO_PT) && close(bigPdf.sizes[0].height, 4500 * PX_TO_PT),
+      `stress page is not the original 3000x4500 at 96 DPI: ${JSON.stringify(bigPdf.sizes[0])}`,
     )
     stressReport = {
       pages: bigPdf.pages,

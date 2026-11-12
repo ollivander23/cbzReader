@@ -48,6 +48,10 @@ const IOS_HINT_KEY = 'cbz-ios-fullscreen-hint'
 // full grid can never evict the pages the reader is actually showing.
 const THUMB_CACHE_LIMIT = 60
 const THUMB_FALLBACK_TILE = 128
+// Space and Enter belong to whatever control has focus. Without this the global
+// page-turn handler preventDefaults the activation and turns a page instead.
+const ACTIVATABLE_SELECTOR =
+  'button, a[href], select, summary, label, [role="button"], [role="link"], [role="switch"], [role="checkbox"], [role="radio"], [role="tab"], [role="menuitem"]'
 
 interface ScrollAnchor {
   page: number
@@ -1657,12 +1661,23 @@ function onWheel(event: WheelEvent): void {
 
 function onKey(event: KeyboardEvent): void {
   if (!ready.value) return
-  const target = event.target as HTMLElement | null
-  if (
-    target &&
-    (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
-  ) {
-    return
+  const target = event.target instanceof HTMLElement ? event.target : null
+  if (target) {
+    // Text fields and dropdowns own every key they receive, so the reader never
+    // competes with typing or with native option selection.
+    if (
+      target.tagName === 'INPUT' ||
+      target.tagName === 'TEXTAREA' ||
+      target.tagName === 'SELECT' ||
+      target.isContentEditable
+    ) {
+      return
+    }
+    // Other controls only own Space and Enter. Letting those through keeps the
+    // reader shortcuts (0, +, -, F, D) working while a toolbar button is focused.
+    if ((event.key === ' ' || event.key === 'Enter') && target.closest(ACTIVATABLE_SELECTOR)) {
+      return
+    }
   }
 
   // The thumbnail sheet is modal: Escape closes it and returns focus, and page
