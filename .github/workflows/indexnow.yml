@@ -1,0 +1,31 @@
+name: IndexNow
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: indexnow
+  cancel-in-progress: true
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # Waits for the live sitemap to contain every page from this commit, then
+      # submits it to IndexNow. Failures (timeout, non-2xx) fail this step.
+      - name: Submit live sitemap URLs to IndexNow
+        env:
+          SITE_URL: https://cbzreader.mavi.help
+          INDEXNOW_KEY_FILE: public/7f3c9a1e5b2d48c6a90e4d17bc8f2563.txt
+          INDEXNOW_TIMEOUT_MS: '600000'
+          INDEXNOW_POLL_MS: '20000'
+        run: node scripts/indexnow-submit.mjs
