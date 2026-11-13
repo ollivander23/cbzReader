@@ -1,46 +1,45 @@
 **English** | [简体中文](README.zh-CN.md)
 
-# CBZ Reader — read CBZ comics in your browser
-**A browser-based comic reader and cbz to pdf converter that keeps files on your device. No upload, no account, no install.**
-**Try it: [cbzreader.mavi.help](https://cbzreader.mavi.help/) · Live demo: [cbzreader.mavi.help/demo](https://cbzreader.mavi.help/demo/)**
+# Read or convert a CBZ without handing it over.
 
-![CBZ Reader — read CBZ comics in your browser](public/og-image.png)
+CBZ Reader opens a `.cbz` from your disk in a browser tab — to read, or to convert to PDF. The archive is unpacked in the tab and never uploaded: no account, no install, no server-side library.
 
-<!-- TODO: add a real reader screenshot or a short GIF here before publishing. The image above is the social preview, not an in-app screenshot. -->
+**[Open the reader](https://cbzreader.mavi.help/)** · [Convert a CBZ to PDF](https://cbzreader.mavi.help/cbz-to-pdf/) · [Try a sample comic](https://cbzreader.mavi.help/demo/) · [How the file stays local](https://cbzreader.mavi.help/private-process/)
 
-CBZ Reader opens local `.cbz` and `.zip` comic archives directly in a tab. It replaces the "download a desktop comic reader, import the file, wait for it to index" flow with one file picker, and it works on phones, tablets, and desktops without sending the archive anywhere.
+## The file stays on your device
 
-## Features
-
-- Read CBZ/ZIP archives locally in single-page, two-page, or vertical-scroll mode, with zoom, pan, swipe, click zones, and keyboard navigation.
-- Resume the last page, mode, and reading direction per file, with a recent-books shelf on the landing page.
-- Add page bookmarks and browse thumbnails; when the archive has folder chapters or `ComicInfo.xml` bookmarks, a Contents strip appears in the thumbnail panel.
-- Show ComicInfo.xml metadata (title, series, number, summary) inside the reader.
-- Switch to right-to-left manga reading with one toggle.
-- Convert cbz to pdf in the tab: original pixel size or fit to A4, JPEG passthrough, PNG lossless embedding, page progress, and cancel.
-- Install as a PWA and reopen previously loaded pages offline; local files still open with the network off.
-- Drag and drop a file or use the picker; no account or server-side library.
-
-## Your files stay in the browser
-
-The archive is read with `zip.js` inside the tab, page images are decoded locally, and the PDF is assembled with `pdf-lib` in the same tab. No archive, page image, or converted PDF is uploaded.
+The archive is read with `zip.js` inside the tab, page images are decoded locally, and the PDF is assembled with `pdf-lib` in that same tab. No archive, page image, or converted PDF is uploaded.
 
 Verify it yourself:
 
-1. Open DevTools → Network, choose a local CBZ, turn a few pages, and convert it. Requests should be limited to the site's static assets and cookieless analytics; no request body contains the archive or page images.
-2. After visiting once, switch the device to airplane mode, reload the site, and open a local CBZ. Reading and conversion still work; only pages or routes that were never cached may show an offline notice.
+1. Open DevTools → Network, open a CBZ, turn a few pages, and convert it. Requests stay limited to the site's static assets and cookieless analytics; no request body carries the archive or page images.
+2. Visit once, switch the device to airplane mode, reload the site, and open a local CBZ. Reading and conversion still work; only routes you never cached may show an offline notice.
+
+## Read
+
+- CBZ and ZIP archives with JPG, PNG, WebP, GIF, AVIF, or BMP pages.
+- Single-page, two-page, or continuous scrolling, with zoom, pan, swipe, click zones, and keyboard paging.
+- Right-to-left manga mode, including archives where `ComicInfo.xml` already marks the direction.
+- Per-file memory of page, layout, and reading direction, plus a recently opened shelf.
+- Page bookmarks, a thumbnail sheet, and a contents strip when the archive has folders or `ComicInfo.xml` chapter bookmarks.
+- `ComicInfo.xml` title, series, number, and summary shown inside the reader.
+- Installable as a PWA; after the first visit, the reader opens without a connection.
+
+## Convert CBZ to PDF
+
+- Build the PDF in the same tab, at the original pixel size or fitted to A4 without cropping.
+- JPEG pages are embedded as they are; PNG pages are embedded losslessly.
+- Page-by-page progress with a cancel button.
 
 ## Limits
 
-- CBR (RAR) and CB7 (7z) are not supported. The reader and converter tell you to convert them to CBZ first; for the format differences, see the [CBZ vs CBR comparison](https://cbzreader.mavi.help/cbz-vs-cbr/).
-- Very large pages are downsampled to a unified decode cap of 4096 px on the long edge and 12 MP, so 3000×4500 scans and larger may look softer when zoomed.
-- iOS has only been tested on Safari 18 (iPhone 16e). Android Chrome has also been tested, but iOS file import, gestures, and very large archives still have unverified edges.
+- CBR (RAR) and CB7 (7z) are not supported. Convert them to CBZ first; the [CBZ vs CBR comparison](https://cbzreader.mavi.help/cbz-vs-cbr/) explains the difference.
+- Pages larger than 4096 px on the long edge or 12 MP are downsampled when read, so 3000×4500 scans can look soft when zoomed.
+- Tested on Safari 18 (iPhone 16e) and Android Chrome; iOS file import, gestures, and very large archives still have unverified edges.
 
-## Built with
+## Run it locally
 
-Vue 3, TypeScript, and Vite 6, with `zip.js` for ZIP access, `pdf-lib` for PDF output, and `idb-keyval` for on-device progress and bookmarks. Pages are prerendered to static HTML, a service worker handles offline caching, and the site is deployed on Cloudflare Pages.
-
-### Run locally
+Vue 3, TypeScript, and Vite 6, with `zip.js` for ZIP access, `pdf-lib` for PDF output, and `idb-keyval` for on-device progress and bookmarks. Pages are prerendered to static HTML and a service worker keeps them available offline.
 
 Requires Node.js 20 or 22 and npm 10+.
 
@@ -51,24 +50,16 @@ npm run build     # typecheck, build, and prerender
 npm run preview   # preview the production build
 ```
 
-Optional checks, with Edge or Chrome installed:
+Optional checks, with Edge or Chrome installed: `npm run test:e2e`, `npm run test:offline`, `npm run test:convert`.
 
-```bash
-npm run test:e2e
-npm run test:offline
-npm run test:convert
-```
-
-Generate the test archives used for manual checks with `npm run samples`. They are written to `test/.cache/samples` (git-ignored); set `SAMPLE_OUT` (PowerShell: `$env:SAMPLE_OUT='D:\path'; npm run samples`) or pass `npm run samples -- --out <dir>` to use another directory.
+`npm run samples` generates local test archives in `test/.cache/samples` (git-ignored).
 
 ## Sample comics
 
-`public/samples/little-nemo-1908.cbz` contains 12 *Little Nemo in Slumberland* Sunday pages by Winsor McCay, published in the *New York Herald* in 1908. The Wikimedia Commons file pages ([source category](https://commons.wikimedia.org/wiki/Category:Little_Nemo_in_Slumberland,_1908)) carry `{{PD-US}}`, so the strips are in the U.S. public domain; they are not CC0 or CC BY. The pages were resized for the demo.
+`public/samples/little-nemo-1908.cbz` holds 12 *Little Nemo in Slumberland* Sunday pages by Winsor McCay, published in the *New York Herald* in 1908. The Wikimedia Commons file pages ([source category](https://commons.wikimedia.org/wiki/Category:Little_Nemo_in_Slumberland,_1908)) carry `{{PD-US}}`, so the strips are in the U.S. public domain — not CC0 or CC BY. The pages were resized for the demo.
 
-`public/samples/sample-large-20-pages.cbz` is generated by this repository's sample script from simple synthetic pages and contains no third-party artwork.
+`public/samples/sample-large-20-pages.cbz` is generated by `npm run samples` from synthetic pages and contains no third-party artwork.
 
 ## License
 
-The code in this repository is released under the [MIT License](LICENSE).
-
-The files under `public/samples/` are sample content, not MIT-licensed software. `little-nemo-1908.cbz` keeps the U.S. public-domain status described above; `sample-large-20-pages.cbz` is generated demo content and is likewise excluded from the MIT License.
+The code is released under the [MIT License](LICENSE). The files under `public/samples/` are sample content, not MIT-licensed software: `little-nemo-1908.cbz` keeps the U.S. public-domain status above, and `sample-large-20-pages.cbz` is generated demo content.
