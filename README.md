@@ -1,12 +1,12 @@
 **English** | [简体中文](README.zh-CN.md)
 
-# CBZ Reader — read or convert CBZ comics without uploading them
+# CBZ Reader — read or convert a CBZ without handing it over
 
 **Open a `.cbz` or `.zip` from your own disk, read it page by page, or turn it into a PDF — all inside the browser tab. The archive is never uploaded. No account, no install.**
 
 [Try it](https://cbzreader.mavi.help/) · [Live demo — opens a sample comic](https://cbzreader.mavi.help/demo) · [How the local processing works](#verify-it-yourself-in-30-seconds)
 
-![CBZ Reader — read or convert CBZ comics without uploading them](public/og-image.png)
+![CBZ Reader — read or convert a CBZ without handing it over](public/og-image.png)
 
 <!-- TODO: replace this with a real in-app screenshot or a 10-second GIF: drop a .cbz, turn two pages, convert to PDF, then cut the network. The image above is the social share card, not the app. -->
 
