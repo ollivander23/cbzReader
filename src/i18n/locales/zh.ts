@@ -5,7 +5,7 @@ export const zhHome: PageContent = {
   title: 'CBZ Reader - 在浏览器里读 CBZ、转 PDF',
   description:
     '在浏览器中阅读 CBZ 漫画，或把 CBZ 转成 PDF。文件始终留在本机：无需上传、无需账号。支持日漫右开、双页、缩放和阅读进度。',
-  h1: '在浏览器里读 CBZ 漫画',
+  h1: '在浏览器里读或转 CBZ 漫画，不必把文件交出去',
   eyebrow: 'CBZ 阅读器与转换工具',
   lead: '打开 CBZ 直接读，或转成 PDF。两件事都在你的设备上完成。',
   tool: true,
