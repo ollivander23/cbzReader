@@ -794,8 +794,8 @@ export const PAGES: PageContent[] = [
       {
         heading: 'Why the other tools need a server',
         paragraphs: [
-          'An upload-based converter has a shape: the archive leaves the tab, a machine with the libraries and the memory to do the work picks it up, and a link comes back. The browser in front of you only moves bytes.',
-          'That shape decides what the reader gets. A copy sits on hardware someone else controls and stays there until they decide to delete it — often longer, in a cache or a log. Capacity is rationed, so large files tend to need an account or a paid tier. And the service has to still exist tomorrow for the tool to work at all. None of that is bad faith; it is what putting a server in the middle produces.',
+          'An upload site works the other way round. Your archive leaves the tab, goes to a machine with the software and the memory for the job, and a link comes back. The page in front of you only passes the file along.',
+          'A copy sits on hardware someone else controls and stays there until they decide to delete it — often longer, in a cache or a log. Because server capacity costs money, large files usually require an account or a paid tier. And the service still has to exist tomorrow for the tool to work at all. None of that is bad faith; it is what putting a server in the middle produces.',
         ],
       },
       {
@@ -826,14 +826,14 @@ export const PAGES: PageContent[] = [
         ],
       },
       {
-        heading: 'Where the tab ends',
+        heading: 'Where the tab ends (Privacy details)',
         paragraphs: [
-          'This site still has a host and a bill, so three things leave the browser. None of them contains your file.',
+          'This site still has a host and a bill, so three minor things happen outside the tab. None of them contains your file.',
         ],
         bullets: [
-          'Cloudflare terminates the connection and sees request metadata: IP address, user agent, page URL.',
-          'Umami gets one event per visit or conversion, with an event name, the page path, and counters such as page count or time taken.',
-          'Browser storage keeps your language choice and reading progress. Clearing site data removes both.',
+          'Cloudflare (CDN): Sees basic request data like IP address and browser type (but never your files).',
+          'Umami (Analytics): Gets one event per visit or conversion, but no file data.',
+          'Browser Storage: Saves your language choice and reading progress locally. Clearing site data removes both.',
         ],
       },
       {

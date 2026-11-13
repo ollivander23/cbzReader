@@ -54,15 +54,15 @@ const html = `<!doctype html>
       }
       .name { font-size: 30px; font-weight: 700; letter-spacing: -0.01em; }
       h1 {
-        max-width: 15ch;
-        font-size: 78px;
-        line-height: 1.05;
+        max-width: none;
+        font-size: 66px;
+        line-height: 1.1;
         letter-spacing: -0.03em;
         font-weight: 700;
       }
       .lead {
         margin-top: 22px;
-        max-width: 30ch;
+        max-width: 32ch;
         font-size: 30px;
         line-height: 1.35;
         color: #5b6870;
@@ -91,8 +91,8 @@ const html = `<!doctype html>
       <div class="name">CBZ Reader</div>
     </div>
     <div>
-      <h1>Read CBZ comics in your browser</h1>
-      <p class="lead">Files stay on your device. No uploads, no account.</p>
+      <h1>Read or convert a CBZ<br />without handing it over.</h1>
+      <p class="lead">Nothing is uploaded — the files stay on your device.</p>
     </div>
     <div class="chips">
       <span class="chip chip--accent">No upload</span>
