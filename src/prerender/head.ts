@@ -128,6 +128,11 @@ const ANALYTICS =
 const BAIDU_VERIFY =
   '<meta name="baidu-site-verification" content="codeva-onRzaCKsaC" />'
 
+// Yandex Webmaster ownership check. Rendered on every page so verification
+// still passes if the URL submitted there is not the bare root.
+const YANDEX_VERIFY =
+  '<meta name="yandex-verification" content="91f4dea0a7be3346" />'
+
 export interface HeadOptions {
   locale?: SiteLocale
   alternates?: readonly { hreflang: string; path: string }[]
@@ -166,6 +171,7 @@ export function renderHead(page: PageContent, siteUrl: string, options: HeadOpti
 <link rel="canonical" href="${url}" />
 ${alternateLinks}
 <meta name="robots" content="${options.noindex ? 'noindex,follow' : 'index,follow,max-image-preview:large'}" />
+${YANDEX_VERIFY}
 ${page.path === '/' ? BAIDU_VERIFY + '\n' : ''}
 <meta name="theme-color" content="${THEME_COLORS.light}" />
 ${themeScript()}
