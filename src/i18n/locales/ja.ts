@@ -5,7 +5,7 @@ export const jaHome: PageContent = {
   title: 'CBZ Reader - ブラウザでCBZを読む・PDFに変換',
   description:
     'ブラウザ上でCBZコミックを読み、CBZをPDFに変換できます。ファイルは端末内だけで処理され、アップロードもアカウント登録も不要です。右開きのマンガ、見開き、ズーム、続きからの再開に対応。',
-  h1: 'ブラウザでCBZコミックを読む',
+  h1: 'ブラウザでCBZを読む・PDFに変換、ファイルはどこにも渡さない',
   eyebrow: 'CBZリーダーと変換ツール',
   lead: 'CBZを開いてそのまま読むか、PDFに変換できます。どちらも端末内で完結します。',
   tool: true,
