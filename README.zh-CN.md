@@ -1,12 +1,12 @@
 [English](README.md) | **简体中文**
 
-# CBZ Reader —— 不上传文件，直接读或转 CBZ 漫画
+# CBZ Reader —— 读或转 CBZ，不必把文件交出去
 
 **在浏览器标签页里打开本地的 `.cbz` 或 `.zip`，一页页读，或者直接转成 PDF。压缩包不会被上传。无需账号，无需安装。**
 
 [在线使用](https://cbzreader.mavi.help/) · [在线演示（打开一个示例漫画）](https://cbzreader.mavi.help/demo) · [怎么自己验证不上传](#自己花-30-秒验证)
 
-![CBZ Reader —— 不上传文件，直接读或转 CBZ 漫画](public/og-image.png)
+![CBZ Reader —— 读或转 CBZ，不必把文件交出去](public/og-image.png)
 
 <!-- TODO: 把这张换成真实的阅读器截图或 10 秒 GIF：拖入 .cbz → 翻两页 → 转 PDF → 断网。上面这张是社交分享图，不是应用内截图。 -->
 
