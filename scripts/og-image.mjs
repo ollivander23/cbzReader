@@ -30,7 +30,7 @@ const html = `<!doctype html>
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        padding: 66px 80px;
+        padding: 72px 80px;
         background:
           radial-gradient(circle at 1px 1px, rgba(16, 20, 24, 0.16) 1.4px, transparent 0) 0 0 / 22px 22px,
           #e6ecef;
@@ -53,28 +53,27 @@ const html = `<!doctype html>
         letter-spacing: 0.02em;
       }
       .name { font-size: 30px; font-weight: 700; letter-spacing: -0.01em; }
-      /* The claim is the headline. Everything below it is evidence. */
       h1 {
-        max-width: 24ch;
-        font-size: 62px;
-        line-height: 1.06;
+        max-width: 15ch;
+        font-size: 78px;
+        line-height: 1.05;
         letter-spacing: -0.03em;
         font-weight: 700;
       }
       .lead {
-        margin-top: 18px;
-        max-width: 34ch;
-        font-size: 26px;
-        line-height: 1.4;
+        margin-top: 22px;
+        max-width: 30ch;
+        font-size: 30px;
+        line-height: 1.35;
         color: #5b6870;
       }
-      .chips { display: flex; gap: 12px; }
+      .chips { display: flex; gap: 14px; }
       .chip {
-        padding: 10px 20px;
+        padding: 12px 22px;
         border: 1.5px solid #101418;
         border-radius: 0;
         background: #f4f7f8;
-        font-size: 20px;
+        font-size: 22px;
         color: #101418;
       }
       .chip--accent {
@@ -92,14 +91,13 @@ const html = `<!doctype html>
       <div class="name">CBZ Reader</div>
     </div>
     <div>
-      <h1>Read or convert CBZ comics without uploading them</h1>
-      <p class="lead">Both run inside the tab. Your file never leaves the device.</p>
+      <h1>Read CBZ comics in your browser</h1>
+      <p class="lead">Files stay on your device. No uploads, no account.</p>
     </div>
     <div class="chips">
       <span class="chip chip--accent">No upload</span>
-      <span class="chip">CBZ &rarr; PDF in the tab</span>
-      <span class="chip">Works offline</span>
       <span class="chip">Right-to-left manga</span>
+      <span class="chip">Remembers your page</span>
     </div>
   </body>
 </html>`
