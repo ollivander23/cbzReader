@@ -1459,6 +1459,17 @@ h1 {
   display: block;
 }
 
+.site-footer__badge {
+  display: inline-flex;
+  align-items: center;
+}
+
+.site-footer__badge img {
+  display: block;
+  height: auto;
+  max-width: 100%;
+}
+
 .noscript {
   margin: 16px 0;
   padding: 14px 16px;
