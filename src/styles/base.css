@@ -464,6 +464,27 @@ h1 {
   text-underline-offset: 3px;
 }
 
+/* Directory badges on the about page: a quiet row of linked plates. */
+.section-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0 0;
+}
+
+.section-badges a:hover {
+  background: var(--card-bg-hover);
+  transform: translateY(-1px);
+}
+
+.section-badges img {
+  display: block;
+  width: auto;
+  height: 40px;
+  max-width: 100%;
+}
+
 .faq__more {
   margin-top: 6px;
 }
@@ -1457,17 +1478,6 @@ h1 {
 
 .site-footer__github svg {
   display: block;
-}
-
-.site-footer__badge {
-  display: inline-flex;
-  align-items: center;
-}
-
-.site-footer__badge img {
-  display: block;
-  height: auto;
-  max-width: 100%;
 }
 
 .noscript {

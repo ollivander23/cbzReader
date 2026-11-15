@@ -21,8 +21,18 @@ export interface PageSection {
   note?: PageSectionNote
   /** Optional follow-up link rendered under the section text. */
   link?: { href: string; label: string }
+  /** External directory badges rendered as image links under the section text. */
+  badges?: PageSectionBadge[]
   /** Renders the page-level contact address as a visible mailto link. */
   contact?: boolean
+}
+
+export interface PageSectionBadge {
+  href: string
+  src: string
+  alt: string
+  width: number
+  height: number
 }
 
 export interface PageSectionNote {
@@ -923,6 +933,25 @@ export const PAGES: PageContent[] = [
           '2026-11-12 — Homepage repositioned around reading and converting without an upload; the language switcher became plain links; page dates moved into the sitemap.',
           '2026-11-11 — First public version: browser reader, CBZ to PDF converter, and offline shell.',
           'Since launch — Corrected the Android guide and documented how very large pages are handled.',
+        ],
+      },
+      {
+        heading: 'Where it is listed',
+        badges: [
+          {
+            href: 'https://www.saashub.com/cbz-reader-mavi-help?utm_source=badge&utm_campaign=badge&utm_content=cbz-reader-mavi-help&badge_variant=color&badge_kind=approved',
+            src: 'https://cdn-b.saashub.com/img/badges/approved-color.png?v=1',
+            alt: 'Approved on SaaSHub',
+            width: 150,
+            height: 40,
+          },
+          {
+            href: 'https://programmerneeds.com/tools/cbz-reader?utm_source=maker-site&utm_medium=badge&utm_campaign=cbz-reader',
+            src: 'https://programmerneeds.com/api/badge/cbz-reader?v=10',
+            alt: 'Find CBZ Reader on ProgrammerNeeds',
+            width: 220,
+            height: 54,
+          },
         ],
       },
     ],
