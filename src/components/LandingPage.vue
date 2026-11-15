@@ -362,6 +362,36 @@ function toolKindLabel(kind: 'sample' | 'tool' | 'guide'): string {
             />
           </svg>
         </a>
+        <a
+          class="site-footer__badge"
+          href="https://www.saashub.com/cbz-reader-mavi-help?utm_source=badge&amp;utm_campaign=badge&amp;utm_content=cbz-reader-mavi-help&amp;badge_variant=color&amp;badge_kind=approved"
+          target="_blank"
+          rel="noopener"
+        >
+          <img
+            src="https://cdn-b.saashub.com/img/badges/approved-color.png?v=1"
+            alt="Approved on SaaSHub"
+            width="150"
+            height="40"
+            loading="lazy"
+            decoding="async"
+          />
+        </a>
+        <a
+          class="site-footer__badge"
+          href="https://programmerneeds.com/tools/cbz-reader?utm_source=maker-site&amp;utm_medium=badge&amp;utm_campaign=cbz-reader"
+          target="_blank"
+          rel="noopener"
+        >
+          <img
+            src="https://programmerneeds.com/api/badge/cbz-reader?v=10"
+            alt="Find CBZ Reader on ProgrammerNeeds"
+            width="220"
+            height="54"
+            loading="lazy"
+            decoding="async"
+          />
+        </a>
       </nav>
     </div>
   </footer>
