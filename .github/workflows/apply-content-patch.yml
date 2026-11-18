@@ -1,0 +1,53 @@
+name: Apply content patch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/patch/what-is-cbz-block.txt'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-content-patch
+  cancel-in-progress: true
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # One-off: swaps the /what-is-a-cbz-file/ entry in src/content/pages.ts
+      # for the block in scripts/patch/. Removed after the run.
+      - name: Splice the entry into pages.ts
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          pages = Path('src/content/pages.ts')
+          block = Path('scripts/patch/what-is-cbz-block.txt')
+          source = pages.read_text(encoding='utf-8')
+          entry = block.read_text(encoding='utf-8')
+
+          start = source.index("  {\n    path: '/what-is-a-cbz-file/',")
+          end = source.index("  {\n    path: '/how-to-make-a-cbz-file/',")
+          result = source[:start] + entry + source[end:]
+          if result == source:
+              raise SystemExit('nothing changed')
+          pages.write_text(result, encoding='utf-8')
+          print('pages.ts', len(source), '->', len(result), 'bytes')
+          PY
+
+      - name: Commit and push
+        run: |
+          git config user.name "content-patch-bot"
+          git config user.email "content-patch-bot@users.noreply.github.com"
+          git add src/content/pages.ts
+          git diff --cached --stat
+          git commit -m "重写 what-is-a-cbz-file 页面内容"
+          git push
