@@ -1,0 +1,55 @@
+name: Apply content patch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/patch/pages.json'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-content-patch
+  cancel-in-progress: true
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # One-off: replaces the page entries listed in scripts/patch/pages.json
+      # with the block files beside it. Removed after the run.
+      - name: Replace page entries
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          pages = Path('src/content/pages.ts')
+
+          for item in json.loads(Path('scripts/patch/pages.json').read_text(encoding='utf-8')):
+              source = pages.read_text(encoding='utf-8')
+              current = "    path: '%s'," % item['path']
+              following = "    path: '%s'," % item['next']
+              i = source.index(current)
+              j = source.index(following)
+              start = source.rindex('  {', 0, i)
+              end = source.rindex('  },', 0, j) + len('  },')
+              block = Path(item['block']).read_text(encoding='utf-8').rstrip('\n')
+              pages.write_text(source[:start] + block + source[end:], encoding='utf-8')
+              print('replaced', item['path'])
+          PY
+
+      - name: Commit and push
+        run: |
+          git config user.name "content-patch-bot"
+          git config user.email "content-patch-bot@users.noreply.github.com"
+          git add src/content/pages.ts
+          git diff --cached --stat
+          git commit -m "重写 cbz-vs-cbr 与 how-to-make-a-cbz-file 两页内容"
+          git push
