@@ -1,0 +1,142 @@
+  {
+    path: '/what-is-a-cbz-file/',
+    title: 'What Is a CBZ File? Structure, Contents, and How to Open One',
+    description:
+      'A .cbz is a ZIP archive of comic page images in reading order. What is inside, how to check the file really is one, which readers open it, and the problems that look like a broken file.',
+    h1: 'What is a CBZ file?',
+    eyebrow: 'File basics',
+    lead: 'A .cbz is a ZIP archive of comic page images with a comic-specific extension.',
+    schema: 'article',
+    updated: '2026-11-18',
+    sections: [
+      {
+        heading: 'The short answer',
+        paragraphs: [
+          'A CBZ file, short for Comic Book ZIP, is a ZIP archive that holds the pages of a comic or manga in reading order. The .cbz extension labels the archive as a comic so a reader knows what to do with it. Underneath it is an ordinary ZIP: the same PK header, the same central directory, the same lossless compression.',
+          'It is not a document format like PDF. Nothing inside describes layout, fonts, or text flow. It is a stack of page images with an extension that says: open these in order.',
+        ],
+      },
+      {
+        heading: 'What is usually inside',
+        bullets: [
+          'Page images in reading order. JPEG is the most common, but PNG, WebP, GIF, AVIF, and BMP all work. One image is one page.',
+          'ComicInfo.xml, an optional metadata file with the series name, volume or issue number, page count, and reading direction. A reader may use it to fill a library entry.',
+          'Optional folders, one per chapter or per volume. The format does not require a flat layout.',
+        ],
+        note: {
+          title: 'ComicInfo.xml is optional, and often missing',
+          paragraphs: [
+            'Scanned and repacked archives rarely carry it. The reader then falls back to page order and to the direction chosen in the toolbar, which is why a manga volume without metadata can still read right-to-left. A CBZ that has no ComicInfo.xml opens exactly like one that does.',
+          ],
+        },
+      },
+      {
+        heading: 'Where the page order comes from',
+        paragraphs: [
+          'A CBZ has no page numbers stored inside it. Readers open pages in the order they sort the file names, so pages are almost always numbered with leading zeros: 001.jpg, 002.jpg, and so on.',
+          'Without that padding, a plain name sort puts 1, 10, and 11 ahead of 2, and the volume turns out of sequence. When a CBZ opens in the wrong order, the file list is almost always the cause, not the reader.',
+        ],
+      },
+      {
+        heading: 'Compression does not change the image',
+        paragraphs: [
+          'ZIP compression is lossless. It shrinks the archive without changing a single pixel of the pages inside, so repacking the same images into a new CBZ leaves them exactly as they were.',
+          'Quality drops in one place only: when a tool re-saves the images themselves, for example by writing pages out as lower-quality JPEGs before packing. That is a conversion, not compression.',
+        ],
+        link: { href: '/how-to-make-a-cbz-file/', label: 'Pack a folder of images into a CBZ' },
+      },
+      {
+        heading: 'CBZ, ZIP, CBR, CB7',
+        paragraphs: [
+          'A CBZ and a ZIP are the same container. Only the extension and the convention differ, which also means the extension alone proves nothing about what is inside.',
+        ],
+        table: {
+          head: ['Extension', 'Container', 'What it means in practice'],
+          rows: [
+            ['.cbz', 'ZIP', 'The usual comic archive. Every reader listed below opens it.'],
+            ['.cbr', 'RAR', 'Needs a RAR decoder, which browsers do not ship.'],
+            ['.cb7', '7z', 'Rare. Often packed as one solid block, so a page cannot be reached instantly.'],
+            ['.cba', 'ACE', 'A legacy format from the 2000s, very rare today.'],
+          ],
+        },
+        link: { href: '/cbz-vs-cbr/', label: 'Compare CBZ, CBR, and CB7 in detail' },
+      },
+      {
+        heading: 'How to check that the file really is a CBZ',
+        paragraphs: [
+          'Rename a .cbr to .cbz and the bytes do not change: the label says ZIP, the file is still RAR. The header decides, so look at the first bytes rather than the name.',
+        ],
+        bullets: [
+          'A ZIP starts with the two bytes PK, and most CBZ files do.',
+          'Rar! means the file is a CBR with a renamed extension. 7z means it is a CB7.',
+          'On Windows, copy the file, rename the copy to .zip, and open it. If the page images appear, it is a ZIP archive.',
+          'On macOS or Linux, run unzip -l file.cbz. A readable page list means the archive is intact and is ZIP.',
+          'If the content opens as a web page, the download saved an error or login page under the archive name. HTML starts with <html or <!doctype.',
+        ],
+      },
+      {
+        heading: 'What opens a CBZ',
+        bullets: [
+          'A browser, through a reader that unpacks the archive in the tab. Nothing to install, and the file never leaves the device.',
+          'Phone and tablet comic apps, including Tachiyomi-style readers and Moon Reader.',
+          'Desktop readers such as YACReader, CDisplayEx, ComicRack, and calibre.',
+          'E-readers and their companion apps, when the device library accepts archive imports over USB or through a sync folder.',
+        ],
+        link: { href: '/how-to-open-cbz/', label: 'Open a CBZ on desktop, Android, or iPhone' },
+      },
+      {
+        heading: 'Problems that look like a broken CBZ',
+        bullets: [
+          'A blank or generic icon means no program on that system claims the extension. The file is still valid.',
+          'An archive that will not list its pages is usually an incomplete download, a split archive, or a damaged central directory.',
+          'Pages out of sequence are a naming problem, fixed by renaming the files with zero-padded numbers.',
+          'A file that opens as text or as a web page was saved wrongly by the browser, not packed wrongly.',
+        ],
+        link: { href: '/cbz-file-wont-open/', label: 'Steps for a CBZ file that will not open' },
+      },
+    ],
+    faq: [
+      {
+        question: 'Is a CBZ the same as a ZIP?',
+        answer:
+          'Yes. Same header, same central directory, same compression. CBZ is the extension and the convention that tells reader software the archive is a comic.',
+      },
+      {
+        question: 'Does packing pages into a CBZ reduce quality?',
+        answer:
+          'No. ZIP compression is lossless. Pages look worse only when a tool re-saves the images at a lower quality before packing.',
+      },
+      {
+        question: 'What is ComicInfo.xml?',
+        answer:
+          'An optional metadata file inside the archive with the series name, volume, page count, and reading direction. Readers may use it to build a library entry. A CBZ without it still opens.',
+      },
+      {
+        question: 'Why does my CBZ show a blank icon?',
+        answer:
+          'No program on that system claims the extension. The file is still valid; open it in a reader, or assign one as the default for .cbz.',
+      },
+      {
+        question: 'What is the difference between CBZ and CBR?',
+        answer:
+          'CBZ is ZIP, CBR is RAR. ZIP keeps every page separate, so a reader jumps straight to a later page. Solid RAR and 7z streams often have to unpack everything before the chosen page.',
+      },
+      {
+        question: 'Can a CBZ contain text, video, or audio?',
+        answer:
+          'No. A CBZ is a bundle of page images. Video, audio, and scripted storytelling belong to other formats.',
+      },
+    ],
+    related: [
+      '/how-to-open-cbz/',
+      '/how-to-make-a-cbz-file/',
+      '/cbz-vs-cbr/',
+      { href: '/cbz-to-pdf/', label: 'Turn it into a PDF locally' },
+      { href: '/private-process/', label: 'What the tab does with it' },
+    ],
+    bridge: {
+      text: 'What happens to the file when the tab opens it?',
+      href: '/private-process/',
+      label: 'See the private process',
+    },
+  },
