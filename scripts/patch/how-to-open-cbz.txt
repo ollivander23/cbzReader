@@ -1,0 +1,119 @@
+  {
+    path: '/how-to-open-cbz/',
+    title: 'How to Open a CBZ File on Windows, Mac, iPhone, and Android',
+    description:
+      'A friend sends you a .cbz and double-clicking does nothing. Open it in a browser tab, on Windows, Mac, iPhone, or Android, and flip the page direction when a manga volume reads backwards.',
+    h1: 'How to open a CBZ file',
+    eyebrow: 'Step-by-step guide',
+    lead: 'It is late, a friend drops a .cbz into the chat, and the file just sits there. Double-clicking does nothing, and there is no comic app on this laptop.',
+    schema: 'article',
+    updated: '2026-11-18',
+    sections: [
+      {
+        heading: 'Nothing happens on a double-click, and that is normal',
+        paragraphs: [
+          'A CBZ is a ZIP file with a comic-book name. Windows and macOS know exactly what a .zip is, but the .cbz ending belongs to no program on a fresh install, so your double-click lands nowhere. The file is not damaged, and nobody has claimed it yet.',
+          'That answers half the question already. You are not fixing anything, you are choosing who opens it. There are three choices: a browser tab, an archive tool, or a reader app you install once and keep.',
+        ],
+      },
+      {
+        heading: 'The quickest route: open it in a browser tab',
+        paragraphs: [
+          'Go to this site, drop the archive on the page, or press the button and pick it from the folder it landed in. The page count appears as soon as the archive is read, usually a second or two for a normal volume.',
+          'Turn pages with the arrow keys, the slider along the bottom, or a swipe on a touch screen. It remembers where you stopped, so page 40 is still page 40 when you open the laptop tomorrow.',
+        ],
+        bullets: [
+          'Nothing gets installed.',
+          'Nothing gets uploaded. The tab reads the file where it already sits on your disk.',
+        ],
+        link: { href: '/private-process/', label: 'How the tab reads a file without sending it anywhere' },
+      },
+      {
+        heading: 'Windows: what to pick when the icon is blank',
+        paragraphs: [
+          'A new Windows install has no idea what a .cbz is. 7-Zip and WinRAR will open the archive and show you the pages, which is handy when you want to look at one page or check whether the file is complete. Unpacking a 300-page volume just to read it is slower than the tab.',
+          'If you read comics more than once a month, install a reader. CDisplayEx, YACReader and ComicRack all take .cbz, and after one install the blank icons turn into real ones.',
+          'One detail that catches people: Windows can keep handing .cbz to the old program. Right-click a file, choose Open with, then Always, and the association sticks.',
+        ],
+      },
+      {
+        heading: 'Mac: it opens, just not as a comic',
+        paragraphs: [
+          'Macs hand a .cbz to Archive Utility, which unpacks it into a folder of 001.jpg, 002.jpg and so on. That is a fine way to see whether the file is sound, but it is not reading: you end up clicking through images in Preview one at a time.',
+          'The browser tab skips the unpacking. For regular reading, YACReader or Panels give you a proper page view and a shelf to keep volumes on.',
+        ],
+      },
+      {
+        heading: 'iPhone and iPad: the file has to be really on the device',
+        paragraphs: [
+          'Save the archive into Files first. When a file arrives through Mail or from a cloud folder, iOS can leave it as a placeholder that looks exactly like a real file but has no data behind it, and every reader fails on those. Tap it once and let it download.',
+          'Then open the site in Safari and pick it from Files. On an iPad, a comic app with a shelf view is more comfortable than a browser tab for long sessions.',
+        ],
+      },
+      {
+        heading: 'Android: look in Downloads, not in the app list',
+        paragraphs: [
+          'The archive is usually in Downloads, or in the folder the chat app saves to. Open the site in Chrome and choose it from there.',
+          'If a file manager refuses to list it, that is a filter on the extension rather than a missing file. The browser picker does not apply that filter, which makes it the easier route.',
+        ],
+      },
+      {
+        heading: 'Manga that reads backwards',
+        paragraphs: [
+          'A Japanese volume is meant to be read right to left: what you would call page one sits at the right edge, and moving forward means moving left. If the volume feels wrong, it usually is.',
+          'Press RTL in the toolbar and the direction flips. Archives that carry ComicInfo.xml with Manga set to YesAndRightToLeft open that way on their own, but most scans carry no metadata at all.',
+        ],
+        link: { href: '/what-is-a-cbz-file/', label: 'What is inside an archive, and why page order matters' },
+      },
+      {
+        heading: 'When the file still will not open',
+        paragraphs: [
+          'Two causes cover most cases: a download that never finished, and a .rar renamed to .cbz. Both take about a minute to check.',
+        ],
+        link: { href: '/cbz-file-wont-open/', label: 'Check the file, one step at a time' },
+      },
+    ],
+    faq: [
+      {
+        question: 'Can I open a CBZ with 7-Zip or WinRAR?',
+        answer:
+          'Yes, both extract the pages, which is useful for checking one page or repacking. For reading a whole volume, a tab or a reader is quicker, because extraction leaves you with hundreds of loose images.',
+      },
+      {
+        question: 'Does it work offline?',
+        answer:
+          'After the first visit the page is cached, so the reader opens without a connection. The archive is already on your disk, so page turning does not need the network either.',
+      },
+      {
+        question: 'Why are the pages out of order?',
+        answer:
+          'Sorting filenames as text puts 10 before 2. This reader compares numbers, which fixes a lot of scans; other readers need the names zero-padded, like 001, 002.',
+      },
+      {
+        question: 'Can I read a CBZ on a Kindle?',
+        answer:
+          'Not directly. Convert it to PDF first, or use an app that accepts archives. Kindle firmware does not open CBZ on its own.',
+      },
+      {
+        question: 'Do I need an account or an install?',
+        answer:
+          'Neither. The tab is the whole reader, there is no sign-in, and there is no app to download.',
+      },
+      {
+        question: 'Is it safe to open a CBZ from a stranger?',
+        answer:
+          'A real CBZ holds images, and a reader only decodes those. What to watch for is a file that is not an archive at all, for example an executable someone renamed. Check the first bytes before you trust the name.',
+      },
+    ],
+    related: [
+      '/',
+      '/what-is-a-cbz-file/',
+      '/cbz-to-pdf/',
+      { href: '/cbz-vs-cbr/', label: 'CBR needs a different decoder' },
+    ],
+    bridge: {
+      text: 'Curious what the tab does with the file while it reads?',
+      href: '/private-process/',
+      label: 'See the private process',
+    },
+  },
