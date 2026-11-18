@@ -1,0 +1,120 @@
+  {
+    path: '/how-to-make-a-cbz-file/',
+    title: 'How to Make a CBZ File from Images or a Folder',
+    description:
+      'A folder of 120 scans and one file to send. Fix the page names, pack the images rather than the folder, choose Store, skip the password, and test the archive before it goes out.',
+    h1: 'How to make a CBZ file',
+    eyebrow: 'Packing guide',
+    lead: 'A folder of scans sits on your desktop, 120 images named scan_001.jpg upward, and the scanner slipped in two names that sort in the wrong place. You want one file that opens at page one and turns to the end.',
+    schema: 'article',
+    updated: '2026-11-18',
+    sections: [
+      {
+        heading: 'Fix the names before you pack anything',
+        paragraphs: [
+          'The archive stores no page numbers. Readers sort the filenames and read them in that order, so the names are the page order. Rename them to a fixed width: 001.jpg through 120.jpg.',
+          'Fixed width matters more than it sounds. Sorted as text, 10.jpg comes before 2.jpg, and a hundred pages arrive shuffled. Padding every number to the same number of digits is the entire fix.',
+          'While you are in there, delete duplicates and any extra image the scanner made. Two files cannot share a name inside one archive anyway, and the one that survives is not the one you expect.',
+        ],
+      },
+      {
+        heading: 'Windows: two clicks and one trap',
+        paragraphs: [
+          'Select the images themselves, right-click, choose Send to, then Compressed (zipped) folder. Windows names the result after the first file, so rename it to something readable like book.cbz.',
+          'The trap is selecting the folder instead of the images. That puts a folder inside the archive, and plenty of readers treat the top folder as a chapter, which shifts the whole volume down a level.',
+        ],
+      },
+      {
+        heading: 'Mac: Compress, then rename',
+        paragraphs: [
+          'Select the images, right-click, and choose Compress. You get Archive.zip beside them; rename it so it ends in .cbz. Same trap applies: compress the images, not the folder holding them.',
+          'Do not double-click the result to check whether it worked. Archive Utility will unpack the volume into a folder of images, which is a slow way to confirm that the file exists.',
+        ],
+      },
+      {
+        heading: 'Terminal: one line, no surprises',
+        paragraphs: [
+          'From inside the image folder, zip -0 -X book.cbz *.jpg builds the archive out of the images alone. The -0 flag stores the pages without deflating them, and -X keeps out the extra attributes macOS likes to attach to files.',
+          'Storing is the right default. A JPEG is already compressed, so deflate saves a few percent and costs CPU on every page turn afterwards.',
+        ],
+      },
+      {
+        heading: 'The three settings that actually matter',
+        bullets: [
+          'Store instead of Deflate. A comic page is already a compressed image, and a reader decodes one page at a time.',
+          'No password. Browsers cannot prompt for ZIP passwords, so an encrypted archive simply will not open in a tab.',
+          'Watch the size limits. Past 4 GiB or 65,535 entries the tool switches to ZIP64, and some readers handle those badly. Split a huge run into two volumes.',
+        ],
+      },
+      {
+        heading: 'Leave out what is not a page',
+        bullets: [
+          '__MACOSX and .DS_Store come from macOS and add nothing to the comic.',
+          'Thumbs.db comes from Windows and shows up as a grey page in some readers.',
+          'Cover thumbnails and stray PDFs confuse the page count.',
+          'A readme or an executable inside makes the archive look wrong, and some readers refuse it outright.',
+        ],
+      },
+      {
+        heading: 'ComicInfo.xml, if you want a proper title',
+        paragraphs: [
+          'One small XML file at the root of the archive can carry the series name, the volume number and the reading direction. It is optional: without it, a reader falls back to the filenames and to the direction you pick in the toolbar.',
+          'What it cannot do is reorder the pages. Filenames still decide that, which is why the first step is worth more than any metadata.',
+        ],
+        link: { href: '/what-is-a-cbz-file/', label: 'What else can sit inside an archive' },
+      },
+      {
+        heading: 'Test it before you send it',
+        bullets: [
+          'Rename a copy to .zip and open it: the page count matches, page one is first, and nothing extra sits in the middle.',
+          'Open it in a reader and jump to page 40. A truncated archive usually fails when it is opened, not halfway through.',
+          'Compare the archive size with the folder. An archive far smaller than the images lost something on the way.',
+        ],
+        link: { href: '/cbz-file-wont-open/', label: 'If the finished file refuses to open' },
+      },
+    ],
+    faq: [
+      {
+        question: 'Do I need special software to make a CBZ?',
+        answer:
+          'No. Any ZIP tool works, and .cbz is only the extension. The comic-specific part is the naming and the contents, not the tool.',
+      },
+      {
+        question: 'Does zipping lower image quality?',
+        answer:
+          'No. ZIP is lossless. Quality drops only when a tool re-saves the pages before packing them.',
+      },
+      {
+        question: 'Can I make a CBZ on a phone?',
+        answer:
+          'Yes. Files by Google and iOS Files both compress selected files; rename the result so it ends in .cbz.',
+      },
+      {
+        question: 'Why does my archive open with a folder inside?',
+        answer:
+          'The folder was compressed instead of the images. Unpack it, select the images themselves, and compress again.',
+      },
+      {
+        question: 'Do I need ComicInfo.xml for the pages to be in order?',
+        answer:
+          'No. Filenames decide the order. ComicInfo.xml adds titles and reading direction on top.',
+      },
+      {
+        question: 'What should the finished file be called?',
+        answer:
+          'Anything ending in .cbz, ideally something you would recognise in a folder list. Keep the extension lowercase and avoid characters other systems reject.',
+      },
+    ],
+    related: [
+      '/what-is-a-cbz-file/',
+      '/how-to-open-cbz/',
+      '/cbz-file-wont-open/',
+      '/cbz-vs-cbr/',
+      { href: '/cbz-to-pdf/', label: 'Turn the pages into a PDF' },
+    ],
+    bridge: {
+      text: 'What does the tab do when the finished file is opened here?',
+      href: '/private-process/',
+      label: 'See the private process',
+    },
+  },
