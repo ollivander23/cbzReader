@@ -286,64 +286,125 @@ export const PAGES: PageContent[] = [
     path: '/cbz-vs-cbr/',
     title: 'CBZ vs CBR vs CB7: What Is the Difference?',
     description:
-      'CBZ is ZIP, CBR is RAR, and CB7 is 7z. Compare compatibility, compression, licensing, and which format this browser reader supports today.',
+      'Two files from the same series, one opens and one does not. CBZ is ZIP, CBR is RAR, CB7 is 7z. What changes in practice, why browsers only read ZIP, and how to convert a CBR.',
     h1: 'CBZ vs CBR vs CB7',
     eyebrow: 'Format comparison',
-    lead: 'A .cbr lands in your downloads folder and the icon stays blank. A .cbz from the same series opens fine, and the two files look alike in the list.',
+    lead: 'A .cbr lands in your downloads folder and the icon stays blank. The .cbz from the same series opens fine, and in the file list the two look exactly alike.',
     schema: 'article',
-    updated: '2026-11-13',
+    updated: '2026-11-18',
     sections: [
       {
-        heading: 'Same book, different container',
+        heading: 'Two files, one opens and one does not',
+        paragraphs: [
+          'This is where the whole format question starts. Same series, roughly the same size, same blank icon, and only one of them works. The names differ by a single letter, so the natural guess is that something is broken. Usually nothing is broken. They are packed in different boxes.',
+          'The ending of a filename is a label somebody typed, and labels can be wrong. The first bytes of the file tell the truth, and renaming does not change them.',
+        ],
         bullets: [
-          'CBZ is ZIP. CBR is RAR. CB7 is 7z.',
-          'The extension is a label, not a conversion: rename a .cbr to .cbz and the bytes are still RAR, so a ZIP reader still fails.',
-          'CB7 is rare among comics and often compressed as one solid block, which matters for the next section.',
+          'PK means ZIP, which is a CBZ or a plain ZIP archive.',
+          'Rar! means RAR, which is a CBR.',
+          '7z means 7z, which is a CB7. Rare among comics.',
         ],
       },
       {
-        heading: 'What the container changes',
+        heading: 'Same comic, different box',
         paragraphs: [
-          'ZIP keeps a directory and each page separate, so a reader jumps to page 180 without touching the rest. RAR and 7z can compress every page as one stream: to reach page 180, the decoder unpacks everything before it.',
-          'RAR also needs the UnRAR decoder, which is free to use but not OSI open source. That is why browsers ship no RAR reader.',
+          'Think of the comic as a stack of printed pages. CBZ, CBR and CB7 are three boxes for that stack. Moving the pages from a RAR box into a ZIP box converts the file. Relabelling the box does not move anything.',
+        ],
+        table: {
+          head: ['Extension', 'What is inside', 'Opens in a browser tab'],
+          rows: [
+            ['.cbz', 'ZIP', 'Yes, on any machine'],
+            ['.cbr', 'RAR', 'No, needs a RAR decoder'],
+            ['.cb7', '7z', 'No, and a solid block cannot seek'],
+            ['.cba', 'ACE', 'No, a legacy format from the 2000s'],
+          ],
+        },
+        note: {
+          title: 'Renaming is not converting',
+          paragraphs: [
+            'Change .cbr to .cbz and the label changes while the bytes stay RAR. A ZIP reader opens the file, reads the first bytes, sees Rar! and stops. The extension promised something the content does not deliver.',
+          ],
+        },
+      },
+      {
+        heading: 'Why one jumps to page 180 and the other waits',
+        paragraphs: [
+          'ZIP keeps a table of contents, and every page is a separate entry. A reader can ask for entry 180 and decode only that one, which is why a long volume opens at the page you left almost instantly.',
+          'RAR and 7z are often packed as one solid stream. To reach page 180 the decoder has to walk through everything ahead of it. On a phone that is the difference between a swipe and a three-second pause.',
+        ],
+      },
+      {
+        heading: 'Why every browser reads ZIP and none reads RAR',
+        paragraphs: [
+          'Browsers ship a ZIP reader because ZIP is everywhere and the code is free to bundle. Nobody ships a RAR reader, and the reason is licensing rather than laziness: UnRAR is free to use but not open source, so a browser cannot simply include it.',
+          'That single fact explains most of the practical difference. A CBZ opens in a tab anywhere. A CBR needs software written specifically to unpack RAR.',
         ],
       },
       {
         heading: 'Which one to keep',
         paragraphs: [
-          'Keep CBZ for anything you read on a phone, a Chromebook, or in a browser. Use CBR or CB7 only when the source arrived that way.',
-          'Two files can look identical in a folder and behave differently, because the listing shows extensions, not bytes. The header decides: PK means ZIP, Rar! means RAR, 7z means 7z.',
+          'Keep CBZ for anything you read on a phone, a Chromebook, or in a browser. It opens without an extra decoder, and jumping to a later page is cheap.',
+          'Keep CBR or CB7 only when that is how the file arrived. RAR usually squeezes out a few percent more, which sounds like a win until you are waiting on page 180 or borrowing a machine that cannot unpack it.',
         ],
       },
       {
-        heading: 'What this site opens',
+        heading: 'Converting a CBR to a CBZ',
+        flow: [
+          'Extract the pages from the .cbr with a RAR tool',
+          'Select the images and compress them into a ZIP',
+          'Rename the ZIP so it ends in .cbz',
+        ],
         paragraphs: [
-          'This site opens CBZ and ZIP only. CBR and CB7 need a decoder browsers do not ship, and a solid archive cannot open instantly.',
-          'To read a CBR here, extract it with a local RAR tool, repack the images as a ZIP, then rename to .cbz.',
-          'The unpacking happens in the tab, and the file is never uploaded.',
+          'Three steps, and nothing more exotic than a tool that can unpack RAR. The images come out unchanged, so nothing is re-compressed and nothing turns blurry. Only the box changes.',
+        ],
+        link: { href: '/how-to-make-a-cbz-file/', label: 'Pack the images with page numbers in the right order' },
+      },
+      {
+        heading: 'What this site opens, and why',
+        paragraphs: [
+          'CBZ and ZIP, in a tab, with nothing uploaded. CBR and CB7 are left out because of the decoder problem above, and a solid archive would not open instantly even if the decoder existed.',
+          'If all you have is a CBR, convert it first with the steps above; the whole job takes a couple of minutes.',
         ],
       },
     ],
     faq: [
       {
         question: 'Is CBR smaller than CBZ?',
-        answer: 'Often, by a few percent, because RAR compresses better. That gain rarely matters next to faster page seeking.',
+        answer:
+          'Usually by a few percent, because RAR compresses a little better. That rarely outweighs slower page seeking and the extra decoder.',
       },
       {
-        question: 'Does a CBZ open everywhere?',
-        answer: 'In most comic apps, phone readers, and browsers. A CBR needs an app that ships a RAR decoder.',
+        question: 'Can I just rename a CBR to CBZ?',
+        answer:
+          'No. The bytes stay RAR and a ZIP reader refuses the file. Extract the pages and repack them instead.',
       },
       {
-        question: 'Which should I download if I have the choice?',
-        answer: 'CBZ. It opens in more places without an extra decoder.',
+        question: 'Which one should I download if I have the choice?',
+        answer:
+          'CBZ. More apps open it, browsers included, and it needs no extra software.',
+      },
+      {
+        question: 'Do desktop readers open all three?',
+        answer:
+          'Most handle CBZ and CBR, fewer handle CB7, and almost none handle CBA. A browser handles only the ZIP ones.',
+      },
+      {
+        question: 'Why is CB7 so rare?',
+        answer:
+          '7z is excellent for archiving and awkward for reading: solid blocks slow down page jumps, and fewer readers support it.',
+      },
+      {
+        question: 'Does the container affect image quality?',
+        answer:
+          'No. Both are lossless containers. What you see depends on the images that were packed, not on the box they sit in.',
       },
     ],
     related: [
       '/',
       '/what-is-a-cbz-file/',
+      '/how-to-open-cbz/',
       '/cbz-file-wont-open/',
-      { href: '/how-to-open-cbz/', label: 'Open a CBZ without installing anything' },
-      { href: '/private-process/', label: 'What the tab does with the file' },
+      { href: '/cbz-to-pdf/', label: 'Turn a CBZ into a PDF' },
     ],
     bridge: {
       text: 'What happens to a CBZ once the tab opens it?',
@@ -497,78 +558,115 @@ export const PAGES: PageContent[] = [
     path: '/how-to-make-a-cbz-file/',
     title: 'How to Make a CBZ File from Images or a Folder',
     description:
-      'Build a CBZ the right way: zero-padded page names, ZIP settings that avoid wasted CPU, optional ComicInfo.xml, and packing mistakes that break page order.',
+      'A folder of 120 scans and one file to send. Fix the page names, pack the images rather than the folder, choose Store, skip the password, and test the archive before it goes out.',
     h1: 'How to make a CBZ file',
     eyebrow: 'Packing guide',
-    lead: 'A folder of scans sits on your desktop, 120 images named scan_001.jpg upward. You want one file that opens at page one and turns to the end.',
+    lead: 'A folder of scans sits on your desktop, 120 images named scan_001.jpg upward, and the scanner slipped in two names that sort in the wrong place. You want one file that opens at page one and turns to the end.',
     schema: 'article',
-    updated: '2026-11-13',
+    updated: '2026-11-18',
     sections: [
       {
-        heading: 'Name the pages first',
+        heading: 'Fix the names before you pack anything',
         paragraphs: [
-          'Number them with a fixed width: 001.jpg through 120.jpg. Plain sorting puts 10 before 2, so padding is the difference between a book and a shuffle.',
+          'The archive stores no page numbers. Readers sort the filenames and read them in that order, so the names are the page order. Rename them to a fixed width: 001.jpg through 120.jpg.',
+          'Fixed width matters more than it sounds. Sorted as text, 10.jpg comes before 2.jpg, and a hundred pages arrive shuffled. Padding every number to the same number of digits is the entire fix.',
+          'While you are in there, delete duplicates and any extra image the scanner made. Two files cannot share a name inside one archive anyway, and the one that survives is not the one you expect.',
         ],
       },
       {
-        heading: 'Pack them',
-        bullets: [
-          'Windows: select the images, right-click, Send to, Compressed (zipped) folder, then rename the result to .cbz.',
-          'macOS: select the images, right-click, Compress, then rename the archive to .cbz. Compress the images, not the folder holding them.',
-          'Command line: `zip -0 -X book.cbz *.jpg` stores the pages without compression and skips extra attributes.',
+        heading: 'Windows: two clicks and one trap',
+        paragraphs: [
+          'Select the images themselves, right-click, choose Send to, then Compressed (zipped) folder. Windows names the result after the first file, so rename it to something readable like book.cbz.',
+          'The trap is selecting the folder instead of the images. That puts a folder inside the archive, and plenty of readers treat the top folder as a chapter, which shifts the whole volume down a level.',
         ],
       },
       {
-        heading: 'Store, and the 4 GiB limit',
+        heading: 'Mac: Compress, then rename',
+        paragraphs: [
+          'Select the images, right-click, and choose Compress. You get Archive.zip beside them; rename it so it ends in .cbz. Same trap applies: compress the images, not the folder holding them.',
+          'Do not double-click the result to check whether it worked. Archive Utility will unpack the volume into a folder of images, which is a slow way to confirm that the file exists.',
+        ],
+      },
+      {
+        heading: 'Terminal: one line, no surprises',
+        paragraphs: [
+          'From inside the image folder, zip -0 -X book.cbz *.jpg builds the archive out of the images alone. The -0 flag stores the pages without deflating them, and -X keeps out the extra attributes macOS likes to attach to files.',
+          'Storing is the right default. A JPEG is already compressed, so deflate saves a few percent and costs CPU on every page turn afterwards.',
+        ],
+      },
+      {
+        heading: 'The three settings that actually matter',
         bullets: [
-          'Pick Store when the tool asks. JPEG and PNG are already compressed; deflate saves a few percent and costs CPU on every page turn.',
-          'Above 4 GiB or 65,535 entries, the archive switches to ZIP64. Some readers open those incorrectly, so split the run into two volumes.',
-          'Do not set a password. Browsers cannot prompt for ZIP passwords, so the file will not open in a tab.',
+          'Store instead of Deflate. A comic page is already a compressed image, and a reader decodes one page at a time.',
+          'No password. Browsers cannot prompt for ZIP passwords, so an encrypted archive simply will not open in a tab.',
+          'Watch the size limits. Past 4 GiB or 65,535 entries the tool switches to ZIP64, and some readers handle those badly. Split a huge run into two volumes.',
         ],
       },
       {
         heading: 'Leave out what is not a page',
         bullets: [
-          'Remove __MACOSX, .DS_Store, Thumbs.db, and cover thumbnails.',
-          'Copy the images in; do not re-save them on the way.',
-          'A PDF inside will be ignored, and a readme or .exe only makes the archive look wrong.',
+          '__MACOSX and .DS_Store come from macOS and add nothing to the comic.',
+          'Thumbs.db comes from Windows and shows up as a grey page in some readers.',
+          'Cover thumbnails and stray PDFs confuse the page count.',
+          'A readme or an executable inside makes the archive look wrong, and some readers refuse it outright.',
         ],
       },
       {
-        heading: 'ComicInfo.xml, if you want a title',
+        heading: 'ComicInfo.xml, if you want a proper title',
         paragraphs: [
-          'One small file at the archive root can set the title and confirm page order; the reader still sorts by filename.',
+          'One small XML file at the root of the archive can carry the series name, the volume number and the reading direction. It is optional: without it, a reader falls back to the filenames and to the direction you pick in the toolbar.',
+          'What it cannot do is reorder the pages. Filenames still decide that, which is why the first step is worth more than any metadata.',
         ],
+        link: { href: '/what-is-a-cbz-file/', label: 'What else can sit inside an archive' },
       },
       {
-        heading: 'Test before sharing',
+        heading: 'Test it before you send it',
         bullets: [
-          'Rename a copy to .zip and open it: the page count matches, the first and last pages are there, and no thumbnails sit in the middle.',
-          'Open it in a reader and jump to page 40. A truncated archive fails at open time, not halfway through.',
-          'Packing happens on your machine; this site never sees the archive.',
+          'Rename a copy to .zip and open it: the page count matches, page one is first, and nothing extra sits in the middle.',
+          'Open it in a reader and jump to page 40. A truncated archive usually fails when it is opened, not halfway through.',
+          'Compare the archive size with the folder. An archive far smaller than the images lost something on the way.',
         ],
+        link: { href: '/cbz-file-wont-open/', label: 'If the finished file refuses to open' },
       },
     ],
     faq: [
       {
-        question: 'Do I need special software?',
-        answer: 'No. Any ZIP tool works; the extension is the only comic-specific part.',
+        question: 'Do I need special software to make a CBZ?',
+        answer:
+          'No. Any ZIP tool works, and .cbz is only the extension. The comic-specific part is the naming and the contents, not the tool.',
       },
       {
         question: 'Does zipping lower image quality?',
-        answer: 'No. ZIP is lossless; quality drops only if a tool re-encodes the pages.',
+        answer:
+          'No. ZIP is lossless. Quality drops only when a tool re-saves the pages before packing them.',
       },
       {
-        question: 'Can I do this on a phone?',
-        answer: 'Yes. Files by Google and iOS Files compress selected files; rename the result to .cbz.',
+        question: 'Can I make a CBZ on a phone?',
+        answer:
+          'Yes. Files by Google and iOS Files both compress selected files; rename the result so it ends in .cbz.',
+      },
+      {
+        question: 'Why does my archive open with a folder inside?',
+        answer:
+          'The folder was compressed instead of the images. Unpack it, select the images themselves, and compress again.',
+      },
+      {
+        question: 'Do I need ComicInfo.xml for the pages to be in order?',
+        answer:
+          'No. Filenames decide the order. ComicInfo.xml adds titles and reading direction on top.',
+      },
+      {
+        question: 'What should the finished file be called?',
+        answer:
+          'Anything ending in .cbz, ideally something you would recognise in a folder list. Keep the extension lowercase and avoid characters other systems reject.',
       },
     ],
     related: [
       '/what-is-a-cbz-file/',
       '/how-to-open-cbz/',
       '/cbz-file-wont-open/',
+      '/cbz-vs-cbr/',
       { href: '/cbz-to-pdf/', label: 'Turn the pages into a PDF' },
-      { href: '/private-process/', label: 'What the tab does with the file' },
     ],
     bridge: {
       text: 'What does the tab do when the finished file is opened here?',
