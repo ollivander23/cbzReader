@@ -167,68 +167,120 @@ export const PAGES: PageContent[] = [
     path: '/how-to-open-cbz/',
     title: 'How to Open a CBZ File on Windows, Mac, iPhone, and Android',
     description:
-      'A CBZ file is a ZIP archive of comic pages. Learn how to open one on desktop or phone, with or without an app, and why page order sometimes breaks.',
+      'A friend sends you a .cbz and double-clicking does nothing. Open it in a browser tab, on Windows, Mac, iPhone, or Android, and flip the page direction when a manga volume reads backwards.',
     h1: 'How to open a CBZ file',
     eyebrow: 'Step-by-step guide',
-    lead: 'At night a friend sends you a .cbz over chat. The laptop has no comic app, and you are not allowed to install one.',
+    lead: 'It is late, a friend drops a .cbz into the chat, and the file just sits there. Double-clicking does nothing, and there is no comic app on this laptop.',
     schema: 'article',
-    updated: '2026-11-13',
+    updated: '2026-11-18',
     sections: [
       {
-        heading: 'Why double-clicking does nothing',
+        heading: 'Nothing happens on a double-click, and that is normal',
         paragraphs: [
-          'Nothing on that machine claims the .cbz extension, so the double-click has nowhere to go. The file itself is a ZIP of page images, and a browser can read a ZIP.',
+          'A CBZ is a ZIP file with a comic-book name. Windows and macOS know exactly what a .zip is, but the .cbz ending belongs to no program on a fresh install, so your double-click lands nowhere. The file is not damaged, and nobody has claimed it yet.',
+          'That answers half the question already. You are not fixing anything, you are choosing who opens it. There are three choices: a browser tab, an archive tool, or a reader app you install once and keep.',
         ],
       },
       {
-        heading: 'Open it in a tab',
+        heading: 'The quickest route: open it in a browser tab',
         paragraphs: [
-          'Open this site, drag the archive onto the page or press the button and choose it, then turn pages with the arrow keys, the slider, or a swipe.',
-          'The page count appears once the archive is open, and the first page follows within a second or two.',
-          'Nothing is installed and nothing is uploaded; the tab reads the archive where it sits.',
+          'Go to this site, drop the archive on the page, or press the button and pick it from the folder it landed in. The page count appears as soon as the archive is read, usually a second or two for a normal volume.',
+          'Turn pages with the arrow keys, the slider along the bottom, or a swipe on a touch screen. It remembers where you stopped, so page 40 is still page 40 when you open the laptop tomorrow.',
         ],
-        link: { href: '/private-process/', label: 'How the tab does it' },
+        bullets: [
+          'Nothing gets installed.',
+          'Nothing gets uploaded. The tab reads the file where it already sits on your disk.',
+        ],
+        link: { href: '/private-process/', label: 'How the tab reads a file without sending it anywhere' },
       },
       {
-        heading: 'On a phone',
+        heading: 'Windows: what to pick when the icon is blank',
         paragraphs: [
-          'On iOS, save the archive to Files, open the site in Safari, and pick it from the Files sheet. On Android it is usually in Downloads: open the site in Chrome and choose it from that folder.',
+          'A new Windows install has no idea what a .cbz is. 7-Zip and WinRAR will open the archive and show you the pages, which is handy when you want to look at one page or check whether the file is complete. Unpacking a 300-page volume just to read it is slower than the tab.',
+          'If you read comics more than once a month, install a reader. CDisplayEx, YACReader and ComicRack all take .cbz, and after one install the blank icons turn into real ones.',
+          'One detail that catches people: Windows can keep handing .cbz to the old program. Right-click a file, choose Open with, then Always, and the association sticks.',
         ],
       },
       {
-        heading: 'If it still will not open',
+        heading: 'Mac: it opens, just not as a comic',
         paragraphs: [
-          'The usual causes are a RAR renamed to .cbz, or a download that stopped early.',
+          'Macs hand a .cbz to Archive Utility, which unpacks it into a folder of 001.jpg, 002.jpg and so on. That is a fine way to see whether the file is sound, but it is not reading: you end up clicking through images in Preview one at a time.',
+          'The browser tab skips the unpacking. For regular reading, YACReader or Panels give you a proper page view and a shelf to keep volumes on.',
         ],
-        link: { href: '/cbz-file-wont-open/', label: 'Work through the checks' },
       },
       {
-        heading: 'If the pages come out backwards',
+        heading: 'iPhone and iPad: the file has to be really on the device',
         paragraphs: [
-          'Manga reads right to left: press RTL in the reader toolbar to flip the direction. Files tagged Manga = YesAndRightToLeft in ComicInfo.xml already start that way.',
+          'Save the archive into Files first. When a file arrives through Mail or from a cloud folder, iOS can leave it as a placeholder that looks exactly like a real file but has no data behind it, and every reader fails on those. Tap it once and let it download.',
+          'Then open the site in Safari and pick it from Files. On an iPad, a comic app with a shelf view is more comfortable than a browser tab for long sessions.',
         ],
+      },
+      {
+        heading: 'Android: look in Downloads, not in the app list',
+        paragraphs: [
+          'The archive is usually in Downloads, or in the folder the chat app saves to. Open the site in Chrome and choose it from there.',
+          'If a file manager refuses to list it, that is a filter on the extension rather than a missing file. The browser picker does not apply that filter, which makes it the easier route.',
+        ],
+      },
+      {
+        heading: 'Manga that reads backwards',
+        paragraphs: [
+          'A Japanese volume is meant to be read right to left: what you would call page one sits at the right edge, and moving forward means moving left. If the volume feels wrong, it usually is.',
+          'Press RTL in the toolbar and the direction flips. Archives that carry ComicInfo.xml with Manga set to YesAndRightToLeft open that way on their own, but most scans carry no metadata at all.',
+        ],
+        link: { href: '/what-is-a-cbz-file/', label: 'What is inside an archive, and why page order matters' },
+      },
+      {
+        heading: 'When the file still will not open',
+        paragraphs: [
+          'Two causes cover most cases: a download that never finished, and a .rar renamed to .cbz. Both take about a minute to check.',
+        ],
+        link: { href: '/cbz-file-wont-open/', label: 'Check the file, one step at a time' },
       },
     ],
     faq: [
       {
         question: 'Can I open a CBZ with 7-Zip or WinRAR?',
-        answer: 'Yes, both extract the images. That works for checking one page; reading a whole volume is faster in a tab.',
+        answer:
+          'Yes, both extract the pages, which is useful for checking one page or repacking. For reading a whole volume, a tab or a reader is quicker, because extraction leaves you with hundreds of loose images.',
       },
       {
         question: 'Does it work offline?',
-        answer: 'After the first visit the page is cached, so the reader loads without a connection. The archive is on your disk, so page turns do not need one either.',
+        answer:
+          'After the first visit the page is cached, so the reader opens without a connection. The archive is already on your disk, so page turning does not need the network either.',
       },
       {
         question: 'Why are the pages out of order?',
-        answer: 'Filenames sorted as text put 10 before 2. This reader compares numbers, and zero-padding the names fixes other readers.',
+        answer:
+          'Sorting filenames as text puts 10 before 2. This reader compares numbers, which fixes a lot of scans; other readers need the names zero-padded, like 001, 002.',
+      },
+      {
+        question: 'Can I read a CBZ on a Kindle?',
+        answer:
+          'Not directly. Convert it to PDF first, or use an app that accepts archives. Kindle firmware does not open CBZ on its own.',
+      },
+      {
+        question: 'Do I need an account or an install?',
+        answer:
+          'Neither. The tab is the whole reader, there is no sign-in, and there is no app to download.',
+      },
+      {
+        question: 'Is it safe to open a CBZ from a stranger?',
+        answer:
+          'A real CBZ holds images, and a reader only decodes those. What to watch for is a file that is not an archive at all, for example an executable someone renamed. Check the first bytes before you trust the name.',
       },
     ],
     related: [
       '/',
-      '/cbz-vs-cbr/',
       '/what-is-a-cbz-file/',
-      { href: '/cbz-to-pdf/', label: 'Open it as a PDF instead' },
+      '/cbz-to-pdf/',
+      { href: '/cbz-vs-cbr/', label: 'CBR needs a different decoder' },
     ],
+    bridge: {
+      text: 'Curious what the tab does with the file while it reads?',
+      href: '/private-process/',
+      label: 'See the private process',
+    },
   },
   {
     path: '/cbz-vs-cbr/',
@@ -528,84 +580,125 @@ export const PAGES: PageContent[] = [
     path: '/cbz-file-wont-open/',
     title: 'CBZ File Won’t Open? Causes and Fixes',
     description:
-      'Diagnose a CBZ that will not open: renamed RAR, truncated download, encrypted entries, unsupported image types, and picker problems on phones.',
+      'Double-clicking does nothing, or the reader calls the archive invalid. Check the download size, the file header, the index at the end, encryption, and the image formats inside.',
     h1: 'Why a CBZ file will not open',
     eyebrow: 'Troubleshooting',
-    lead: 'You open a CBZ and nothing appears: an empty page, an invalid archive message, or a spinner that never ends. The file is usually intact; the problem is what is inside it.',
+    lead: 'You finally get the volume you have been waiting for. Double-click, and either nothing happens or the spinner sits at zero. Most of the time the archive is fine, and one small thing is in the way.',
     schema: 'article',
-    updated: '2026-11-13',
+    updated: '2026-11-18',
     sections: [
       {
-        heading: 'Check the container first',
+        heading: 'First the boring question: did the download finish?',
         paragraphs: [
-          'A ZIP starts with PK; RAR starts with Rar!, 7z with 7z. If the header differs, the extension was changed, not the format: extract the pages and repack them as a ZIP.',
-          'If the header is HTML, you saved a login or error page under the archive name.',
-          'A zero-byte file, or one far smaller than the source, never finished downloading.',
+          'Compare the size in your folder with the size the source page quotes. A file that stopped at sixty percent looks completely normal in a file list, and it will not open no matter which reader you try.',
+          'Two names ending in .z01 and .z02 are one split archive. Every part has to be joined before anything can read it, and a reader handed only the .cbz part will refuse it.',
+          'A zero-byte file means the browser saved the name before any data arrived. Download again and watch the size as it grows.',
         ],
       },
       {
-        heading: 'The archive is truncated',
+        heading: 'Then check what the file really is',
         paragraphs: [
-          'A ZIP keeps its index at the end. If the last bytes are missing, the reader cannot list the pages, even with the images intact.',
-          'Download again without a split-file manager, then compare the size. If one page fails, `unzip -t` names the damaged entry.',
+          'Extensions are typed by whoever packed the file, and they can be wrong. The first bytes are the part that cannot lie: PK means ZIP, Rar! means RAR, 7z means 7z, and a web page starts with <html or <!doctype.',
         ],
-      },
-      {
-        heading: 'The archive is encrypted',
-        paragraphs: [
-          'Encrypted entries need a password the tab cannot take. Remove it in 7-Zip, then reopen the file.',
-        ],
-      },
-      {
-        heading: 'Images a browser cannot show',
-        paragraphs: [
-          'This reader accepts JPG, PNG, WebP, GIF, AVIF, and BMP. TIFF, JPEG 2000, HEIC, and JPEG XL appear in scans and are not decoded; convert them to JPEG or PNG and repack.',
-        ],
-      },
-      {
-        heading: 'Pages out of order, or some missing',
-        paragraphs: [
-          'Alphabetical sorting puts 10 before 2. Rename with zero-padded numbers. Duplicate names across chapter folders, or thumbnails mixed in, also look like missing pages.',
-        ],
-      },
-      {
-        heading: 'It works on a computer but not on a phone',
         bullets: [
-          'iOS: the file may still be an iCloud placeholder. Download it in Files first.',
-          'Android: the picker may filter .cbz by MIME type. Pick it from Downloads, or rename to .zip.',
-          'Very large pages can exhaust a phone tab; downsize them first.',
+          'Windows: copy the file, rename the copy to .zip, and open it. If the page images appear, it is a ZIP archive.',
+          'macOS or Linux: unzip -l file.cbz lists the pages, and unzip -t reports whether the archive is intact.',
+          'Rar! means someone renamed a CBR. Extract with a RAR tool, repack the images as a ZIP, then rename the result to .cbz.',
+          'HTML means the download saved a login or error page under the archive name. Sign in first, then download again.',
+        ],
+        note: {
+          title: 'Renaming is not converting',
+          paragraphs: [
+            'Changing .cbr to .cbz changes the label and nothing else. The bytes inside still need a RAR decoder, and browsers do not ship one.',
+          ],
+        },
+      },
+      {
+        heading: 'The index at the end of the file is gone',
+        paragraphs: [
+          'A ZIP keeps a small table at the very end that lists where each page starts. Lose the last few kilobytes and the table disappears; every image may still be in there, and the reader cannot show a single page. This is what a broken download usually leaves behind.',
+          'Download again without a split-file manager, then compare the size. If only a few pages misbehave, unzip -t names the damaged entry.',
         ],
       },
       {
-        heading: 'Narrowing it down',
+        heading: 'It is asking for a password',
         paragraphs: [
-          'Try the same file in another reader. If it fails there too, the archive is the problem; if it opens elsewhere, the limits here are image format and encryption.',
-          'Nothing is uploaded while the tab checks the file.',
+          'Encrypted entries need a password, and a browser tab has nowhere to put one. Open the archive in 7-Zip, extract with the password, and save the result as a fresh CBZ.',
         ],
+      },
+      {
+        heading: 'The pages are in a format the app cannot decode',
+        paragraphs: [
+          'JPG, PNG, WebP, GIF, AVIF and BMP are all fine. TIFF, JPEG 2000, HEIC and JPEG XL are not, and they turn up in scans and in exports from photo software. The archive is healthy; the pages simply speak a language the browser does not.',
+          'Convert those pages to JPEG or PNG and repack. A desktop reader often handles TIFF directly, which is the faster path if you only need to look at the content once.',
+        ],
+      },
+      {
+        heading: 'It opens, but pages are out of order or missing',
+        bullets: [
+          '1, 10, 11 sitting ahead of 2 is a text sort. Rename the files with zero-padded numbers.',
+          'The same page name in two chapter folders breaks the sort. Keep one folder per archive.',
+          'Thumbs.db, .DS_Store and __MACOSX folders are packing leftovers, not pages.',
+          'A cover saved as cover.jpg can land in the middle of the volume.',
+        ],
+      },
+      {
+        heading: 'Fine on the computer, stuck on the phone',
+        bullets: [
+          'iOS: an iCloud placeholder looks like a file and has no data behind it. Open it once in Files.',
+          'Android: the file app may filter .cbz by MIME type. The browser picker does not.',
+          'Pages around 4000px can exhaust the memory a phone gives a browser tab. Resize before repacking.',
+        ],
+      },
+      {
+        heading: 'A quick way to tell which side is broken',
+        paragraphs: [
+          'Open the same file in a second reader. If it fails there too, the archive is the problem. If it opens elsewhere, the limit belongs to the first app: an image format it cannot decode, or encryption it cannot touch.',
+          'Checking a file in a browser tab uploads nothing, so the experiment costs nothing either.',
+        ],
+        link: { href: '/private-process/', label: 'What happens while the tab checks a file' },
       },
     ],
     faq: [
       {
-        question: 'Can a corrupted CBZ be repaired?',
-        answer: 'Sometimes. ZIP repair tools rebuild the index; if the index is gone, extracting what remains and repacking is faster.',
+        question: 'Can a damaged CBZ be repaired?',
+        answer:
+          'Sometimes. Repair tools rebuild the index at the end of the archive. When the index is gone for good, extracting the pages that remain and repacking them is usually faster than repairing.',
       },
       {
-        question: 'Why does it open in an archive tool but not in a reader?',
-        answer: 'Archive tools show bytes; a reader needs image entries it can decode. TIFF, HEIC, and encrypted entries all fail there.',
+        question: 'It lists in 7-Zip but no reader will open it',
+        answer:
+          'Archive tools show bytes, readers need images they can decode. TIFF, HEIC and encrypted entries all look fine in 7-Zip and fail in a reader.',
       },
       {
-        question: 'Can I open a split CBZ (.z01, .z02)?',
-        answer: 'Not here. Multi-volume ZIP needs every part joined, and this reader expects one file.',
+        question: 'Can I open a split CBZ?',
+        answer:
+          'Not on its own. Join .z01, .z02 and the rest into a single archive first, then open the result.',
+      },
+      {
+        question: 'Why is one page grey or blank?',
+        answer:
+          'That page image is truncated. Either download the file again or repack the pages that are intact.',
+      },
+      {
+        question: 'What if the file came from a paid store?',
+        answer:
+          'Paid downloads are often wrapped in DRM, which is neither a plain ZIP nor an archive a reader can open. Check the header before you blame the reader.',
+      },
+      {
+        question: 'Will converting it to PDF help?',
+        answer:
+          'It helps when the pages are readable but the app is not. A PDF will not rescue a truncated download.',
       },
     ],
     related: [
       '/how-to-open-cbz/',
-      '/cbz-vs-cbr/',
       '/what-is-a-cbz-file/',
-      { href: '/cbz-to-pdf/', label: 'Try converting the file to PDF' },
+      '/cbz-vs-cbr/',
+      { href: '/cbz-to-pdf/', label: 'Try it as a PDF' },
     ],
     bridge: {
-      text: 'What happens to the file while the tab reads it?',
+      text: 'What does the tab do with a file it cannot open?',
       href: '/private-process/',
       label: 'See the private process',
     },
