@@ -44,12 +44,18 @@ function englishAlternates(path: string): PrerenderAlternate[] {
   ]
 }
 
+// Private and legal pages carry no search value, and a site full of thin pages
+// is judged as a whole. They stay crawlable (follow) but are kept out of the
+// index; the sitemap filters on the same flag, so they leave it at the same time.
+const NOINDEX_PATHS = new Set(['/privacy/', '/terms/', '/disclaimer/'])
+
 export const routes: PrerenderRoute[] = [
   ...PAGES.map((page) => ({
     path: page.path,
     lang: htmlLang('en'),
     alternates: alternatesForPath(page.path) ?? englishAlternates(page.path),
     updated: page.updated,
+    noindex: NOINDEX_PATHS.has(page.path) || undefined,
   })),
   // Translated content pages, e.g. /zh/cbz-to-pdf/ and /ja/cbz-to-pdf/.
   ...LOCALIZED_CONTENT_PAGES.map((page) => ({
