@@ -34,13 +34,17 @@ function buildSchema(
   isHome: boolean,
 ): unknown {
   const language = htmlLang(locale)
-  const organizationId = `${siteUrl}/#organization`
+  const organizationId = 'https://mavi.help/#organization'
   const graph: unknown[] = [
     {
       '@type': 'Organization',
       '@id': organizationId,
-      name: SITE.name,
-      url: `${siteUrl}/`,
+      name: 'mavi.help',
+      url: 'https://mavi.help/',
+      sameAs: [
+        'https://github.com/ollivander23',
+        'https://www.saashub.com/cbz-reader-mavi-help',
+      ],
     },
     {
       '@type': 'WebSite',
@@ -77,6 +81,7 @@ function buildSchema(
         'Zoom and pan',
         'Local reading progress',
       ],
+      isPartOf: { '@id': `${siteUrl}/#website` },
       publisher: { '@id': organizationId },
     })
   } else if (!page.legal) {
