@@ -1,0 +1,31 @@
+# CBZ Reader
+
+> CBZ Reader (cbzreader.mavi.help) opens .cbz comic archives directly in the browser and converts CBZ to PDF. Archives are unpacked and rendered on your own device — nothing is uploaded, no account required.
+
+## Pages
+
+- [Home (EN)](https://cbzreader.mavi.help/): open a CBZ file, right-to-left manga reading, bookmarks, local reading progress, CBZ → PDF.
+- [中文首页](https://cbzreader.mavi.help/zh/)
+- [日本語ホーム](https://cbzreader.mavi.help/ja/)
+- [How to open a CBZ file](https://cbzreader.mavi.help/how-to-open-cbz/)
+- [What is a CBZ file](https://cbzreader.mavi.help/what-is-a-cbz-file/)
+- [How to make a CBZ file](https://cbzreader.mavi.help/how-to-make-a-cbz-file/)
+- [CBZ vs CBR](https://cbzreader.mavi.help/cbz-vs-cbr/)
+- [CBZ file won't open](https://cbzreader.mavi.help/cbz-file-wont-open/)
+- [Convert CBZ to PDF](https://cbzreader.mavi.help/cbz-to-pdf/)
+- [Private processing explained](https://cbzreader.mavi.help/private-process/)
+- [Privacy](https://cbzreader.mavi.help/privacy/)
+- [Terms](https://cbzreader.mavi.help/terms/)
+- [Disclaimer](https://cbzreader.mavi.help/disclaimer/)
+- [About CBZ Reader](https://cbzreader.mavi.help/about/)
+
+## Part of
+
+- mavi.help (site owner): https://mavi.help/
+- About the maker: https://mavi.help/about/
+- Sibling tool 热力地图工坊 (Excel → China heatmap): https://heatmap.mavi.help/
+
+## Notes
+
+- Everything runs locally in the browser: no upload, no account, no cloud copy.
+- The tool is free to use.
